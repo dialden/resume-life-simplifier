@@ -1,0 +1,4 @@
+\set ON_ERROR_STOP on
+
+CREATE DATABASE rls_dev;
+CREATE DATABASE rls_test;

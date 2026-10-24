@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/system/">
+    <Project Path="system/API/DialDen.RLS.API.Root/DialDen.RLS.API.Root.csproj" />
+    <Project Path="system/UI/DialDen.RLS.UI.Root/DialDen.RLS.UI.Root.csproj" />
+    <Project Path="system/UI/DialDen.RLS.UI/DialDen.RLS.UI.csproj" />
+    <Project Path="system/API/DialDen.RLS.API/DialDen.RLS.API.csproj" />
+  </Folder>
+  <Folder Name="/system/Core/">
+    <Project Path="system/Core/DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
+    <Project Path="system/Core/DialDen.RLS/DialDen.RLS.csproj" />
+  </Folder>
+  <Folder Name="/system/Infrastructure/">
+    <Project Path="system/Infrastructure/DialDen.RLS.Infrastructure/DialDen.RLS.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DialDen.RLS.Tests/DialDen.RLS.Tests.csproj" />
+  </Folder>
+</Solution>

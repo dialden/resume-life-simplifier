@@ -1,0 +1,32 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
+{
+	"name": "Resume life simplifier",
+
+	"dockerComposeFile": [
+		"docker-compose.yml"
+	  ],
+	  "service": "dev",
+	  "workspaceFolder": "/workspaces/resume-life-simplifier",
+	"postCreateCommand": "./ops/database/migrate.cs && ./.vscode/configure-postgres-connection.cs",
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [5191, 5294, 5432],
+	"containerEnv": {
+	    "WORKSPACE_ROOT": "${containerWorkspaceFolder}", // Set the workspace root for powershell scripts
+		// This is needed to run the browser tests in the dev container in headed mode.
+		"DISPLAY": "host.docker.internal:0.0"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:4.1.3": {}
+		},
+    // Configure tool-specific properties.
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-dotnettools.csdevkit", // C# Dev Kit
+				"github.vscode-github-actions",
+				"ms-ossdata.vscode-pgsql"
+            ]
+        }
+    }
+}

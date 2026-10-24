@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+      <!-- This gives the class library full access to ASP.NET Core, Routing, and Minimal API types -->
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Core/DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

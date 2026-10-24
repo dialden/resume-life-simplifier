@@ -1,0 +1,7 @@
+[flyway]
+locations = ["filesystem:../../src/system/Database/migrations"]
+validateMigrationNaming = true
+cleanDisabled = true
+
+[environments.default]
+connectRetries = 10

@@ -1,0 +1,41 @@
+﻿@page "/"
+
+<PageTitle>Home</PageTitle>
+
+@inject HttpClient Api
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+}
+else if (_entryPoint is null)
+{
+    <MudText>Loading...</MudText>
+}
+else
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1">Resume Life Simplifier</MudText>
+    <ul aria-label="Available actions">
+        @foreach (var link in _entryPoint.Links)
+        {
+            <li>@link.Rel</li>
+        }
+    </ul>
+}
+
+@code {
+    private RLSEntryPoint? _entryPoint;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _error = $"Could not reach the RLS API: {ex.Message}";
+        }
+    }
+}
