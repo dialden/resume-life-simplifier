@@ -31,7 +31,7 @@ public abstract class TestEnvironment
         var testsConfiguration = GetTestsConfiguration();
         var externalAPIUrl = testsConfiguration.GetValue<string>("ExternalAPIUrl");
         _apiHost = string.IsNullOrWhiteSpace(externalAPIUrl)
-            ? new InProcessAPIHttpHost(ConfigureAppConfiguration)
+            ? new InProcessAPIHttpHost(testsConfiguration)
             : new ExternalHttpHost(externalAPIUrl);
         var externalUIUrl = testsConfiguration.GetValue<string>("ExternalUIUrl");
         _uiHost = string.IsNullOrWhiteSpace(externalUIUrl)
@@ -103,33 +103,6 @@ public abstract class TestEnvironment
             }
             disposedValue = true;
         }
-    }
-
-    /// <summary>
-    /// Override to add additional configuration sources to the RLS web host to override certain settings.
-    /// </summary>
-    /// <example>
-    /// protected override void ConfigureAppConfiguration(IConfigurationBuilder configBuilder)
-    /// {
-    ///    configBuilder.AddJsonFile("appsettings.tests.rls.json", optional: true
-    /// }
-    /// </example>
-    /// <param name="configBuilder">The configuration builder to configure.</param>
-    protected virtual void ConfigureAppConfiguration(IConfigurationBuilder configBuilder)
-    {
-        var testConnectionString = Environment.GetEnvironmentVariable("RLS_TEST_CONNECTION_STRING")
-            ?? GetTestsConfiguration().GetConnectionString("RLS");
-        if (string.IsNullOrWhiteSpace(testConnectionString))
-        {
-            throw new InvalidOperationException(
-                "The test connection string must be configured in ConnectionStrings:RLS " +
-                "or RLS_TEST_CONNECTION_STRING.");
-        }
-
-        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["ConnectionStrings:RLS"] = testConnectionString
-        });
     }
 
     /// <summary>Starts only the hosts the channel needs. Idempotent and safe for parallel scenarios.</summary>
