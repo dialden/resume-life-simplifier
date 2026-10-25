@@ -14,22 +14,26 @@ services:
       # Keep the existing transcript volume; the parent also preserves the session index.
       - copilot-user-data:/home/vscode/.copilot
       - copilot-session-state:/home/vscode/.copilot/session-state
-    command: sleep infinity
+    command:
+      - /bin/sh
+      - -c
+      - cd /workspaces/resume-life-simplifier && dotnet run ops/ui/generate-settings.cs && exec sleep infinity
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      PGHOST: postgres
-      PGPORT: "5432"
-      FLYWAY_USER: ${POSTGRES_USER:-rls}
-      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-rls_dev}
-      ConnectionStrings__RLS: Host=postgres;Port=5432;Database=rls_dev;Username=${POSTGRES_USER:-rls};Password=${POSTGRES_PASSWORD:-rls_dev}
-      RLS_TEST_CONNECTION_STRING: Host=postgres;Port=5432;Database=rls_test;Username=${POSTGRES_USER:-rls};Password=${POSTGRES_PASSWORD:-rls_dev}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?Required}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:?Required}
+      PGHOST: ${PGHOST:?Required}
+      PGPORT: ${PGPORT:?Required}
+      FLYWAY_USER: ${POSTGRES_USER:?Required}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+      ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=rls_dev;Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      RLS_TEST_CONNECTION_STRING: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=rls_test;Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
 
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: ${POSTGRES_USER:-rls}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rls_dev}
+      POSTGRES_DB: ${POSTGRES_DB:?Required}
+      POSTGRES_USER: ${POSTGRES_USER:?Required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required}
     ports:
       - "5432:5432"
     volumes:
