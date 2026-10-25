@@ -11,8 +11,7 @@
             "cwd": "${workspaceFolder}/src",
             "stopAtEntry": false,
             "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development",
-                "ASPNETCORE_URLS": "http://localhost:5294"
+                "ASPNETCORE_URLS": "${env:API_HTTP_URL}"
             }
         },
         {
@@ -21,7 +20,7 @@
             "request": "launch",
             "cwd": "${workspaceFolder}/src/system/UI/DialDen.RLS.UI.Root",
             "preLaunchTask": "build ui",
-            "url": "http://localhost:5133",
+            "url": "${env:UI_HTTP_URL}",
             "browser": "edge"
         }
     ],

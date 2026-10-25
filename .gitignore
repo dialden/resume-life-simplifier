@@ -389,9 +389,14 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
+# Launch profiles are generated from the container environment during setup.
+src/system/API/DialDen.RLS.API.Root/Properties/launchSettings.json
+src/system/UI/DialDen.RLS.UI.Root/Properties/launchSettings.json
+
 # Local settings include generated development PostgreSQL credentials.
 .vscode/*
 !.vscode/configure-postgres-connection.cs
+!.vscode/generate-launch-settings.cs
 !.vscode/default.runsettings
 !.vscode/tasks.json
 !.vscode/launch.json

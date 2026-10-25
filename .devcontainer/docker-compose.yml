@@ -20,7 +20,12 @@ services:
       - exec sleep infinity
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?Required}
-      API_PUBLIC_URL: ${API_PUBLIC_URL:?Required}
+      API_HTTP_URL: ${API_HTTP_URL:?Required}
+      API_HTTPS_URL: ${API_HTTPS_URL:?Required}
+      UI_HTTP_URL: ${UI_HTTP_URL:?Required}
+      UI_HTTPS_URL: ${UI_HTTPS_URL:?Required}
+      Cors__AllowedOrigins__0: ${UI_HTTP_URL:?Required}
+      Cors__AllowedOrigins__1: ${UI_HTTPS_URL:?Required}
       PGHOST: ${PGHOST:?Required}
       PGPORT: ${PGPORT:?Required}
       FLYWAY_USER: ${POSTGRES_USER:?Required}

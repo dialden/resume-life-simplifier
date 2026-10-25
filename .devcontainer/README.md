@@ -2,7 +2,8 @@
 
 VS Code waits for [post-create.sh](./post-create.sh) to finish before attaching
 to a newly created container. Setup migrates the development and test databases,
-generates UI settings, and configures the local PostgreSQL connection in VS Code.
+generates UI settings and API/UI launch profiles, and configures the local
+PostgreSQL connection in VS Code.
 
 Wait for **RLS setup complete. You can start working and debugging now.** in the
 container setup output before starting the debugger. Then select **API + UI** in
@@ -30,4 +31,22 @@ For other settings, use double underscores for nested environment keys, such as
 are `--Logging:LogLevel:Microsoft.AspNetCore=Warning` and
 `--Cors:AllowedOrigins:0=https://example.com`.
 
-Loopback origins remain allowed in the Development environment.
+Compose sets `Cors__AllowedOrigins__0` from `UI_HTTP_URL` and
+`Cors__AllowedOrigins__1` from `UI_HTTPS_URL` to match the UI launch profiles.
+Loopback origins remain allowed in the Development environment. Rebuild the
+container after changing its environment variables.
+
+## Launch configuration
+
+Set `API_HTTP_URL`, `API_HTTPS_URL`, `UI_HTTP_URL`, `UI_HTTPS_URL`, and
+`ASPNETCORE_ENVIRONMENT` in [.env](./.env). URLs must be origins without paths
+or trailing slashes. HTTP URLs use HTTP; HTTPS URLs use HTTPS.
+
+Compose exports these values to the container. During setup,
+[generate-launch-settings.cs](../.vscode/generate-launch-settings.cs)
+generates local, Git-ignored API and UI launch settings with `http` and `https`
+profiles, preserving Swagger and Blazor browser debugging support. VS Code's
+API and UI debug configurations use `API_HTTP_URL` and `UI_HTTP_URL`.
+
+After changing these values, rebuild the container to refresh its environment
+and regenerate the settings. Do not edit generated launch settings directly.
