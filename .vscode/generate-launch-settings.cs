@@ -9,8 +9,8 @@ var apiHttpsUrl = RequireOrigin("API_HTTPS_URL", Uri.UriSchemeHttps);
 var uiHttpUrl = RequireOrigin("UI_HTTP_URL", Uri.UriSchemeHttp);
 var uiHttpsUrl = RequireOrigin("UI_HTTPS_URL", Uri.UriSchemeHttps);
 
-var apiDirectory = Path.GetFullPath("src/system/API/DialDen.RLS.API.Root");
-var uiDirectory = Path.GetFullPath("src/system/UI/DialDen.RLS.UI.Root");
+var apiDirectory = FindProjectDirectory("DialDen.RLS.API.Root.csproj");
+var uiDirectory = FindProjectDirectory("DialDen.RLS.UI.Root.csproj");
 foreach (var directory in new[] { apiDirectory, uiDirectory })
 {
     if (!Directory.Exists(directory))
@@ -96,4 +96,26 @@ static string RequireEnvironmentVariable(string name)
     }
 
     return value;
+}
+
+static string FindProjectDirectory(string projectFileName)
+{
+    var sourceDirectory = Path.GetFullPath("src");
+    if (!Directory.Exists(sourceDirectory))
+    {
+        throw new DirectoryNotFoundException(
+            $"Could not find the src directory at {sourceDirectory}. Run this script from the repository root.");
+    }
+
+    var matches = Directory.GetFiles(sourceDirectory, projectFileName, SearchOption.AllDirectories);
+    if (matches.Length != 1)
+    {
+        var message = matches.Length == 0
+            ? $"Could not find {projectFileName} under {sourceDirectory}."
+            : $"Found multiple {projectFileName} files under {sourceDirectory}.";
+        throw new InvalidOperationException(message);
+    }
+
+    return Path.GetDirectoryName(matches[0])
+        ?? throw new InvalidOperationException($"Could not determine the directory containing {matches[0]}.");
 }
