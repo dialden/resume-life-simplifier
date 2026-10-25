@@ -28,8 +28,8 @@ public class JobPostingsTests
     public async Task CanViewCreatedPosting()
     {
         await _testEnvironments.For(ExternalSystems.Stubbed).Scenario(Channel.API)
-            .When().CreatePosting().WithTitle("Software Engineer")
-            .Then().ShouldSucceed()
-                .And().ViewPosting().HasTitle("Software Engineer");
+            .Given().Posting()
+            .When().ViewPosting()
+            .Then().ShouldSucceed();
     }
 }

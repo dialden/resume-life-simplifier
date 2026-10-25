@@ -1,3 +1,4 @@
+using System.Globalization;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Shouldly;
 
@@ -11,6 +12,14 @@ public class CreatePostingVerification : ResponseVerification<CreatePostingRespo
     }
 
     public int? Id => Response.Id;
+
+    public CreatePostingVerification SaveIdAs(string alias)
+    {
+        var id = Response.Id
+            ?? throw new InvalidOperationException("The CreatePosting result did not include a posting ID.");
+        Context.SetResultEntry(alias, id.ToString(CultureInfo.InvariantCulture));
+        return this;
+    }
 
     public CreatePostingVerification HasTitle(string expectedTitle)
     {

@@ -19,6 +19,13 @@ public class GivenStage
 
     public GivenStage And() => this;
 
+    public GivenPosting Posting()
+    {
+        var step = new GivenPosting(this);
+        _steps.Add(step);
+        return step;
+    }
+
     public When.WhenStage When() => new(_app, _scenario, Setup);
 
     internal async Task Setup()

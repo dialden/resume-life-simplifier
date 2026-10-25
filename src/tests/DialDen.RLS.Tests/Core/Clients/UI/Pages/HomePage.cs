@@ -43,27 +43,28 @@ public class HomePage
             return Result<CreatePostingResponse, SystemError>.Failure(SystemError.Of(error));
         }
 
-        var titleField = _page.GetByLabel("Title", new() { Exact = true });
-        if (!await titleField.IsVisibleAsync())
+        var createLink = _page.GetByRole(AriaRole.Link, new() { Name = "Create posting", Exact = true });
+        if (!await createLink.IsVisibleAsync())
         {
             return Result<CreatePostingResponse, SystemError>.Failure(
-                SystemError.Of("The posting creation form is not available."));
+                SystemError.Of("The link to the posting creation page is not available."));
         }
 
-        await titleField.FillAsync(title);
-        await _page.GetByRole(AriaRole.Button, new() { Name = "Create posting", Exact = true }).ClickAsync();
-
-        var confirmation = _page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Posting created" });
-        var alert = _page.GetByRole(AriaRole.Alert);
-        await confirmation.Or(alert).First.WaitForAsync();
-
-        if (await alert.IsVisibleAsync())
+        if (await _page.GetByLabel("Title", new() { Exact = true }).IsVisibleAsync())
         {
-            return Result<CreatePostingResponse, SystemError>.Failure(SystemError.Of(
-                await alert.InnerTextAsync()));
+            return Result<CreatePostingResponse, SystemError>.Failure(
+                SystemError.Of("The posting creation form should be on its own page, not the home page."));
         }
 
-        var createdTitle = await _page.GetByTestId("posting-title").InnerTextAsync();
-        return Result<CreatePostingResponse, SystemError>.Success(new CreatePostingResponse(null, createdTitle));
+        await createLink.ClickAsync();
+        await _page.WaitForURLAsync("**/postings/create");
+        var createPostingPage = new CreatePostingPage(_page);
+        var fillTitleResult = await createPostingPage.FillTitle(title);
+        if (fillTitleResult.IsFailure)
+        {
+            return Result<CreatePostingResponse, SystemError>.Failure(fillTitleResult.Error);
+        }
+
+        return await createPostingPage.ClickCreatePosting();
     }
 }

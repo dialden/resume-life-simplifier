@@ -18,7 +18,16 @@ else
     <ul aria-label="Available actions">
         @foreach (var link in _entryPoint.Links)
         {
-            <li>@link.Rel</li>
+            <li>
+                @if (link is { Rel: "create-posting", Method: "POST" })
+                {
+                    <MudLink Href="/postings/create" rel="@link.Rel">Create posting</MudLink>
+                }
+                else
+                {
+                    @link.Rel
+                }
+            </li>
         }
     </ul>
 }

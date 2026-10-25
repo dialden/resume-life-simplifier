@@ -12,5 +12,4 @@ public class ThenSuccessAnd<TSuccessResponse, TSuccessVerification>
 
     public ThenPosting<TSuccessResponse, TSuccessVerification> Posting() => new(_stage);
 
-    public ThenViewPosting<TSuccessResponse, TSuccessVerification> ViewPosting() => new(_stage);
 }
