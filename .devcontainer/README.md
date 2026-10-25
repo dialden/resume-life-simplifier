@@ -38,9 +38,11 @@ container after changing its environment variables.
 
 ## Launch configuration
 
-Set `API_HTTP_URL`, `API_HTTPS_URL`, `UI_HTTP_URL`, `UI_HTTPS_URL`, and
-`ASPNETCORE_ENVIRONMENT` in [.env](./.env). URLs must be origins without paths
-or trailing slashes. HTTP URLs use HTTP; HTTPS URLs use HTTPS.
+Set `API_HTTP_URL`, `API_HTTPS_URL`, `UI_HTTP_URL`, `UI_HTTPS_URL`,
+`API_PROJECT_FILE`, `UI_PROJECT_FILE`, and `ASPNETCORE_ENVIRONMENT` in
+[.env](./.env). Project-file values are filenames searched for under `src`.
+URLs must be origins without paths or trailing slashes. HTTP URLs use HTTP;
+HTTPS URLs use HTTPS.
 
 Compose exports these values to the container. During setup,
 [generate-launch-settings.cs](../.vscode/generate-launch-settings.cs)

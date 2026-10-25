@@ -9,8 +9,8 @@ var apiHttpsUrl = RequireOrigin("API_HTTPS_URL", Uri.UriSchemeHttps);
 var uiHttpUrl = RequireOrigin("UI_HTTP_URL", Uri.UriSchemeHttp);
 var uiHttpsUrl = RequireOrigin("UI_HTTPS_URL", Uri.UriSchemeHttps);
 
-var apiDirectory = FindProjectDirectory("DialDen.RLS.API.Root.csproj");
-var uiDirectory = FindProjectDirectory("DialDen.RLS.UI.Root.csproj");
+var apiDirectory = FindProjectDirectory(RequireEnvironmentVariable("API_PROJECT_FILE"));
+var uiDirectory = FindProjectDirectory(RequireEnvironmentVariable("UI_PROJECT_FILE"));
 foreach (var directory in new[] { apiDirectory, uiDirectory })
 {
     if (!Directory.Exists(directory))
@@ -100,6 +100,13 @@ static string RequireEnvironmentVariable(string name)
 
 static string FindProjectDirectory(string projectFileName)
 {
+    if (Path.GetFileName(projectFileName) != projectFileName
+        || !projectFileName.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            $"{projectFileName} must be a project filename ending in .csproj.");
+    }
+
     var sourceDirectory = Path.GetFullPath("src");
     if (!Directory.Exists(sourceDirectory))
     {

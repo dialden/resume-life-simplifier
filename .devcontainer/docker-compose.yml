@@ -24,6 +24,8 @@ services:
       API_HTTPS_URL: ${API_HTTPS_URL:?Required}
       UI_HTTP_URL: ${UI_HTTP_URL:?Required}
       UI_HTTPS_URL: ${UI_HTTPS_URL:?Required}
+      API_PROJECT_FILE: ${API_PROJECT_FILE:?Required}
+      UI_PROJECT_FILE: ${UI_PROJECT_FILE:?Required}
       Cors__AllowedOrigins__0: ${UI_HTTP_URL:?Required}
       Cors__AllowedOrigins__1: ${UI_HTTPS_URL:?Required}
       PGHOST: ${PGHOST:?Required}
