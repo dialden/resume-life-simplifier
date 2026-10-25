@@ -3,6 +3,10 @@ using DialDen.RLS.DependencyInjection;
 using DialDen.RLS.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.Sources.Clear();
+builder.Configuration
+    .AddEnvironmentVariables()
+    .AddCommandLine(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
