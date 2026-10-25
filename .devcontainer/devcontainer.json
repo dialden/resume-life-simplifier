@@ -8,7 +8,8 @@
 	  ],
 	  "service": "dev",
 	  "workspaceFolder": "/workspaces/resume-life-simplifier",
-	"postCreateCommand": "./ops/database/migrate.cs && ./.vscode/configure-postgres-connection.cs",
+	"postCreateCommand": "bash .devcontainer/post-create.sh",
+	"waitFor": "postCreateCommand",
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [5191, 5294, 5432],
 	"containerEnv": {

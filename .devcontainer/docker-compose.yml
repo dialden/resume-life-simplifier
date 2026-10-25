@@ -17,7 +17,7 @@ services:
     command:
       - /bin/sh
       - -c
-      - cd /workspaces/resume-life-simplifier && dotnet run ops/ui/generate-settings.cs && exec sleep infinity
+      - exec sleep infinity
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?Required}
       API_PUBLIC_URL: ${API_PUBLIC_URL:?Required}
