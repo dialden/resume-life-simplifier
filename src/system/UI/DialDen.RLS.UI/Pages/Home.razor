@@ -23,6 +23,10 @@ else
                 {
                     <MudLink Href="/postings/create" rel="@link.Rel">Create posting</MudLink>
                 }
+                else if (link is { Rel: "list-postings", Method: "GET" })
+                {
+                    <MudLink Href="/postings" rel="@link.Rel">View postings</MudLink>
+                }
                 else
                 {
                     @link.Rel

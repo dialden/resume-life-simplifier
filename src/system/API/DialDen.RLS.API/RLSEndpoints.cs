@@ -13,6 +13,7 @@ public static class RLSEndpoints
         // Advertise the actions hypermedia clients can follow.
         app.MapGet("/", () => TypedResults.Ok(new RLSEntryPoint([
                 new Link("create-posting", "/postings", "POST"),
+                new Link("list-postings", "/postings", "GET"),
                 new Link("view-posting", "/postings/{id}", "GET")
             ])))
             .WithName("EntryPoint")
@@ -31,6 +32,14 @@ public static class RLSEndpoints
             .WithSummary("Creates a job posting.")
             .Accepts<CreatePostingRequest>("application/json")
             .Produces<CreatePostingResponse>(StatusCodes.Status201Created);
+
+        app.MapGet("/postings", async (
+                [FromServices] IListPostings listPostings,
+                CancellationToken cancellationToken) =>
+                TypedResults.Ok(await listPostings.List(cancellationToken)))
+            .WithName("ListPostings")
+            .WithSummary("Lists job postings in identifier order.")
+            .Produces<IReadOnlyList<ViewPostingResponse>>(StatusCodes.Status200OK);
 
         app.MapGet("/postings/{id:int}", async Task<IResult> (
                 int id,

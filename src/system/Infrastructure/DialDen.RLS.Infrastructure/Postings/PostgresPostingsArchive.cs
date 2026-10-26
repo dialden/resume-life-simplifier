@@ -35,4 +35,21 @@ internal sealed class PostgresPostingsArchive : IPostingsArchive
         var title = await command.ExecuteScalarAsync(cancellationToken);
         return title is string postingTitle ? new Posting(postingTitle) : null;
     }
+
+    public async Task<IReadOnlyList<ArchivedPosting>> List(CancellationToken cancellationToken)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            "SELECT id, title FROM postings ORDER BY id;",
+            connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var postings = new List<ArchivedPosting>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            postings.Add(new ArchivedPosting(reader.GetInt32(0), new Posting(reader.GetString(1))));
+        }
+
+        return postings;
+    }
 }

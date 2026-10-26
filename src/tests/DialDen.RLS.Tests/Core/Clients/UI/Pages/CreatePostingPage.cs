@@ -1,3 +1,4 @@
+using System.Globalization;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Microsoft.Playwright;
 
@@ -55,6 +56,7 @@ public class CreatePostingPage
         }
 
         var createdTitle = await _page.GetByTestId("posting-title").InnerTextAsync();
-        return Result<CreatePostingResponse, SystemError>.Success(new CreatePostingResponse(null, createdTitle));
+        var createdId = int.Parse(await _page.GetByTestId("posting-id").InnerTextAsync(), CultureInfo.InvariantCulture);
+        return Result<CreatePostingResponse, SystemError>.Success(new CreatePostingResponse(createdId, createdTitle));
     }
 }

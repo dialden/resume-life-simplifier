@@ -24,10 +24,10 @@ public class JobPostingsTests
     }
 
     [Trait("Category", "Acceptance")]
-    [Fact]
-    public async Task CanViewCreatedPosting()
+    [Theory, CombinatorialData]
+    public async Task CanViewCreatedPosting(Channel channel, ExternalSystems externalSystem)
     {
-        await _testEnvironments.For(ExternalSystems.Stubbed).Scenario(Channel.API)
+        await _testEnvironments.For(externalSystem).Scenario(channel)
             .Given().Posting()
             .When().ViewPosting()
             .Then().ShouldSucceed();

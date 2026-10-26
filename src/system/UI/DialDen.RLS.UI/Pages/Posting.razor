@@ -1,0 +1,70 @@
+@page "/postings/{Id:int}"
+@using System.Globalization
+@using System.Net
+@using DialDen.RLS.Abstractions.Postings
+@inject HttpClient Api
+
+<PageTitle>Posting details</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1">Posting details</MudText>
+<MudLink Href="/">Home</MudLink>
+<MudLink Href="/postings">View postings</MudLink>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+}
+else if (_posting is null)
+{
+    <MudText>Loading...</MudText>
+}
+else
+{
+    <section aria-label="Posting details">
+        <MudText Typo="Typo.h5" HtmlTag="h2" data-testid="posting-title">@_posting.Title</MudText>
+        <MudText>Posting ID: <span data-testid="posting-id">@_posting.Id</span></MudText>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private ViewPostingResponse? _posting;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _posting = null;
+        _error = null;
+
+        try
+        {
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
+                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            var viewLink = entryPoint.Links.SingleOrDefault(
+                link => link is { Rel: "view-posting", Method: "GET" });
+            if (viewLink is null)
+            {
+                _error = "The RLS API does not currently offer posting details.";
+                return;
+            }
+
+            var href = viewLink.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
+            using var response = await Api.GetAsync(href);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _error = "Posting not found.";
+                return;
+            }
+
+            response.EnsureSuccessStatusCode();
+            _posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>()
+                ?? throw new System.Text.Json.JsonException("The API returned no posting.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _error = $"Could not load the posting: {ex.Message}";
+        }
+    }
+}

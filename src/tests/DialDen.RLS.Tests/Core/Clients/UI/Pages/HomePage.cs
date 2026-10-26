@@ -67,4 +67,24 @@ public class HomePage
 
         return await createPostingPage.ClickCreatePosting();
     }
+
+    public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
+    {
+        var error = await GetError();
+        if (error is not null)
+        {
+            return Result<ViewPostingResponse, SystemError>.Failure(SystemError.Of(error));
+        }
+
+        var postingsLink = _page.GetByRole(AriaRole.Link, new() { Name = "View postings", Exact = true });
+        if (!await postingsLink.IsVisibleAsync())
+        {
+            return Result<ViewPostingResponse, SystemError>.Failure(
+                SystemError.Of("The link to the postings list is not available."));
+        }
+
+        await postingsLink.ClickAsync();
+        await _page.WaitForURLAsync("**/postings");
+        return await new PostingsPage(_page).ViewPosting(id);
+    }
 }

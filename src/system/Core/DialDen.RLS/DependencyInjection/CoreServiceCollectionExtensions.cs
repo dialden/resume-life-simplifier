@@ -12,6 +12,7 @@ public static class CoreServiceCollectionExtensions
 
         services.AddScoped<ICreatePosting, CreatePosting>();
         services.AddScoped<IViewPosting, ViewPosting>();
+        services.AddScoped<IListPostings, ListPostings>();
 
         return services;
     }

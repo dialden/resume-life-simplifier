@@ -36,7 +36,10 @@ else
     {
         <div role="status">
             <MudText>Posting created</MudText>
+            <MudText>Posting ID: <span data-testid="posting-id">@_createdPosting.Id</span></MudText>
             <MudText data-testid="posting-title">@_createdPosting.Title</MudText>
+            <MudLink Href="@($"/postings/{_createdPosting.Id}")">View posting</MudLink>
+            <MudLink Href="/postings">View postings</MudLink>
         </div>
     }
 }

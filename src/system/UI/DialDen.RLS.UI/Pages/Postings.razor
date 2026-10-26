@@ -1,0 +1,61 @@
+@page "/postings"
+@using DialDen.RLS.Abstractions.Postings
+@inject HttpClient Api
+
+<PageTitle>Postings</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1">Postings</MudText>
+<MudLink Href="/">Home</MudLink>
+<MudLink Href="/postings/create">Create posting</MudLink>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+}
+else if (_postings is null)
+{
+    <MudText>Loading...</MudText>
+}
+else if (_postings.Count == 0)
+{
+    <MudText role="status">No postings yet.</MudText>
+}
+else
+{
+    <ul aria-label="Postings">
+        @foreach (var posting in _postings)
+        {
+            <li @key="posting.Id">
+                <MudLink Href="@($"/postings/{posting.Id}")">@posting.Title</MudLink>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<ViewPostingResponse>? _postings;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
+                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            var listLink = entryPoint.Links.SingleOrDefault(
+                link => link is { Rel: "list-postings", Method: "GET" });
+            if (listLink is null)
+            {
+                _error = "The RLS API does not currently offer a postings list.";
+                return;
+            }
+
+            _postings = await Api.GetFromJsonAsync<ViewPostingResponse[]>(listLink.Href)
+                ?? throw new System.Text.Json.JsonException("The API returned no postings list.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _error = $"Could not load postings: {ex.Message}";
+        }
+    }
+}

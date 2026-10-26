@@ -27,9 +27,9 @@ public class UIRLSDriver : IRLSDriver
         return await homePage.CreatePosting(title);
     }
 
-    public Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
+    public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
     {
-        return Task.FromResult(Result<ViewPostingResponse, SystemError>.Failure(
-            SystemError.Of("Viewing a posting is only available through the API.")));
+        var homePage = await _uiClient.OpenHomePage();
+        return await homePage.ViewPosting(id);
     }
 }
