@@ -12,6 +12,20 @@ public class PostingsPage
         _page = page;
     }
 
+    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)
+    {
+        await _page.GetByRole(AriaRole.Link, new() { Name = "Create posting", Exact = true }).ClickAsync();
+        await _page.WaitForURLAsync("**/postings/create");
+        var createPostingPage = new CreatePostingPage(_page);
+        var fillTitleResult = await createPostingPage.FillTitle(title);
+        if (fillTitleResult.IsFailure)
+        {
+            return Result<CreatePostingResponse, SystemError>.Failure(fillTitleResult.Error);
+        }
+
+        return await createPostingPage.ClickCreatePosting();
+    }
+
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
     {
         var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });

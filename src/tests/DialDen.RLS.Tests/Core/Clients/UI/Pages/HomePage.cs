@@ -37,54 +37,43 @@ public class HomePage
 
     public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)
     {
-        var error = await GetError();
-        if (error is not null)
+        var postingsPage = await OpenPostings();
+        if (postingsPage.IsFailure)
         {
-            return Result<CreatePostingResponse, SystemError>.Failure(SystemError.Of(error));
+            return Result<CreatePostingResponse, SystemError>.Failure(postingsPage.Error);
         }
 
-        var createLink = _page.GetByRole(AriaRole.Link, new() { Name = "Create posting", Exact = true });
-        if (!await createLink.IsVisibleAsync())
-        {
-            return Result<CreatePostingResponse, SystemError>.Failure(
-                SystemError.Of("The link to the posting creation page is not available."));
-        }
-
-        if (await _page.GetByLabel("Title", new() { Exact = true }).IsVisibleAsync())
-        {
-            return Result<CreatePostingResponse, SystemError>.Failure(
-                SystemError.Of("The posting creation form should be on its own page, not the home page."));
-        }
-
-        await createLink.ClickAsync();
-        await _page.WaitForURLAsync("**/postings/create");
-        var createPostingPage = new CreatePostingPage(_page);
-        var fillTitleResult = await createPostingPage.FillTitle(title);
-        if (fillTitleResult.IsFailure)
-        {
-            return Result<CreatePostingResponse, SystemError>.Failure(fillTitleResult.Error);
-        }
-
-        return await createPostingPage.ClickCreatePosting();
+        return await postingsPage.Value.CreatePosting(title);
     }
 
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
     {
+        var postingsPage = await OpenPostings();
+        if (postingsPage.IsFailure)
+        {
+            return Result<ViewPostingResponse, SystemError>.Failure(postingsPage.Error);
+        }
+
+        return await postingsPage.Value.ViewPosting(id);
+    }
+
+    private async Task<Result<PostingsPage, SystemError>> OpenPostings()
+    {
         var error = await GetError();
         if (error is not null)
         {
-            return Result<ViewPostingResponse, SystemError>.Failure(SystemError.Of(error));
+            return Result<PostingsPage, SystemError>.Failure(SystemError.Of(error));
         }
 
         var postingsLink = _page.GetByRole(AriaRole.Link, new() { Name = "View postings", Exact = true });
         if (!await postingsLink.IsVisibleAsync())
         {
-            return Result<ViewPostingResponse, SystemError>.Failure(
+            return Result<PostingsPage, SystemError>.Failure(
                 SystemError.Of("The link to the postings list is not available."));
         }
 
         await postingsLink.ClickAsync();
         await _page.WaitForURLAsync("**/postings");
-        return await new PostingsPage(_page).ViewPosting(id);
+        return Result<PostingsPage, SystemError>.Success(new PostingsPage(_page));
     }
 }

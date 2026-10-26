@@ -16,21 +16,10 @@ else
 {
     <MudText Typo="Typo.h4" HtmlTag="h1">Resume Life Simplifier</MudText>
     <ul aria-label="Available actions">
-        @foreach (var link in _entryPoint.Links)
+        @foreach (var link in _entryPoint.Links.Where(link => link is { Rel: "list-postings", Method: "GET" }))
         {
             <li>
-                @if (link is { Rel: "create-posting", Method: "POST" })
-                {
-                    <MudLink Href="/postings/create" rel="@link.Rel">Create posting</MudLink>
-                }
-                else if (link is { Rel: "list-postings", Method: "GET" })
-                {
-                    <MudLink Href="/postings" rel="@link.Rel">View postings</MudLink>
-                }
-                else
-                {
-                    @link.Rel
-                }
+                <MudLink Href="/postings" rel="@link.Rel">View postings</MudLink>
             </li>
         }
     </ul>

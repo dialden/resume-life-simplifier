@@ -50,6 +50,14 @@ Frameworks: .Net 10, Blazor webassembly
 
 Database: PostgreSQL
 
+## UI flow
+
+From Home, choose **View postings** to open the postings list. Choose
+**Create posting** from that list, enter a title, and submit the form.
+Successful creation returns to the refreshed postings list; errors remain on
+the creation page. Select a posting's title in the list to view its details.
+The creation and details pages link back to the postings list.
+
 ## Repository Strategy
 Mono-Repo
 

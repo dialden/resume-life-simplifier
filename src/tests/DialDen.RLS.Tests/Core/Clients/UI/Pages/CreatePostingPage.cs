@@ -1,4 +1,3 @@
-using System.Globalization;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Microsoft.Playwright;
 
@@ -37,12 +36,14 @@ public class CreatePostingPage
 
     public async Task<Result<CreatePostingResponse, SystemError>> ClickCreatePosting()
     {
-        await _page.GetByRole(AriaRole.Button, new() { Name = "Create posting", Exact = true }).ClickAsync();
+        var response = await _page.RunAndWaitForResponseAsync(
+            () => _page.GetByRole(AriaRole.Button, new() { Name = "Create posting", Exact = true }).ClickAsync(),
+            response => response.Request.Method == "POST" && new Uri(response.Url).AbsolutePath == "/postings");
 
         var alert = _page.GetByRole(AriaRole.Alert);
         var errorBanner = _page.Locator("#blazor-error-ui").Filter(new() { Visible = true });
-        var confirmation = _page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Posting created" });
-        await confirmation.Or(alert).Or(errorBanner).First.WaitForAsync();
+        var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
+        await postings.Or(alert).Or(errorBanner).First.WaitForAsync();
 
         if (await alert.IsVisibleAsync())
         {
@@ -55,8 +56,10 @@ public class CreatePostingPage
                 SystemError.Of(await errorBanner.InnerTextAsync()));
         }
 
-        var createdTitle = await _page.GetByTestId("posting-title").InnerTextAsync();
-        var createdId = int.Parse(await _page.GetByTestId("posting-id").InnerTextAsync(), CultureInfo.InvariantCulture);
+        var createdPosting = await response.JsonAsync()
+            ?? throw new InvalidOperationException("The API returned no created posting.");
+        var createdId = createdPosting.GetProperty("id").GetInt32();
+        var createdTitle = await postings.Locator($"a[href='/postings/{createdId}']").InnerTextAsync();
         return Result<CreatePostingResponse, SystemError>.Success(new CreatePostingResponse(createdId, createdTitle));
     }
 }

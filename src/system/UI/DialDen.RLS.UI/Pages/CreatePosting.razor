@@ -1,11 +1,12 @@
 @page "/postings/create"
 @using DialDen.RLS.Abstractions.Postings
 @inject HttpClient Api
+@inject NavigationManager Navigation
 
 <PageTitle>Create posting</PageTitle>
 
 <MudText Typo="Typo.h4" HtmlTag="h1">Create posting</MudText>
-<MudLink Href="/">Home</MudLink>
+<MudLink Href="/postings">View postings</MudLink>
 
 @if (_loadError is not null)
 {
@@ -32,16 +33,6 @@ else
     {
         <MudAlert Severity="Severity.Error" role="alert">@_creationError</MudAlert>
     }
-    @if (_createdPosting is not null)
-    {
-        <div role="status">
-            <MudText>Posting created</MudText>
-            <MudText>Posting ID: <span data-testid="posting-id">@_createdPosting.Id</span></MudText>
-            <MudText data-testid="posting-title">@_createdPosting.Title</MudText>
-            <MudLink Href="@($"/postings/{_createdPosting.Id}")">View posting</MudLink>
-            <MudLink Href="/postings">View postings</MudLink>
-        </div>
-    }
 }
 
 @code {
@@ -49,7 +40,6 @@ else
     private string? _loadError;
     private string _title = string.Empty;
     private bool _isCreating;
-    private CreatePostingResponse? _createdPosting;
     private string? _creationError;
 
     protected override async Task OnInitializedAsync()
@@ -81,15 +71,15 @@ else
         var link = _createLink
             ?? throw new InvalidOperationException("The posting creation action has not been loaded.");
         _isCreating = true;
-        _createdPosting = null;
         _creationError = null;
 
         try
         {
             using var response = await Api.PostAsJsonAsync(link.Href, new CreatePostingRequest(_title));
             response.EnsureSuccessStatusCode();
-            _createdPosting = await response.Content.ReadFromJsonAsync<CreatePostingResponse>()
+            _ = await response.Content.ReadFromJsonAsync<CreatePostingResponse>()
                 ?? throw new System.Text.Json.JsonException("The API returned no created posting.");
+            Navigation.NavigateTo("/postings");
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
