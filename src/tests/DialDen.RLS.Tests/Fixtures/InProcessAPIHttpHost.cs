@@ -3,24 +3,24 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace DialDen.RLS.Tests.Fixtures;
 
 /// <summary>The RLS API hosted in the test process on a random Kestrel port.</summary>
-public sealed class InProcessAPIHttpHost : IHttpHost
+public sealed class InProcessAPIHttpHost : WebApplicationFactory<Program>, IHttpHost
 {
-    private readonly IConfiguration _testsConfiguration;
     private readonly object _startLock = new();
-    private WebApplicationFactory<Program>? _factory;
+    private readonly string _environmentVariablesPrefix;
     private string? _url;
 
     public string Url => _url ?? throw new InvalidOperationException("The host has not been started.");
 
-    public InProcessAPIHttpHost(IConfiguration testsConfiguration)
+    public InProcessAPIHttpHost(string environmentVariablesPrefix)
     {
-        _testsConfiguration = testsConfiguration;
+        _environmentVariablesPrefix = environmentVariablesPrefix;
     }
 
     /// <summary>Starts the host once. Subsequent calls are no-ops.</summary>
@@ -28,38 +28,22 @@ public sealed class InProcessAPIHttpHost : IHttpHost
     {
         lock (_startLock)
         {
-            if (_factory != null) return;
-            var factory = new WebApplicationFactory<Program>();
+            if (_url != null) return;
             // Configure the web host to use a random port
-            factory.UseKestrel(0);
-            factory.WithWebHostBuilder(builder =>
-            {
-                builder.UseEnvironment(Environments.Development);
-                builder.ConfigureAppConfiguration(ConfigureAppConfiguration);
-            });
-
-            factory.StartServer();
-            _url = factory.Services.GetRequiredService<IServer>().GetWebServerUrl();
-            _factory = factory;
+            UseKestrel(0);
+            StartServer();
+            _url = Services.GetRequiredService<IServer>().GetWebServerUrl();
         }
     }
 
-    private void ConfigureAppConfiguration(IConfigurationBuilder configBuilder)
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        var testConnectionString = Environment.GetEnvironmentVariable("RLS_TEST_CONNECTION_STRING")
-            ?? _testsConfiguration.GetConnectionString("RLS");
-        if (string.IsNullOrWhiteSpace(testConnectionString))
+        builder.UseEnvironment(Environments.Development);
+        builder.ConfigureAppConfiguration(configBuilder =>
         {
-            throw new InvalidOperationException(
-                "The test connection string must be configured in ConnectionStrings:RLS " +
-                "or RLS_TEST_CONNECTION_STRING.");
-        }
-
-        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["ConnectionStrings:RLS"] = testConnectionString
+            var envSource = configBuilder.Sources.OfType<EnvironmentVariablesConfigurationSource>().Single();
+            var priorityPrefix = _environmentVariablesPrefix + envSource.Prefix;
+            configBuilder.AddEnvironmentVariables(priorityPrefix);
         });
     }
-
-    public void Dispose() => _factory?.Dispose();
 }

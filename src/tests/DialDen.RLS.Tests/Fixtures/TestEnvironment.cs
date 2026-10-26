@@ -29,15 +29,18 @@ public abstract class TestEnvironment
     public TestEnvironment()
     {
         var testsConfiguration = GetTestsConfiguration();
-        var externalAPIUrl = testsConfiguration.GetValue<string>("ExternalAPIUrl");
-        _apiHost = string.IsNullOrWhiteSpace(externalAPIUrl)
-            ? new InProcessAPIHttpHost(testsConfiguration)
-            : new ExternalHttpHost(externalAPIUrl);
-        var externalUIUrl = testsConfiguration.GetValue<string>("ExternalUIUrl");
-        _uiHost = string.IsNullOrWhiteSpace(externalUIUrl)
-            ? new InProcessUIHttpHost(() => _apiHost.Url)
-            : new ExternalHttpHost(externalUIUrl);
-        InitializeServiceProvider();
+        var hosting = TestConfiguration.From(testsConfiguration).Hosting;
+        if (hosting.Mode == HostingMode.InProcess)
+        {
+            _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix);
+            _uiHost = new InProcessUIHttpHost(() => _apiHost.Url);
+        }
+        else
+        {
+            _apiHost = new ExternalHttpHost(hosting.APIUrl);
+            _uiHost = new ExternalHttpHost(hosting.UIUrl);
+        }
+        InitializeTestsServiceProvider();
     }
 
     public void Dispose()
@@ -78,7 +81,7 @@ public abstract class TestEnvironment
     /// Override to configure additional services.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
-    protected virtual void ConfigureServices(IServiceCollection services)
+    protected virtual void ConfigureTestServices(IServiceCollection services)
     {
     }
 
@@ -86,9 +89,11 @@ public abstract class TestEnvironment
     /// Override to configure from the service provider.
     /// </summary>
     /// <param name="serviceProvider">The service provider to configure.</param>
-    protected virtual void Configure(IServiceProvider serviceProvider)
+    protected virtual void ConfigureTests(IServiceProvider serviceProvider)
     {
     }
+
+    protected abstract string ConfigurationEnvironmentVariablesPrefix { get; }
 
     protected virtual void Dispose(bool disposing)
     {
@@ -141,22 +146,21 @@ public abstract class TestEnvironment
         }
     }
 
-    private void InitializeServiceProvider()
+    private void InitializeTestsServiceProvider()
     {
         var services = new ServiceCollection();
-        ConfigureServicesInternal(services);
+        ConfigureTestServicesInternal(services);
         var serviceProvider = services.BuildServiceProvider();
         _scope = serviceProvider.CreateScope();
-        Configure(_scope.ServiceProvider);
+        ConfigureTests(_scope.ServiceProvider);
     }
 
     protected IConfiguration GetTestsConfiguration()
     {
         var configBuilder = new ConfigurationBuilder();
         configBuilder.Sources.Clear();
-        configBuilder.AddJsonFile("appsettings.tests.json", optional: false)
-        .AddJsonFile("appsettings.tests.dev.json", optional: true)
-        .AddEnvironmentVariables();
+        configBuilder.AddEnvironmentVariables(prefix: "RLS_TEST_");
+        configBuilder.AddCommandLine(Environment.GetCommandLineArgs());
         return configBuilder.Build();
     }
 
@@ -170,7 +174,7 @@ public abstract class TestEnvironment
         return configuration;
     }
 
-    private void ConfigureServicesInternal(IServiceCollection services)
+    private void ConfigureTestServicesInternal(IServiceCollection services)
     {
         // Factories: resolved only after the host has been started explicitly
         services.AddSingleton(_ => Configuration);
@@ -188,6 +192,6 @@ public abstract class TestEnvironment
         services.AddTransient<HealthEndpoint>();
         services.AddScoped<GoToRLS>();
         services.AddScoped<UseCaseContext>();
-        ConfigureServices(services);
+        ConfigureTestServices(services);
     }
 }

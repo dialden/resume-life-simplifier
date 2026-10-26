@@ -14,8 +14,7 @@ public sealed class ExternalHttpHost : IHttpHost
 
     public void Start()
     {
-        //TODO : Rework this part
-        throw new NotImplementedException("External web server configuration is not implemented.");
+        // The server's lifecycle is managed outside the test process.
     }
 
     public void Dispose()

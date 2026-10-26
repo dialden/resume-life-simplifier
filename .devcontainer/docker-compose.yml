@@ -26,14 +26,21 @@ services:
       UI_HTTPS_URL: ${UI_HTTPS_URL:?Required}
       API_PROJECT_FILE: ${API_PROJECT_FILE:?Required}
       UI_PROJECT_FILE: ${UI_PROJECT_FILE:?Required}
-      Cors__AllowedOrigins__0: ${UI_HTTP_URL:?Required}
-      Cors__AllowedOrigins__1: ${UI_HTTPS_URL:?Required}
       PGHOST: ${PGHOST:?Required}
       PGPORT: ${PGPORT:?Required}
+      RLS_DEV_DATABASE: ${RLS_DEV_DATABASE:?Required}
+      RLS_TEST_DATABASE: ${RLS_TEST_DATABASE:?Required}
       FLYWAY_USER: ${POSTGRES_USER:?Required}
       FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:?Required}
-      ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=rls_dev;Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
-      RLS_TEST_CONNECTION_STRING: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=rls_test;Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      RLS_TEST_Hosting__Mode: ${TEST_HOSTING_MODE:-InProcess}
+      RLS_TEST_Hosting__APIUrl: ${RLS_TEST_Hosting__APIUrl:-}
+      RLS_TEST_Hosting__UIUrl: ${RLS_TEST_Hosting__UIUrl:-}
+      RLS_API_Cors__AllowedOrigins__0: ${UI_HTTP_URL:?Required}
+      RLS_API_Cors__AllowedOrigins__1: ${UI_HTTPS_URL:?Required}
+      RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_DEV_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      REAL_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      STUBBED_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+
 
   postgres:
     image: postgres:16-alpine
@@ -41,6 +48,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?Required}
       POSTGRES_USER: ${POSTGRES_USER:?Required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+      RLS_DEV_DATABASE: ${RLS_DEV_DATABASE:?Required}
+      RLS_TEST_DATABASE: ${RLS_TEST_DATABASE:?Required}
     ports:
       - "5432:5432"
     volumes:

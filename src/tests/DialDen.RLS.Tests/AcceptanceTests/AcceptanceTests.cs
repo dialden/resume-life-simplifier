@@ -15,9 +15,9 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task CanCreatePosting(Channel channel)
+    public async Task CanCreatePosting(Channel channel, ExternalSystems externalSystem)
     {
-        await _testEnvironments.For(ExternalSystems.Stubbed).Scenario(channel)
+        await _testEnvironments.For(externalSystem).Scenario(channel)
             .When().CreatePosting().WithTitle("Software Engineer")
             .Then().ShouldSucceed()
                 .And().Posting().HasTitle("Software Engineer");

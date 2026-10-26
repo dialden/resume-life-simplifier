@@ -11,11 +11,16 @@ if (!File.Exists(Path.Combine(databaseDirectory, "flyway.toml")))
 
 RequireEnvironmentVariable("FLYWAY_USER");
 RequireEnvironmentVariable("FLYWAY_PASSWORD");
+var databases = new[]
+{
+    RequireEnvironmentVariable("RLS_DEV_DATABASE"),
+    RequireEnvironmentVariable("RLS_TEST_DATABASE")
+};
 
 var host = Environment.GetEnvironmentVariable("PGHOST") ?? "localhost";
 var port = Environment.GetEnvironmentVariable("PGPORT") ?? "5432";
 
-foreach (var database in new[] { "rls_dev", "rls_test" })
+foreach (var database in databases)
 {
     var startInfo = new ProcessStartInfo("flyway")
     {

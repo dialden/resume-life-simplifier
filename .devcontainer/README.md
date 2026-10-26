@@ -18,21 +18,29 @@ bash .devcontainer/post-create.sh
 The ready message is printed only after all setup steps succeed. Rebuild the
 container to apply changes to its lifecycle configuration.
 
+`RLS_DEV_DATABASE` and `RLS_TEST_DATABASE` in [.env](./.env) name the development
+and test databases. Compose passes them to both the dev container's migration
+script and PostgreSQL's initialization script. The `.sql` initialization script
+reads them with psql's `\getenv` and quotes them as identifiers, so no SQL
+generation is needed.
+
 ## API configuration
 
-The API reads configuration only from environment variables and command-line
-arguments. Command-line arguments take precedence. It does not load appsettings
-JSON files or user secrets.
+The API reads application configuration only from environment variables prefixed
+with `RLS_API_` and command-line arguments. The provider strips the prefix.
+Command-line arguments take precedence and use unprefixed configuration keys.
+It does not load appsettings JSON files or user secrets. Framework-native
+hosting variables such as `ASPNETCORE_ENVIRONMENT` retain their standard names.
 
-The container supplies the required `ConnectionStrings__RLS` environment variable.
+The container supplies the required `RLS_API_ConnectionStrings__RLS` environment variable.
 For other settings, use double underscores for nested environment keys, such as
-`Logging__LogLevel__Microsoft.AspNetCore=Warning` or
-`Cors__AllowedOrigins__0=https://example.com`. The equivalent command-line options
+`RLS_API_Logging__LogLevel__Microsoft.AspNetCore=Warning` or
+`RLS_API_Cors__AllowedOrigins__0=https://example.com`. The equivalent command-line options
 are `--Logging:LogLevel:Microsoft.AspNetCore=Warning` and
 `--Cors:AllowedOrigins:0=https://example.com`.
 
-Compose sets `Cors__AllowedOrigins__0` from `UI_HTTP_URL` and
-`Cors__AllowedOrigins__1` from `UI_HTTPS_URL` to match the UI launch profiles.
+Compose sets `RLS_API_Cors__AllowedOrigins__0` from `UI_HTTP_URL` and
+`RLS_API_Cors__AllowedOrigins__1` from `UI_HTTPS_URL` to match the UI launch profiles.
 Loopback origins remain allowed in the Development environment. Rebuild the
 container after changing its environment variables.
 
@@ -52,3 +60,20 @@ API and UI debug configurations use `API_HTTP_URL` and `UI_HTTP_URL`.
 
 After changing these values, rebuild the container to refresh its environment
 and regenerate the settings. Do not edit generated launch settings directly.
+
+## Test hosting
+
+Tests use environment variables rather than test appsettings JSON files.
+`TEST_HOSTING_MODE` in [.env](./.env) selects hosting for both API and UI.
+Compose maps it to the container variable `RLS_TEST_Hosting__Mode`:
+
+- `InProcess` (the default when omitted): tests manage the hosts and discover
+  their URLs. No URLs need to be configured. API-only scenarios do not start UI.
+- `External`: set both `RLS_TEST_Hosting__APIUrl` and
+  `RLS_TEST_Hosting__UIUrl` to absolute HTTP or HTTPS URLs. Tests do not start or
+  stop these servers. Configure the external UI to target the external API.
+
+Compose passes these settings into the dev container. Rebuild the container
+after editing the file. Hosting mode is independent of stubbed versus real
+external systems. In-process API hosting continues to use
+`RLS_TEST_CONNECTION_STRING` for the test database.

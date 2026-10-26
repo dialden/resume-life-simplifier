@@ -5,7 +5,7 @@ using DialDen.RLS.Infrastructure.DependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.Sources.Clear();
 builder.Configuration
-    .AddEnvironmentVariables()
+    .AddEnvironmentVariables(prefix: "RLS_API_")
     .AddCommandLine(args);
 
 // Add services to the container.
@@ -14,10 +14,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services
     .AddRLSCore()
-    .AddRLSInfrastructure(
-        builder.Configuration.GetConnectionString("RLS")
-        ?? throw new InvalidOperationException(
-            "The ConnectionStrings:RLS setting is required."));
+    .AddRLSInfrastructure(builder.Configuration);
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 {
     policy.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])

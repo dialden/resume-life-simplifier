@@ -1,5 +1,6 @@
 using DialDen.RLS.Infrastructure.Postings;
 using DialDen.RLS.Postings;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -9,12 +10,17 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddRLSInfrastructure(
         this IServiceCollection services,
-        string postingsConnectionString)
+        IConfiguration configuration)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentException.ThrowIfNullOrWhiteSpace(postingsConnectionString);
+        services.AddSingleton<NpgsqlDataSource>(serviceProvider =>
+        {
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            var connectionString = configuration.GetConnectionString("RLS")
+                ?? throw new InvalidOperationException(
+                    "The ConnectionStrings:RLS setting is required.");
 
-        services.AddSingleton(NpgsqlDataSource.Create(postingsConnectionString));
+            return NpgsqlDataSource.Create(connectionString);
+        });
         services.AddSingleton<IPostingsArchive, PostgresPostingsArchive>();
         return services;
     }
