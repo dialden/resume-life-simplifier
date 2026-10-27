@@ -11,21 +11,13 @@ internal sealed class CreatePosting : ICreatePosting
         _postingsArchive = postingsArchive;
     }
 
-    public Task<CreatePostingResponse> Create(
+    public async Task<CreatePostingResponse> Create(
         CreatePostingRequest request,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var posting = new Posting(request.Title);
-        return CreateResponse(posting, cancellationToken);
-    }
-
-    private async Task<CreatePostingResponse> CreateResponse(
-        Posting posting,
-        CancellationToken cancellationToken)
-    {
-        var id = await _postingsArchive.Add(posting, cancellationToken);
-        return new CreatePostingResponse(id, posting.Title);
+        var posting = await _postingsArchive.Add(request.Title, cancellationToken);
+        return new CreatePostingResponse(posting.Id, posting.Title);
     }
 }

@@ -7,4 +7,5 @@ public interface IRLSDriver
     Task<Result<VoidValue, SystemError>> GoToRLS();
     Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title);
     Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id);
+    Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber);
 }

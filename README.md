@@ -65,6 +65,39 @@ content on smaller screens. Loading, empty, and error states are shown in
 context; the interface only displays the posting information currently supported
 by the system.
 
+### Posting pagination
+
+The posting library uses server-side paging with **10 postings per page**, ordered
+by identifier. The badge shows the total number of postings, not just the current
+page's size. Previous/Next links and a range such as **Showing 11-20 of 23
+postings** identify the current slice. Page links use `/postings?page=2`, so
+refreshing or using browser history preserves the selected page. Creating a
+posting returns to the first page; newly created postings appear at the end of
+the identifier-ordered library.
+
+`GET /postings?pageNumber=2` returns a page envelope rather than the previous flat
+array (an API response-shape change):
+
+```json
+{
+  "items": [{ "id": 11, "title": "Software Engineer" }],
+  "totalCount": 11,
+  "pageNumber": 2,
+  "pageSize": 10
+}
+```
+
+Omitting `pageNumber` selects page 1. Non-positive, non-integer, or out-of-range
+integer page numbers return HTTP 400. A valid page number beyond the last page
+returns an empty `items` array with the actual `totalCount`. PostgreSQL computes
+the count and the limited page in a single statement, keeping both values
+consistent for that request.
+
+Core represents identified opportunities with `Posting` and listing results with
+`PostingList` (`Postings` and `TotalPostings`). Its `IPostingsArchive` contract uses
+page numbers and postings per page; the `PostgresJobPostings` infrastructure
+adapter owns the SQL offset/limit translation.
+
 ## Repository Strategy
 Mono-Repo
 
@@ -118,6 +151,16 @@ values; setup regenerates the Git-ignored launch settings. See the
 
 ### Build and run the tests
 - Make sure you have completed the [Prerequisites](#Prerequisites)
+
+The shared acceptance-test fixture empties `postings` and resets its identity
+sequence once before each test run (including filtered runs). It preserves the
+schema and does not clear data between scenarios. Cleanup requires
+`RLS_TEST_DATABASE` and `RLS_DEV_DATABASE` and refuses connections that do not
+target the named test database or that target the development database.
+Real and Stubbed connections are checked before cleanup; identical connections
+are cleaned only once. Do not run simultaneous test runs against the same
+database. With external hosting, ensure the external API uses this same test
+database configuration.
 
 #### Run Playwright tests with the browser inspector
 The tracked runsettings file is

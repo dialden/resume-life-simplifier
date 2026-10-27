@@ -1,4 +1,5 @@
 using DialDen.RLS.Tests.Core.Clients.UI;
+using DialDen.RLS.Tests.Core.Clients.UI.Pages;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 
 namespace DialDen.RLS.Tests.Core.Drivers.RLS.UI;
@@ -6,6 +7,7 @@ namespace DialDen.RLS.Tests.Core.Drivers.RLS.UI;
 public class UIRLSDriver : IRLSDriver
 {
     private readonly UIClient _uiClient;
+    private PostingsPage? _postingsPage;
 
     public UIRLSDriver(UIClient uiClient)
     {
@@ -31,5 +33,20 @@ public class UIRLSDriver : IRLSDriver
     {
         var homePage = await _uiClient.OpenHomePage();
         return await homePage.ViewPosting(id);
+    }
+
+    public async Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber)
+    {
+        if (_postingsPage is null)
+        {
+            var homePage = await _uiClient.OpenHomePage();
+            var result = await homePage.OpenPostings();
+            if (result.IsFailure)
+            {
+                return Result<PostingPageResponse, SystemError>.Failure(result.Error);
+            }
+            _postingsPage = result.Value;
+        }
+        return await _postingsPage.ReadPage(pageNumber);
     }
 }

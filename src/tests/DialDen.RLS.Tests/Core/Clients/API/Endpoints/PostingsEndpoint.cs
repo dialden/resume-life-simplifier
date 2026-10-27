@@ -39,4 +39,18 @@ public class PostingsEndpoint
             ?? throw new InvalidOperationException("The view posting response was empty.");
         return Result<ViewPostingResponse, SystemError>.Success(posting);
     }
+
+    public async Task<Result<PostingPageResponse, SystemError>> List(int pageNumber)
+    {
+        using var response = await _httpClient.GetAsync($"/postings?pageNumber={pageNumber}");
+        if (!response.IsSuccessStatusCode)
+        {
+            return Result<PostingPageResponse, SystemError>.Failure(SystemError.Of(
+                $"Listing postings returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
+        }
+
+        var page = await response.Content.ReadFromJsonAsync<PostingPageResponse>()
+            ?? throw new InvalidOperationException("The postings page response was empty.");
+        return Result<PostingPageResponse, SystemError>.Success(page);
+    }
 }

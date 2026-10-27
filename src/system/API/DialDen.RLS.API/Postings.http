@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:5294
+
+### First page (ten postings by default)
+GET {{baseUrl}}/postings
+
+### Next page
+GET {{baseUrl}}/postings?pageNumber=2
+
+### Beyond the library: empty items with the actual total
+GET {{baseUrl}}/postings?pageNumber=2147483647
+
+### Invalid page: 400 validation problem
+GET {{baseUrl}}/postings?pageNumber=0

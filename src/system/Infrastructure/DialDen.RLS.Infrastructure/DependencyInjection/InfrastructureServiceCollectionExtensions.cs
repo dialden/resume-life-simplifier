@@ -21,7 +21,7 @@ public static class InfrastructureServiceCollectionExtensions
 
             return NpgsqlDataSource.Create(connectionString);
         });
-        services.AddSingleton<IPostingsArchive, PostgresPostingsArchive>();
+        services.AddSingleton<IPostingsArchive, PostgresJobPostings>();
         return services;
     }
 }

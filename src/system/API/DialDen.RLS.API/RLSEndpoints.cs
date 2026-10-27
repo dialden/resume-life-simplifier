@@ -1,6 +1,7 @@
 using DialDen.RLS.Abstractions.Postings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
@@ -33,13 +34,26 @@ public static class RLSEndpoints
             .Accepts<CreatePostingRequest>("application/json")
             .Produces<CreatePostingResponse>(StatusCodes.Status201Created);
 
-        app.MapGet("/postings", async (
+        app.MapGet("/postings", async Task<Results<Ok<ListPostingsResponse>, ValidationProblem>> (
                 [FromServices] IListPostings listPostings,
-                CancellationToken cancellationToken) =>
-                TypedResults.Ok(await listPostings.List(cancellationToken)))
+                CancellationToken cancellationToken,
+                int pageNumber = 1) =>
+            {
+                if (pageNumber < 1)
+                {
+                    return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["pageNumber"] = ["Page number must be greater than zero."]
+                    });
+                }
+
+                return TypedResults.Ok(await listPostings.List(new ListPostingsRequest(pageNumber), cancellationToken));
+            })
             .WithName("ListPostings")
-            .WithSummary("Lists job postings in identifier order.")
-            .Produces<IReadOnlyList<ViewPostingResponse>>(StatusCodes.Status200OK);
+            .WithSummary("Lists a page of ten job postings in identifier order.")
+            .WithDescription("Use the one-based pageNumber query parameter (default 1). Returns items, totalCount, pageNumber, and pageSize. Pages beyond the library return an empty items array with the total count.")
+            .Produces<ListPostingsResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem();
 
         app.MapGet("/postings/{id:int}", async Task<IResult> (
                 int id,

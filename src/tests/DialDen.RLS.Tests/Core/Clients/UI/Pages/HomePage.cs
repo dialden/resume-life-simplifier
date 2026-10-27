@@ -57,7 +57,7 @@ public class HomePage
         return await postingsPage.Value.ViewPosting(id);
     }
 
-    private async Task<Result<PostingsPage, SystemError>> OpenPostings()
+    public async Task<Result<PostingsPage, SystemError>> OpenPostings()
     {
         var error = await GetError();
         if (error is not null)
@@ -76,4 +76,5 @@ public class HomePage
         await _page.WaitForURLAsync("**/postings");
         return Result<PostingsPage, SystemError>.Success(new PostingsPage(_page));
     }
+
 }

@@ -26,4 +26,7 @@ public class APIRLSDriver : IRLSDriver
     {
         return await _apiClient.Postings.View(id);
     }
+
+    public Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber)
+        => _apiClient.Postings.List(pageNumber);
 }

@@ -2,9 +2,9 @@ namespace DialDen.RLS.Postings;
 
 public interface IPostingsArchive
 {
-    Task<int> Add(Posting posting, CancellationToken cancellationToken);
+    Task<Posting> Add(string title, CancellationToken cancellationToken);
 
-    Task<Posting?> FindById(int id, CancellationToken cancellationToken);
+    Task<Posting?> FindById(int postingId, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<ArchivedPosting>> List(CancellationToken cancellationToken);
+    Task<PostingList> List(int pageNumber, int postingsPerPage, CancellationToken cancellationToken);
 }

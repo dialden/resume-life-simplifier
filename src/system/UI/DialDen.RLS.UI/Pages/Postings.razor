@@ -1,5 +1,6 @@
 @page "/postings"
 @using DialDen.RLS.Abstractions.Postings
+@using System.Globalization
 @inject HttpClient Api
 
 <PageTitle>Job postings | Resume Life Simplifier</PageTitle>
@@ -20,7 +21,7 @@
 {
     <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
 }
-else if (_postings is null)
+else if (_page is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
@@ -33,23 +34,35 @@ else
         <div class="panel-header">
             <div class="panel-title">
                 <h2 id="postings-heading">All postings</h2>
-                <span class="count-badge">@_postings.Count</span>
+                <span class="count-badge">@_page.TotalCount</span>
             </div>
             <span class="panel-caption">Your opportunity library</span>
         </div>
-        @if (_postings.Count == 0)
+        @if (_page.Items.Count == 0)
         {
             <div class="empty-state" role="status">
                 <span class="empty-icon"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
-                <h3>No postings yet.</h3>
-                <p>Your next opportunity belongs here.<br />Choose Create posting to start your collection.</p>
+                @if (_page.TotalCount == 0)
+                {
+                    <h3>No postings yet.</h3>
+                    <p>Your next opportunity belongs here.<br />Choose Create posting to start your collection.</p>
+                }
+                else
+                {
+                    <h3>No postings on this page.</h3>
+                    <p>This page is beyond the end of your opportunity library.</p>
+                }
+                @if (_page.PageNumber > 1)
+                {
+                    <a class="action-link action-primary" href="/postings">Back to first page</a>
+                }
             </div>
         }
         else
         {
             <div class="list-columns" aria-hidden="true"><span>JOB TITLE</span><span>DETAILS</span></div>
             <ul class="posting-list" aria-label="Postings">
-                @foreach (var posting in _postings)
+                @foreach (var posting in _page.Items)
                 {
                     <li @key="posting.Id">
                         <a class="posting-row" href="@($"/postings/{posting.Id}")">
@@ -63,21 +76,73 @@ else
                     </li>
                 }
             </ul>
-            <div class="panel-footer">@_postings.Count @(_postings.Count == 1 ? "posting" : "postings") in your workspace</div>
         }
+        <div class="panel-footer pagination-footer" data-testid="posting-pagination"
+             data-total-count="@_page.TotalCount" data-page-number="@_page.PageNumber" data-page-size="@_page.PageSize">
+            <span>Showing @FirstPosting-@LastPosting of @_page.TotalCount @(_page.TotalCount == 1 ? "posting" : "postings")</span>
+            <nav class="pagination-controls" aria-label="Posting pages">
+                @if (_page.PageNumber > 1)
+                {
+                    <a class="pagination-link" href="@PageUrl(_page.PageNumber - 1)" aria-label="Previous page">
+                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />Previous
+                    </a>
+                }
+                else
+                {
+                    <span class="pagination-link disabled" aria-disabled="true"><MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />Previous</span>
+                }
+                <span class="page-indicator">Page @_page.PageNumber of @TotalPages</span>
+                @if (_page.PageNumber < TotalPages)
+                {
+                    <a class="pagination-link" href="@PageUrl(_page.PageNumber + 1)" aria-label="Next page">
+                        Next<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
+                    </a>
+                }
+                else
+                {
+                    <span class="pagination-link disabled" aria-disabled="true">Next<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" /></span>
+                }
+            </nav>
+        </div>
     </section>
 }
 
 @code {
-    private IReadOnlyList<ViewPostingResponse>? _postings;
-    private string? _error;
+    [SupplyParameterFromQuery(Name = "page")]
+    public string? Page { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    private ListPostingsResponse? _page;
+    private string? _error;
+    private int _loadVersion;
+
+    private long TotalPages => _page is null ? 1 : Math.Max(1, _page.TotalCount / _page.PageSize +
+        (_page.TotalCount % _page.PageSize == 0 ? 0 : 1));
+    private long FirstPosting => _page is null || _page.Items.Count == 0 ? 0 : ((long)_page.PageNumber - 1) * _page.PageSize + 1;
+    private long LastPosting => _page is null || _page.Items.Count == 0 ? 0 : FirstPosting + _page.Items.Count - 1;
+
+    private static string PageUrl(int pageNumber) => $"/postings?page={pageNumber.ToString(CultureInfo.InvariantCulture)}";
+
+    protected override async Task OnParametersSetAsync()
     {
+        var version = ++_loadVersion;
+        _page = null;
+        _error = null;
+        var pageNumber = 1;
+        if (Page is not null &&
+            (!int.TryParse(Page, NumberStyles.None, CultureInfo.InvariantCulture, out pageNumber) || pageNumber < 1))
+        {
+            _error = "Page number must be a positive whole number. Use Job postings to return to the first page.";
+            return;
+        }
+
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
                 ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            if (version != _loadVersion)
+            {
+                return;
+            }
             var listLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "list-postings", Method: "GET" });
             if (listLink is null)
@@ -86,12 +151,21 @@ else
                 return;
             }
 
-            _postings = await Api.GetFromJsonAsync<ViewPostingResponse[]>(listLink.Href)
-                ?? throw new System.Text.Json.JsonException("The API returned no postings list.");
+            var separator = listLink.Href.Contains('?') ? '&' : '?';
+            var href = $"{listLink.Href}{separator}pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}";
+            var page = await Api.GetFromJsonAsync<ListPostingsResponse>(href)
+                ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
+            if (version == _loadVersion)
+            {
+                _page = page;
+            }
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _error = $"Could not load postings: {ex.Message}";
+            if (version == _loadVersion)
+            {
+                _error = $"Could not load postings: {ex.Message}";
+            }
         }
     }
 }

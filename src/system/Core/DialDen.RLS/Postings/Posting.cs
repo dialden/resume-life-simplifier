@@ -1,3 +1,3 @@
 namespace DialDen.RLS.Postings;
 
-public sealed record Posting(string Title);
+public sealed record Posting(int Id, string Title);

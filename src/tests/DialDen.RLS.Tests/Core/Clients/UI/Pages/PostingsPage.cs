@@ -1,3 +1,4 @@
+using System.Globalization;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Microsoft.Playwright;
 
@@ -43,7 +44,7 @@ public class PostingsPage
             return Result<ViewPostingResponse, SystemError>.Failure(SystemError.Of(await errorBanner.InnerTextAsync()));
         }
 
-        var postingLink = postings.Locator($"a[href='/postings/{id}']");
+        var postingLink = await FindPostingLink(id);
         if (!await postingLink.IsVisibleAsync())
         {
             return Result<ViewPostingResponse, SystemError>.Failure(
@@ -53,5 +54,94 @@ public class PostingsPage
         await postingLink.ClickAsync();
         await _page.WaitForURLAsync($"**/postings/{id}");
         return await new PostingPage(_page).ReadPosting();
+    }
+
+    public async Task<Result<PostingPageResponse, SystemError>> ReadPage(int pageNumber)
+    {
+        var pagination = _page.GetByTestId("posting-pagination");
+        var alert = _page.GetByRole(AriaRole.Alert);
+        await pagination.Or(alert).First.WaitForAsync();
+        if (!await alert.IsVisibleAsync())
+        {
+            var totalCount = long.Parse(await _page.Locator(".count-badge").InnerTextAsync(), CultureInfo.InvariantCulture);
+            if (pageNumber < 1 || (long)(pageNumber - 1) * 10 >= totalCount && pageNumber > 1)
+            {
+                await _page.GotoAsync($"/postings?page={pageNumber.ToString(CultureInfo.InvariantCulture)}");
+                await pagination.Or(alert).First.WaitForAsync();
+            }
+        }
+        while (!await alert.IsVisibleAsync())
+        {
+            var current = int.Parse(await pagination.GetAttributeAsync("data-page-number")
+                ?? throw new InvalidOperationException("The page number was not displayed."), CultureInfo.InvariantCulture);
+            if (current == pageNumber)
+            {
+                break;
+            }
+            await MoveToAdjacentPage(current, pageNumber > current);
+        }
+        if (await alert.IsVisibleAsync())
+        {
+            return Result<PostingPageResponse, SystemError>.Failure(SystemError.Of(await alert.InnerTextAsync()));
+        }
+
+        var items = new List<ViewPostingResponse>();
+        foreach (var row in await _page.Locator(".posting-row").AllAsync())
+        {
+            var href = await row.GetAttributeAsync("href")
+                ?? throw new InvalidOperationException("A posting row has no destination.");
+            var id = int.Parse(href.Split('/').Last(), CultureInfo.InvariantCulture);
+            items.Add(new ViewPostingResponse(id, await row.GetByTestId("posting-title").InnerTextAsync()));
+        }
+
+        var total = long.Parse(await _page.Locator(".count-badge").InnerTextAsync(), CultureInfo.InvariantCulture);
+        var currentPage = int.Parse(await pagination.GetAttributeAsync("data-page-number")
+            ?? throw new InvalidOperationException("The page number was not displayed."), CultureInfo.InvariantCulture);
+        var pageSize = int.Parse(await pagination.GetAttributeAsync("data-page-size")
+            ?? throw new InvalidOperationException("The page size was not displayed."), CultureInfo.InvariantCulture);
+        var previous = _page.GetByRole(AriaRole.Link, new() { Name = "Previous page", Exact = true });
+        var next = _page.GetByRole(AriaRole.Link, new() { Name = "Next page", Exact = true });
+        if (await previous.IsVisibleAsync() != (currentPage > 1) ||
+            await next.IsVisibleAsync() != ((long)currentPage * pageSize < total))
+        {
+            throw new InvalidOperationException("The paging controls do not match the available pages.");
+        }
+
+        return Result<PostingPageResponse, SystemError>.Success(new(items, total, currentPage, pageSize));
+    }
+
+    public async Task<ILocator> FindPostingLink(int id)
+    {
+        var link = _page.Locator($"a.posting-row[href='/postings/{id}']");
+        var pagination = _page.GetByTestId("posting-pagination");
+        await pagination.WaitForAsync();
+        while (!await link.IsVisibleAsync())
+        {
+            var next = _page.GetByRole(AriaRole.Link, new() { Name = "Next page", Exact = true });
+            if (!await next.IsVisibleAsync())
+            {
+                break;
+            }
+            var current = int.Parse(await pagination.GetAttributeAsync("data-page-number")
+                ?? throw new InvalidOperationException("The page number was not displayed."), CultureInfo.InvariantCulture);
+            await MoveToAdjacentPage(current, true);
+            var alert = _page.GetByRole(AriaRole.Alert);
+            if (await alert.IsVisibleAsync())
+            {
+                throw new InvalidOperationException(await alert.InnerTextAsync());
+            }
+        }
+        return link;
+    }
+
+    private async Task MoveToAdjacentPage(int current, bool forward)
+    {
+        var target = forward ? current + 1 : current - 1;
+        await _page.GetByRole(AriaRole.Link, new()
+        {
+            Name = forward ? "Next page" : "Previous page", Exact = true
+        }).ClickAsync();
+        await _page.Locator($"[data-testid='posting-pagination'][data-page-number='{target}']")
+            .Or(_page.GetByRole(AriaRole.Alert)).First.WaitForAsync();
     }
 }

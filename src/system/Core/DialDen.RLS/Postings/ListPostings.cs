@@ -11,9 +11,11 @@ internal sealed class ListPostings : IListPostings
         _postingsArchive = postingsArchive;
     }
 
-    public async Task<IReadOnlyList<ViewPostingResponse>> List(CancellationToken cancellationToken)
+    public async Task<ListPostingsResponse> List(ListPostingsRequest request, CancellationToken cancellationToken)
     {
-        var postings = await _postingsArchive.List(cancellationToken);
-        return postings.Select(posting => new ViewPostingResponse(posting.Id, posting.Posting.Title)).ToArray();
+        var list = await _postingsArchive.List(request.PageNumber, ListPostingsRequest.PageSize, cancellationToken);
+        return new ListPostingsResponse(
+            list.Postings.Select(posting => new ViewPostingResponse(posting.Id, posting.Title)).ToArray(),
+            list.TotalPostings, request.PageNumber, ListPostingsRequest.PageSize);
     }
 }
