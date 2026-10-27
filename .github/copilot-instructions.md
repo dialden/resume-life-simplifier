@@ -118,6 +118,9 @@
 
 ## Build and test
 
+Do not add `.http` files. Cover API behavior through the existing acceptance-test
+infrastructure instead.
+
 Run commands from the repository root:
 
 ```sh
