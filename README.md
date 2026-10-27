@@ -58,6 +58,13 @@ Successful creation returns to the refreshed postings list; errors remain on
 the creation page. Select a posting's title in the list to view its details.
 The creation and details pages link back to the postings list.
 
+The UI uses a responsive career-workspace layout with persistent **Overview**
+and **Job postings** navigation, an opportunity library with a live posting
+count, and dedicated creation and detail panels. Navigation moves above the
+content on smaller screens. Loading, empty, and error states are shown in
+context; the interface only displays the posting information currently supported
+by the system.
+
 ## Repository Strategy
 Mono-Repo
 
