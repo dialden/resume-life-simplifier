@@ -17,7 +17,7 @@ public class PostingPage
     {
         var details = _page.GetByRole(AriaRole.Region, new() { Name = "Posting details", Exact = true });
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.Locator("#blazor-error-ui").Filter(new() { Visible = true });
+        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
         await details.Or(alert).Or(errorBanner).First.WaitForAsync();
 
         if (await alert.IsVisibleAsync())
@@ -29,8 +29,9 @@ public class PostingPage
             return Result<ViewPostingResponse, SystemError>.Failure(SystemError.Of(await errorBanner.InnerTextAsync()));
         }
 
-        var id = int.Parse(await details.GetByTestId("posting-id").InnerTextAsync(), CultureInfo.InvariantCulture);
-        var title = await details.GetByTestId("posting-title").InnerTextAsync();
+        var definitions = details.GetByRole(AriaRole.Definition);
+        var id = int.Parse(await definitions.Nth(0).InnerTextAsync(), CultureInfo.InvariantCulture);
+        var title = await details.GetByRole(AriaRole.Heading, new() { Level = 2 }).InnerTextAsync();
         return Result<ViewPostingResponse, SystemError>.Success(new ViewPostingResponse(id, title));
     }
 }

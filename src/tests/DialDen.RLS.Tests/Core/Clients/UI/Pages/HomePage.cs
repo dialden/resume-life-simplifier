@@ -20,7 +20,7 @@ public class HomePage
     {
         var heading = _page.GetByRole(AriaRole.Heading);
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.Locator("#blazor-error-ui").Filter(new() { Visible = true });
+        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
         // The page ends up in exactly one of three states; wait for whichever comes first
         await heading.Or(alert).Or(errorBanner).First.WaitForAsync();
 

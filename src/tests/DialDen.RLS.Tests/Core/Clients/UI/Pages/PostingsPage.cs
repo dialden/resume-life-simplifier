@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Microsoft.Playwright;
 
@@ -32,7 +33,7 @@ public class PostingsPage
         var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
         var empty = _page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No postings yet." });
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.Locator("#blazor-error-ui").Filter(new() { Visible = true });
+        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
         await postings.Or(empty).Or(alert).Or(errorBanner).First.WaitForAsync();
 
         if (await alert.IsVisibleAsync())
@@ -63,7 +64,8 @@ public class PostingsPage
         await pagination.Or(alert).First.WaitForAsync();
         if (!await alert.IsVisibleAsync())
         {
-            var totalCount = long.Parse(await _page.Locator(".count-badge").InnerTextAsync(), CultureInfo.InvariantCulture);
+            var totalCount = ReadTotalCount(await _page.GetByRole(AriaRole.Status)
+                .Filter(new() { HasText = "Showing" }).InnerTextAsync());
             if (pageNumber < 1 || (long)(pageNumber - 1) * 10 >= totalCount && pageNumber > 1)
             {
                 await _page.GotoAsync($"/postings?page={pageNumber.ToString(CultureInfo.InvariantCulture)}");
@@ -86,23 +88,32 @@ public class PostingsPage
         }
 
         var items = new List<ViewPostingResponse>();
-        foreach (var row in await _page.Locator(".posting-row").AllAsync())
+        foreach (var row in await _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true })
+                     .GetByRole(AriaRole.Link).AllAsync())
         {
             var href = await row.GetAttributeAsync("href")
                 ?? throw new InvalidOperationException("A posting row has no destination.");
             var id = int.Parse(href.Split('/').Last(), CultureInfo.InvariantCulture);
-            items.Add(new ViewPostingResponse(id, await row.GetByTestId("posting-title").InnerTextAsync()));
+            var title = await row.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
+            items.Add(new ViewPostingResponse(id, title));
         }
 
-        var total = long.Parse(await _page.Locator(".count-badge").InnerTextAsync(), CultureInfo.InvariantCulture);
+        var total = ReadTotalCount(await _page.GetByRole(AriaRole.Status)
+            .Filter(new() { HasText = "Showing" }).InnerTextAsync());
         var currentPage = int.Parse(await pagination.GetAttributeAsync("data-page-number")
             ?? throw new InvalidOperationException("The page number was not displayed."), CultureInfo.InvariantCulture);
         var pageSize = int.Parse(await pagination.GetAttributeAsync("data-page-size")
             ?? throw new InvalidOperationException("The page size was not displayed."), CultureInfo.InvariantCulture);
         var previous = _page.GetByRole(AriaRole.Link, new() { Name = "Previous page", Exact = true });
         var next = _page.GetByRole(AriaRole.Link, new() { Name = "Next page", Exact = true });
+        var disabledPrevious = _page.GetByRole(AriaRole.Button, new() { Name = "Previous page", Exact = true });
+        var disabledNext = _page.GetByRole(AriaRole.Button, new() { Name = "Next page", Exact = true });
+        var previousIsDisabled = await disabledPrevious.IsVisibleAsync() && await disabledPrevious.IsDisabledAsync();
+        var nextIsDisabled = await disabledNext.IsVisibleAsync() && await disabledNext.IsDisabledAsync();
         if (await previous.IsVisibleAsync() != (currentPage > 1) ||
-            await next.IsVisibleAsync() != ((long)currentPage * pageSize < total))
+            await next.IsVisibleAsync() != ((long)currentPage * pageSize < total) ||
+            previousIsDisabled != (currentPage == 1) ||
+            nextIsDisabled != ((long)currentPage * pageSize >= total))
         {
             throw new InvalidOperationException("The paging controls do not match the available pages.");
         }
@@ -112,7 +123,11 @@ public class PostingsPage
 
     public async Task<ILocator> FindPostingLink(int id)
     {
-        var link = _page.Locator($"a.posting-row[href='/postings/{id}']");
+        var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
+        var link = postings.GetByRole(AriaRole.Link, new()
+        {
+            NameRegex = new Regex($@", ID {id}$")
+        });
         var pagination = _page.GetByTestId("posting-pagination");
         await pagination.WaitForAsync();
         while (!await link.IsVisibleAsync())
@@ -143,5 +158,16 @@ public class PostingsPage
         }).ClickAsync();
         await _page.Locator($"[data-testid='posting-pagination'][data-page-number='{target}']")
             .Or(_page.GetByRole(AriaRole.Alert)).First.WaitForAsync();
+    }
+
+    private static long ReadTotalCount(string summary)
+    {
+        var match = Regex.Match(summary, @"\bof (?<total>\d+) postings?\b", RegexOptions.CultureInvariant);
+        if (!match.Success)
+        {
+            throw new InvalidOperationException($"The postings summary had an unexpected format: {summary}");
+        }
+
+        return long.Parse(match.Groups["total"].Value, CultureInfo.InvariantCulture);
     }
 }

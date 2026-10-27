@@ -118,7 +118,7 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 .panel-footer { border-top: 1px solid var(--workspace-border); padding: 16px 28px; font-size: 0.75rem; color: var(--workspace-muted); background: #fcfdfe; }
 .pagination-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
 .pagination-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.pagination-link { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 40px; padding: 6px 10px; border: 1px solid var(--workspace-border); border-radius: 6px; background: #fff; color: var(--workspace-teal); text-decoration: none; }
+.pagination-link { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 40px; padding: 6px 10px; border: 1px solid var(--workspace-border); border-radius: 6px; background: #fff; color: var(--workspace-teal); text-decoration: none; font: inherit; }
 .pagination-link:hover { background: #eaf4f1; }
 .pagination-link.disabled { color: #68778a; background: #f3f5f8; cursor: default; }
 .page-indicator { font-size: 0.7rem; }

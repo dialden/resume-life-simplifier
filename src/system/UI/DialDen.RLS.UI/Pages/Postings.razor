@@ -65,10 +65,11 @@ else
                 @foreach (var posting in _page.Items)
                 {
                     <li @key="posting.Id">
-                        <a class="posting-row" href="@($"/postings/{posting.Id}")">
+                        <a class="posting-row" href="@($"/postings/{posting.Id}")"
+                           aria-label="View posting @posting.Title, ID @posting.Id">
                             <span class="posting-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" /></span>
                             <span class="posting-summary">
-                                <span class="posting-name" data-testid="posting-title">@posting.Title</span>
+                                <span class="posting-name" role="heading" aria-level="3">@posting.Title</span>
                                 <span class="posting-reference">Posting #@posting.Id</span>
                             </span>
                             <span class="row-action" aria-hidden="true">View details<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
@@ -79,7 +80,7 @@ else
         }
         <div class="panel-footer pagination-footer" data-testid="posting-pagination"
              data-total-count="@_page.TotalCount" data-page-number="@_page.PageNumber" data-page-size="@_page.PageSize">
-            <span>Showing @FirstPosting-@LastPosting of @_page.TotalCount @(_page.TotalCount == 1 ? "posting" : "postings")</span>
+            <span role="status">Showing @FirstPosting-@LastPosting of @_page.TotalCount @(_page.TotalCount == 1 ? "posting" : "postings")</span>
             <nav class="pagination-controls" aria-label="Posting pages">
                 @if (_page.PageNumber > 1)
                 {
@@ -89,7 +90,9 @@ else
                 }
                 else
                 {
-                    <span class="pagination-link disabled" aria-disabled="true"><MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />Previous</span>
+                    <button class="pagination-link disabled" type="button" aria-label="Previous page" disabled>
+                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />Previous
+                    </button>
                 }
                 <span class="page-indicator">Page @_page.PageNumber of @TotalPages</span>
                 @if (_page.PageNumber < TotalPages)
@@ -100,7 +103,9 @@ else
                 }
                 else
                 {
-                    <span class="pagination-link disabled" aria-disabled="true">Next<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" /></span>
+                    <button class="pagination-link disabled" type="button" aria-label="Next page" disabled>
+                        Next<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
+                    </button>
                 }
             </nav>
         </div>
