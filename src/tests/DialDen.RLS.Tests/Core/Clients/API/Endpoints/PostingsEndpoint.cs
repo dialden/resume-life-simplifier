@@ -1,10 +1,17 @@
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 
 namespace DialDen.RLS.Tests.Core.Clients.API.Endpoints;
 
 public class PostingsEndpoint
 {
+    private static readonly JsonSerializerOptions ResponseJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     private readonly HttpClient _httpClient;
 
     public PostingsEndpoint(HttpClient httpClient)
@@ -21,7 +28,7 @@ public class PostingsEndpoint
                 $"Creating a posting returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
         }
 
-        var posting = await response.Content.ReadFromJsonAsync<CreatePostingResponse>()
+        var posting = await response.Content.ReadFromJsonAsync<CreatePostingResponse>(ResponseJsonOptions)
             ?? throw new InvalidOperationException("The create posting response was empty.");
         return Result<CreatePostingResponse, SystemError>.Success(posting);
     }
@@ -35,9 +42,23 @@ public class PostingsEndpoint
                 $"Viewing posting {id} returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
         }
 
-        var posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>()
+        var posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>(ResponseJsonOptions)
             ?? throw new InvalidOperationException("The view posting response was empty.");
         return Result<ViewPostingResponse, SystemError>.Success(posting);
+    }
+
+    public async Task<Result<PublishPostingResponse, SystemError>> Publish(int id)
+    {
+        using var response = await _httpClient.PostAsync($"/postings/{id}/publish", content: null);
+        if (!response.IsSuccessStatusCode)
+        {
+            return Result<PublishPostingResponse, SystemError>.Failure(SystemError.Of(
+                $"Publishing posting {id} returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
+        }
+
+        var posting = await response.Content.ReadFromJsonAsync<PublishPostingResponse>(ResponseJsonOptions)
+            ?? throw new InvalidOperationException("The publish posting response was empty.");
+        return Result<PublishPostingResponse, SystemError>.Success(posting);
     }
 
     public async Task<Result<PostingPageResponse, SystemError>> List(int pageNumber)
@@ -49,7 +70,7 @@ public class PostingsEndpoint
                 $"Listing postings returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
         }
 
-        var page = await response.Content.ReadFromJsonAsync<PostingPageResponse>()
+        var page = await response.Content.ReadFromJsonAsync<PostingPageResponse>(ResponseJsonOptions)
             ?? throw new InvalidOperationException("The postings page response was empty.");
         return Result<PostingPageResponse, SystemError>.Success(page);
     }

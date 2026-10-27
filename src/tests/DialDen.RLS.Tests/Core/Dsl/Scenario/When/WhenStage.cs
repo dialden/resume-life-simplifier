@@ -15,6 +15,8 @@ public sealed class WhenStage
 
     public WhenCreatePosting CreatePosting() => new(_app, _scenario, _setup);
 
+    public WhenPublishPosting PublishPosting() => new(_app, _scenario, _setup);
+
     public WhenViewPosting ViewPosting() => new(_app, _scenario, _setup);
 
     public WhenListPostings ListPostings() => new(_app, _scenario, _setup);

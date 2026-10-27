@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Microsoft.Playwright;
+using PostingStatus = DialDen.RLS.Abstractions.Postings.PostingStatus;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
@@ -54,6 +55,42 @@ public class PostingsPage : BasePage
         return await new PostingPage(_page).ReadPosting();
     }
 
+    public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id)
+    {
+        var postingLink = await FindPostingLink(id);
+        if (!await postingLink.IsVisibleAsync())
+        {
+            return Result<PublishPostingResponse, SystemError>.Failure(
+                SystemError.Of($"Posting {id} is not in the postings list."));
+        }
+
+        var title = await postingLink.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
+        await _page.GetByRole(AriaRole.Radio, new() { Name = $"Select posting {title}, ID {id}" }).ClickAsync();
+
+        var status = _page.GetByTestId($"posting-status-{id}");
+        var alert = _page.GetByRole(AriaRole.Alert);
+        var response = await _page.RunAndWaitForResponseAsync(
+            () => _page.GetByRole(AriaRole.Button, new() { Name = "Publish selected", Exact = true }).ClickAsync(),
+            response => response.Request.Method == "POST" &&
+                        new Uri(response.Url).AbsolutePath == $"/postings/{id}/publish");
+        if (!response.Ok)
+        {
+            await alert.WaitForAsync();
+            return Result<PublishPostingResponse, SystemError>.Failure(
+                SystemError.Of(await alert.InnerTextAsync()));
+        }
+
+        await status.Filter(new() { HasText = "Published" }).WaitForAsync();
+        if (await alert.IsVisibleAsync())
+        {
+            return Result<PublishPostingResponse, SystemError>.Failure(
+                SystemError.Of(await alert.InnerTextAsync()));
+        }
+
+        var postingStatus = Enum.Parse<PostingStatus>(await status.InnerTextAsync(), ignoreCase: false);
+        return Result<PublishPostingResponse, SystemError>.Success(new PublishPostingResponse(id, postingStatus));
+    }
+
     public async Task<Result<PostingPageResponse, SystemError>> ReadPage(int pageNumber)
     {
         var pagination = _page.GetByTestId("posting-pagination");
@@ -92,7 +129,10 @@ public class PostingsPage : BasePage
                 ?? throw new InvalidOperationException("A posting row has no destination.");
             var id = int.Parse(href.Split('/').Last(), CultureInfo.InvariantCulture);
             var title = await row.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
-            items.Add(new ViewPostingResponse(id, title));
+            var status = Enum.Parse<PostingStatus>(
+                await row.GetByTestId($"posting-status-{id}").InnerTextAsync(),
+                ignoreCase: false);
+            items.Add(new ViewPostingResponse(id, title, status));
         }
 
         var total = ReadTotalCount(await _page.GetByRole(AriaRole.Status)

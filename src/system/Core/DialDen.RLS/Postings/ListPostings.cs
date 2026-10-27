@@ -15,7 +15,7 @@ internal sealed class ListPostings : IListPostings
     {
         var list = await _postingsArchive.List(request.PageNumber, ListPostingsRequest.PageSize, cancellationToken);
         return new ListPostingsResponse(
-            list.Postings.Select(posting => new ViewPostingResponse(posting.Id, posting.Title)).ToArray(),
+            list.Postings.Select(posting => new ViewPostingResponse(posting.Id, posting.Title, posting.Status)).ToArray(),
             list.TotalPostings, request.PageNumber, ListPostingsRequest.PageSize);
     }
 }

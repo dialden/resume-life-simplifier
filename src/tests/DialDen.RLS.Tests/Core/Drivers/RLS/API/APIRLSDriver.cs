@@ -22,6 +22,9 @@ public class APIRLSDriver : IRLSDriver
         return await _apiClient.Postings.Create(title);
     }
 
+    public Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id)
+        => _apiClient.Postings.Publish(id);
+
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
     {
         return await _apiClient.Postings.View(id);

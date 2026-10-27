@@ -56,8 +56,14 @@ public class CreatePostingPage : BasePage
         var createdPosting = await response.JsonAsync()
             ?? throw new InvalidOperationException("The API returned no created posting.");
         var createdId = createdPosting.GetProperty("id").GetInt32();
+        var status = createdPosting.GetProperty("status").GetString()
+            ?? throw new InvalidOperationException("The API returned no posting status.");
+        var createdStatus = Enum.Parse<DialDen.RLS.Abstractions.Postings.PostingStatus>(
+            status,
+            ignoreCase: false);
         var postingLink = await new PostingsPage(_page).FindPostingLink(createdId);
         var createdTitle = await postingLink.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
-        return Result<CreatePostingResponse, SystemError>.Success(new CreatePostingResponse(createdId, createdTitle));
+        return Result<CreatePostingResponse, SystemError>.Success(
+            new CreatePostingResponse(createdId, createdTitle, createdStatus));
     }
 }

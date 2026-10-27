@@ -45,6 +45,10 @@ else
                 <dt>Title</dt>
                 <dd>@_posting.Title</dd>
             </div>
+            <div>
+                <dt>Status</dt>
+                <dd>@_posting.Status</dd>
+            </div>
         </dl>
         <div class="panel-footer">Part of your personal opportunity library</div>
     </section>
@@ -83,7 +87,8 @@ else
             }
 
             response.EnsureSuccessStatusCode();
-            _posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>()
+            _posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>(
+                ApiJsonSerializerOptions.Default)
                 ?? throw new System.Text.Json.JsonException("The API returned no posting.");
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)

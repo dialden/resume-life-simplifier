@@ -25,4 +25,13 @@ public sealed class ListPostingsVerification(ListPostingsResponse response, UseC
         page.Items.ShouldBeEmpty();
         page.TotalCount.ShouldBeGreaterThan(0);
     }
+
+    public void HasPostingStatus(string alias, string expectedStatus)
+    {
+        var id = int.Parse(Context.GetResultValue(alias)!, CultureInfo.InvariantCulture);
+        var all = Response.Pages.SelectMany(page => page.Items).ToArray();
+        all.ShouldContain(posting => posting.Id == id);
+        var posting = all.Single(posting => posting.Id == id);
+        posting.Status.ToString().ShouldBe(expectedStatus);
+    }
 }

@@ -4,7 +4,7 @@ using Shouldly;
 
 namespace DialDen.RLS.Tests.Core.Dsl.UseCases;
 
-public class CreatePostingVerification : ResponseVerification<CreatePostingResponse>
+public class CreatePostingVerification : ResponseVerification<CreatePostingResponse>, IPostingStatusVerification
 {
     public CreatePostingVerification(CreatePostingResponse response, UseCaseContext context)
         : base(response, context)
@@ -25,5 +25,10 @@ public class CreatePostingVerification : ResponseVerification<CreatePostingRespo
     {
         Response.Title.ShouldBe(expectedTitle);
         return this;
+    }
+
+    public void HasStatus(string expectedStatus)
+    {
+        Response.Status.ToString().ShouldBe(expectedStatus);
     }
 }

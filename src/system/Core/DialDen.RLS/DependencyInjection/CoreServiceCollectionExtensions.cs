@@ -11,6 +11,7 @@ public static class CoreServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddScoped<ICreatePosting, CreatePosting>();
+        services.AddScoped<IPublishPosting, PublishPosting>();
         services.AddScoped<IViewPosting, ViewPosting>();
         services.AddScoped<IListPostings, ListPostings>();
 

@@ -15,6 +15,7 @@ public static class RLSEndpoints
         app.MapGet("/", () => TypedResults.Ok(new RLSEntryPoint([
                 new Link("create-posting", "/postings", "POST"),
                 new Link("list-postings", "/postings", "GET"),
+                new Link("publish-posting", "/postings/{id}/publish", "POST"),
                 new Link("view-posting", "/postings/{id}", "GET")
             ])))
             .WithName("EntryPoint")
@@ -71,6 +72,21 @@ public static class RLSEndpoints
             .WithName("ViewPosting")
             .WithSummary("Retrieves a job posting by its identifier.")
             .Produces<ViewPostingResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        app.MapPost("/postings/{id:int}/publish", async Task<IResult> (
+                int id,
+                [FromServices] IPublishPosting publishPosting,
+                CancellationToken cancellationToken) =>
+            {
+                var posting = await publishPosting.Publish(new PublishPostingRequest(id), cancellationToken);
+                return posting is null
+                    ? TypedResults.NotFound()
+                    : TypedResults.Ok(posting);
+            })
+            .WithName("PublishPosting")
+            .WithSummary("Publishes a job posting.")
+            .Produces<PublishPostingResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
         return app;

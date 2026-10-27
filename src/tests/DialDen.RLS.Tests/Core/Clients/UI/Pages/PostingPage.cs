@@ -1,6 +1,7 @@
 using System.Globalization;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Microsoft.Playwright;
+using PostingStatus = DialDen.RLS.Abstractions.Postings.PostingStatus;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
@@ -29,6 +30,9 @@ public class PostingPage : BasePage
         var definitions = details.GetByRole(AriaRole.Definition);
         var id = int.Parse(await definitions.Nth(0).InnerTextAsync(), CultureInfo.InvariantCulture);
         var title = await details.GetByRole(AriaRole.Heading, new() { Level = 2 }).InnerTextAsync();
-        return Result<ViewPostingResponse, SystemError>.Success(new ViewPostingResponse(id, title));
+        var status = Enum.Parse<PostingStatus>(
+            await details.GetByRole(AriaRole.Definition).Nth(2).InnerTextAsync(),
+            ignoreCase: false);
+        return Result<ViewPostingResponse, SystemError>.Success(new ViewPostingResponse(id, title, status));
     }
 }

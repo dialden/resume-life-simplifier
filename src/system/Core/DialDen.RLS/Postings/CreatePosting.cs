@@ -18,6 +18,6 @@ internal sealed class CreatePosting : ICreatePosting
         cancellationToken.ThrowIfCancellationRequested();
 
         var posting = await _postingsArchive.Add(request.Title, cancellationToken);
-        return new CreatePostingResponse(posting.Id, posting.Title);
+        return new CreatePostingResponse(posting.Id, posting.Title, posting.Status);
     }
 }

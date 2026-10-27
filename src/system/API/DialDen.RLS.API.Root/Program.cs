@@ -1,6 +1,8 @@
 using DialDen.RLS.API;
+using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.DependencyInjection;
 using DialDen.RLS.Infrastructure.DependencyInjection;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.Sources.Clear();
@@ -12,6 +14,8 @@ builder.Configuration
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingStatus>()));
 builder.Services
     .AddRLSCore()
     .AddRLSInfrastructure(builder.Configuration);

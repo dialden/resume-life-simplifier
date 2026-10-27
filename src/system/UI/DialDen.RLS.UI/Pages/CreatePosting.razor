@@ -107,7 +107,8 @@ else
         {
             using var response = await Api.PostAsJsonAsync(link.Href, new CreatePostingRequest(_title));
             response.EnsureSuccessStatusCode();
-            _ = await response.Content.ReadFromJsonAsync<CreatePostingResponse>()
+            _ = await response.Content.ReadFromJsonAsync<CreatePostingResponse>(
+                ApiJsonSerializerOptions.Default)
                 ?? throw new System.Text.Json.JsonException("The API returned no created posting.");
             Navigation.NavigateTo("/postings");
         }

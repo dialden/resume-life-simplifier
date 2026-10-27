@@ -6,5 +6,7 @@ public interface IPostingsArchive
 
     Task<Posting?> FindById(int postingId, CancellationToken cancellationToken);
 
+    Task<Posting?> Publish(int postingId, CancellationToken cancellationToken);
+
     Task<PostingList> List(int pageNumber, int postingsPerPage, CancellationToken cancellationToken);
 }

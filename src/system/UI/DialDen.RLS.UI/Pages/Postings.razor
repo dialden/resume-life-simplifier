@@ -38,6 +38,13 @@ else
             </div>
             <span class="panel-caption">Your opportunity library</span>
         </div>
+        <div class="posting-list-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       Disabled="@(_selectedPostingId is null || _isPublishing)"
+                       OnClick="PublishSelected">
+                @(_isPublishing ? "Publishing..." : "Publish selected")
+            </MudButton>
+        </div>
         @if (_page.Items.Count == 0)
         {
             <div class="empty-state" role="status">
@@ -60,11 +67,17 @@ else
         }
         else
         {
-            <div class="list-columns" aria-hidden="true"><span>JOB TITLE</span><span>DETAILS</span></div>
+            <div class="list-columns" aria-hidden="true"><span>SELECT A POSTING</span><span>STATUS</span></div>
             <ul class="posting-list" aria-label="Postings">
                 @foreach (var posting in _page.Items)
                 {
-                    <li @key="posting.Id">
+                    <li @key="posting.Id" class="posting-list-item">
+                        <label class="posting-selection">
+                            <input type="radio" name="selectedPosting" value="@posting.Id"
+                                   checked="@(_selectedPostingId == posting.Id)"
+                                   aria-label="@($"Select posting {posting.Title}, ID {posting.Id}")"
+                                   @onchange="@(() => _selectedPostingId = posting.Id)" />
+                        </label>
                         <a class="posting-row" href="@($"/postings/{posting.Id}")"
                            aria-label="View posting @posting.Title, ID @posting.Id">
                             <span class="posting-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" /></span>
@@ -72,6 +85,7 @@ else
                                 <span class="posting-name" role="heading" aria-level="3">@posting.Title</span>
                                 <span class="posting-reference">Posting #@posting.Id</span>
                             </span>
+                            <span class="posting-status" data-testid="posting-status-@posting.Id">@posting.Status</span>
                             <span class="row-action" aria-hidden="true">View details<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
                         </a>
                     </li>
@@ -119,6 +133,8 @@ else
     private ListPostingsResponse? _page;
     private string? _error;
     private int _loadVersion;
+    private int? _selectedPostingId;
+    private bool _isPublishing;
 
     private long TotalPages => _page is null ? 1 : Math.Max(1, _page.TotalCount / _page.PageSize +
         (_page.TotalCount % _page.PageSize == 0 ? 0 : 1));
@@ -132,6 +148,7 @@ else
         var version = ++_loadVersion;
         _page = null;
         _error = null;
+        _selectedPostingId = null;
         var pageNumber = 1;
         if (Page is not null &&
             (!int.TryParse(Page, NumberStyles.None, CultureInfo.InvariantCulture, out pageNumber) || pageNumber < 1))
@@ -158,7 +175,9 @@ else
 
             var separator = listLink.Href.Contains('?') ? '&' : '?';
             var href = $"{listLink.Href}{separator}pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}";
-            var page = await Api.GetFromJsonAsync<ListPostingsResponse>(href)
+            var page = await Api.GetFromJsonAsync<ListPostingsResponse>(
+                    href,
+                    ApiJsonSerializerOptions.Default)
                 ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
             if (version == _loadVersion)
             {
@@ -171,6 +190,58 @@ else
             {
                 _error = $"Could not load postings: {ex.Message}";
             }
+        }
+    }
+
+    private async Task PublishSelected()
+    {
+        if (_isPublishing || _selectedPostingId is not { } postingId || _page is null)
+        {
+            return;
+        }
+
+        _isPublishing = true;
+        _error = null;
+        try
+        {
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
+                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            var publishLink = entryPoint.Links.SingleOrDefault(
+                link => link is { Rel: "publish-posting", Method: "POST" });
+            if (publishLink is null)
+            {
+                _error = "The RLS API does not currently offer posting publishing.";
+                return;
+            }
+
+            var href = publishLink.Href.Replace("{id}", postingId.ToString(CultureInfo.InvariantCulture));
+            using var response = await Api.PostAsync(href, content: null);
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = response.StatusCode == System.Net.HttpStatusCode.NotFound
+                    ? "The selected posting could not be found."
+                    : $"Could not publish the posting: the API returned HTTP {(int)response.StatusCode}.";
+                return;
+            }
+
+            var published = await response.Content.ReadFromJsonAsync<PublishPostingResponse>(
+                    ApiJsonSerializerOptions.Default)
+                ?? throw new System.Text.Json.JsonException("The API returned no published posting.");
+            _page = _page with
+            {
+                Items = _page.Items.Select(posting => posting.Id == published.Id
+                    ? posting with { Status = published.Status }
+                    : posting).ToArray()
+            };
+            _selectedPostingId = null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _error = $"Could not publish the posting: {ex.Message}";
+        }
+        finally
+        {
+            _isPublishing = false;
         }
     }
 }

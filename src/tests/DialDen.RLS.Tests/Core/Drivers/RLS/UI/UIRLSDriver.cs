@@ -29,6 +29,18 @@ public class UIRLSDriver : IRLSDriver
         return await homePage.CreatePosting(title);
     }
 
+    public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id)
+    {
+        var homePage = await _uiClient.OpenHomePage();
+        var postingsPage = await homePage.OpenPostings();
+        if (postingsPage.IsFailure)
+        {
+            return Result<PublishPostingResponse, SystemError>.Failure(postingsPage.Error);
+        }
+
+        return await postingsPage.Value.PublishPosting(id);
+    }
+
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
     {
         var homePage = await _uiClient.OpenHomePage();

@@ -23,6 +23,12 @@ public sealed class ThenPostingPages<TResponse, TVerification>
         return this;
     }
 
+    public ThenPostingPages<TResponse, TVerification> HasPostingStatus(string alias, string expectedStatus)
+    {
+        _checks.Add(verification => verification.HasPostingStatus(alias, expectedStatus));
+        return this;
+    }
+
     public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
 
     private async Task Execute()
