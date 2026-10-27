@@ -4,13 +4,10 @@ using Microsoft.Playwright;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
-public class PostingPage
+public class PostingPage : BasePage
 {
-    private readonly IPage _page;
-
-    public PostingPage(IPage page)
+    public PostingPage(IPage page) : base(page)
     {
-        _page = page;
     }
 
     public async Task<Result<ViewPostingResponse, SystemError>> ReadPosting()

@@ -11,7 +11,6 @@ public class UIClient : IDisposable
     private readonly RLSConfiguration _configuration;
     private IBrowser? _browser;
     private IPage? _page;
-    private HomePage? _homePage;
 
     public UIClient(RLSConfiguration configuration, IPlaywright playwright)
     {
@@ -26,11 +25,11 @@ public class UIClient : IDisposable
             var browserType = _playwright[PlaywrightSettingsProvider.BrowserName];
             _browser = await browserType.LaunchAsync();
             _page = await _browser.NewPageAsync(new BrowserNewPageOptions { BaseURL = _configuration.UIUrl });
-            _homePage = new HomePage(_page);
+            await _page.GotoAsync(string.Empty);
+            return new HomePage(_page);
         }
 
-        await _page.GotoAsync(string.Empty);
-        return _homePage!;
+        return await new HomePage(_page).GoToHomePage();
     }
 
     public void Dispose()

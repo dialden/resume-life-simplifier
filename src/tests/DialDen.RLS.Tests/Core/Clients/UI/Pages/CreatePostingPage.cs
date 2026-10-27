@@ -3,13 +3,10 @@ using Microsoft.Playwright;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
-public class CreatePostingPage
+public class CreatePostingPage : BasePage
 {
-    private readonly IPage _page;
-
-    public CreatePostingPage(IPage page)
+    public CreatePostingPage(IPage page) : base(page)
     {
-        _page = page;
     }
 
     public async Task<Result<VoidValue, SystemError>> FillTitle(string title)

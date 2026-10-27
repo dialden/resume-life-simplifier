@@ -5,13 +5,10 @@ using Microsoft.Playwright;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
-public class PostingsPage
+public class PostingsPage : BasePage
 {
-    private readonly IPage _page;
-
-    public PostingsPage(IPage page)
+    public PostingsPage(IPage page) : base(page)
     {
-        _page = page;
     }
 
     public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)

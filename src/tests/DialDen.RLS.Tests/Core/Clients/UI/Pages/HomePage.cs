@@ -3,13 +3,10 @@ using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
-public class HomePage
+public class HomePage : BasePage
 {
-    private readonly IPage _page;
-
-    public HomePage(IPage page)
+    public HomePage(IPage page) : base(page)
     {
-        _page = page;
     }
 
     /// <summary>

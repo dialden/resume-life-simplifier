@@ -65,6 +65,11 @@ content on smaller screens. Loading, empty, and error states are shown in
 context; the interface only displays the posting information currently supported
 by the system.
 
+UI acceptance-test page objects inherit shared workspace navigation from
+`BasePage`. The UI client loads the app once with Playwright's `GotoAsync`;
+subsequent returns home click **Overview**, allowing Blazor to navigate without
+restarting the WebAssembly app.
+
 ### Posting pagination
 
 The posting library uses server-side paging with **10 postings per page**, ordered
