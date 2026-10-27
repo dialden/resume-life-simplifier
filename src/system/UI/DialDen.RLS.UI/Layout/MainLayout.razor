@@ -1,14 +1,77 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+<div class="workspace-shell">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <aside class="workspace-sidebar" aria-label="Workspace">
+        <a class="brand" href="/" aria-label="Resume Life Simplifier home">
+            <span class="brand-mark" aria-hidden="true">
+                <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
+            </span>
+            <span class="brand-name">Resume Life<span>Simplifier</span></span>
+        </a>
+
+        <div class="nav-caption">WORKSPACE</div>
+        <nav class="workspace-nav" aria-label="Main navigation">
+            <NavLink href="/" Match="NavLinkMatch.All" class="workspace-nav-link">
+                <MudIcon Icon="@Icons.Material.Outlined.SpaceDashboard" />
+                <span>Overview</span>
+            </NavLink>
+            <NavLink href="/postings" class="workspace-nav-link">
+                <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
+                <span>Job postings</span>
+            </NavLink>
+        </nav>
+
+        <div class="sidebar-note">
+            <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" />
+            <p>A little more organized.<br />A step closer to what's next.</p>
+        </div>
+        <div class="sidebar-footer">Resume Life Simplifier</div>
+    </aside>
+
+    <div class="workspace-main">
+        <header class="workspace-topbar">
+            <span class="topbar-title">Your career workspace</span>
+            <span class="workspace-label">
+                <span class="workspace-dot" aria-hidden="true"></span>
+                Personal workspace
+            </span>
+        </header>
+        <main id="main-content" class="workspace-content" tabindex="-1">
             @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
+        </main>
+        <footer class="workspace-footer">Make room for your next opportunity.</footer>
+    </div>
+</div>
+
+@code {
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#0f766e",
+            Secondary = "#152b43",
+            Background = "#f4f6fa",
+            Surface = "#ffffff",
+            TextPrimary = "#182b43",
+            TextSecondary = "#5d6b7e",
+            AppbarBackground = "#ffffff"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "10px"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = ["Inter", "Segoe UI", "Arial", "sans-serif"]
+            }
+        }
+    };
+}

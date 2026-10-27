@@ -59,7 +59,8 @@ public class CreatePostingPage
         var createdPosting = await response.JsonAsync()
             ?? throw new InvalidOperationException("The API returned no created posting.");
         var createdId = createdPosting.GetProperty("id").GetInt32();
-        var createdTitle = await postings.Locator($"a[href='/postings/{createdId}']").InnerTextAsync();
+        var createdTitle = await postings.Locator($"a[href='/postings/{createdId}']")
+            .GetByTestId("posting-title").InnerTextAsync();
         return Result<CreatePostingResponse, SystemError>.Success(new CreatePostingResponse(createdId, createdTitle));
     }
 }

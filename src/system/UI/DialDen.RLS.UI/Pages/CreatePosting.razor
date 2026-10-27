@@ -3,10 +3,16 @@
 @inject HttpClient Api
 @inject NavigationManager Navigation
 
-<PageTitle>Create posting</PageTitle>
+<PageTitle>Create posting | Resume Life Simplifier</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1">Create posting</MudText>
-<MudLink Href="/postings">View postings</MudLink>
+<div class="breadcrumb"><a href="/postings">View postings</a><span aria-hidden="true">/</span><span>Create posting</span></div>
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">MAKE ROOM FOR WHAT'S NEXT</p>
+        <h1>Create posting</h1>
+        <p class="page-description">Add a new opportunity to your workspace.</p>
+    </div>
+</div>
 
 @if (_loadError is not null)
 {
@@ -14,25 +20,49 @@
 }
 else if (_createLink is null)
 {
-    <MudText>Loading...</MudText>
+    <div class="state-panel" role="status">
+        <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
+        <p>Preparing your posting...</p>
+    </div>
 }
 else
 {
-    <form @onsubmit="Submit" @onsubmit:preventDefault>
-        <MudStack Spacing="3">
-            <MudTextField T="string" Label="Title" InputId="posting-title-input"
-                          @bind-Value="_title" Disabled="_isCreating" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
-                       Color="Color.Primary" Disabled="_isCreating">
-                Create posting
-            </MudButton>
-        </MudStack>
-    </form>
-
-    @if (_creationError is not null)
-    {
-        <MudAlert Severity="Severity.Error" role="alert">@_creationError</MudAlert>
-    }
+    <div class="editor-grid">
+        <section class="surface-panel" aria-labelledby="posting-information">
+            <div class="panel-header">
+                <div>
+                    <h2 id="posting-information">Posting information</h2>
+                    <p class="panel-description">Start with the role you're interested in.</p>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Color="Color.Primary" />
+            </div>
+            <form @onsubmit="Submit" @onsubmit:preventDefault>
+                <div class="form-body">
+                    <MudTextField T="string" Label="Title" InputId="posting-title-input"
+                                  Variant="Variant.Outlined" HelperText="Use a title you'll recognize, such as Software Engineer."
+                                  @bind-Value="_title" Disabled="_isCreating" />
+                    @if (_creationError is not null)
+                    {
+                        <MudAlert Class="mt-4" Severity="Severity.Error" role="alert">@_creationError</MudAlert>
+                    }
+                </div>
+                <div class="form-actions">
+                    <MudButton Href="/postings" Variant="Variant.Text" Disabled="_isCreating">Cancel</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                               Color="Color.Primary" Disabled="_isCreating" StartIcon="@Icons.Material.Outlined.Add">
+                        @(_isCreating ? "Creating..." : "Create posting")
+                    </MudButton>
+                </div>
+            </form>
+        </section>
+        <aside class="help-panel" aria-labelledby="help-title">
+            <span class="feature-icon"><MudIcon Icon="@Icons.Material.Outlined.Lightbulb" /></span>
+            <h2 id="help-title">A good place to start</h2>
+            <p>A clear title makes an opportunity easier to recognize when you return to your postings.</p>
+            <div class="help-divider"></div>
+            <p>Once created, your posting will appear in your list. Open it any time to see its details.</p>
+        </aside>
+    </div>
 }
 
 @code {

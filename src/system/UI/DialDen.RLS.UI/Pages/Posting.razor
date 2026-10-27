@@ -4,11 +4,16 @@
 @using DialDen.RLS.Abstractions.Postings
 @inject HttpClient Api
 
-<PageTitle>Posting details</PageTitle>
+<PageTitle>Posting details | Resume Life Simplifier</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1">Posting details</MudText>
-<MudLink Href="/">Home</MudLink>
-<MudLink Href="/postings">View postings</MudLink>
+<div class="breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><a href="/postings">View postings</a><span aria-hidden="true">/</span><span>Details</span></div>
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">YOUR OPPORTUNITY LIBRARY</p>
+        <h1>Posting details</h1>
+        <p class="page-description">A closer look at your opportunity.</p>
+    </div>
+</div>
 
 @if (_error is not null)
 {
@@ -16,13 +21,32 @@
 }
 else if (_posting is null)
 {
-    <MudText>Loading...</MudText>
+    <div class="state-panel" role="status">
+        <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
+        <p>Loading posting details...</p>
+    </div>
 }
 else
 {
-    <section aria-label="Posting details">
-        <MudText Typo="Typo.h5" HtmlTag="h2" data-testid="posting-title">@_posting.Title</MudText>
-        <MudText>Posting ID: <span data-testid="posting-id">@_posting.Id</span></MudText>
+    <section class="surface-panel" aria-label="Posting details">
+        <div class="posting-detail-heading">
+            <span class="detail-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
+            <div>
+                <span class="eyebrow">JOB POSTING</span>
+                <h2 class="detail-title" data-testid="posting-title">@_posting.Title</h2>
+            </div>
+        </div>
+        <dl class="detail-fields">
+            <div>
+                <dt>Posting ID</dt>
+                <dd data-testid="posting-id">@_posting.Id</dd>
+            </div>
+            <div>
+                <dt>Title</dt>
+                <dd>@_posting.Title</dd>
+            </div>
+        </dl>
+        <div class="panel-footer">Part of your personal opportunity library</div>
     </section>
 }
 

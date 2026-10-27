@@ -2,11 +2,19 @@
 @using DialDen.RLS.Abstractions.Postings
 @inject HttpClient Api
 
-<PageTitle>Postings</PageTitle>
+<PageTitle>Job postings | Resume Life Simplifier</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1">Postings</MudText>
-<MudLink Href="/">Home</MudLink>
-<MudLink Href="/postings/create">Create posting</MudLink>
+<div class="breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Job postings</span></div>
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">OPPORTUNITIES, ORGANIZED</p>
+        <h1>Job postings</h1>
+        <p class="page-description">All your opportunities, in one place.</p>
+    </div>
+    <a class="action-link action-primary" href="/postings/create">
+        <MudIcon Icon="@Icons.Material.Outlined.Add" />Create posting
+    </a>
+</div>
 
 @if (_error is not null)
 {
@@ -14,22 +22,50 @@
 }
 else if (_postings is null)
 {
-    <MudText>Loading...</MudText>
-}
-else if (_postings.Count == 0)
-{
-    <MudText role="status">No postings yet.</MudText>
+    <div class="state-panel" role="status">
+        <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
+        <p>Loading your postings...</p>
+    </div>
 }
 else
 {
-    <ul aria-label="Postings">
-        @foreach (var posting in _postings)
+    <section class="surface-panel" aria-labelledby="postings-heading">
+        <div class="panel-header">
+            <div class="panel-title">
+                <h2 id="postings-heading">All postings</h2>
+                <span class="count-badge">@_postings.Count</span>
+            </div>
+            <span class="panel-caption">Your opportunity library</span>
+        </div>
+        @if (_postings.Count == 0)
         {
-            <li @key="posting.Id">
-                <MudLink Href="@($"/postings/{posting.Id}")">@posting.Title</MudLink>
-            </li>
+            <div class="empty-state" role="status">
+                <span class="empty-icon"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
+                <h3>No postings yet.</h3>
+                <p>Your next opportunity belongs here.<br />Choose Create posting to start your collection.</p>
+            </div>
         }
-    </ul>
+        else
+        {
+            <div class="list-columns" aria-hidden="true"><span>JOB TITLE</span><span>DETAILS</span></div>
+            <ul class="posting-list" aria-label="Postings">
+                @foreach (var posting in _postings)
+                {
+                    <li @key="posting.Id">
+                        <a class="posting-row" href="@($"/postings/{posting.Id}")">
+                            <span class="posting-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" /></span>
+                            <span class="posting-summary">
+                                <span class="posting-name" data-testid="posting-title">@posting.Title</span>
+                                <span class="posting-reference">Posting #@posting.Id</span>
+                            </span>
+                            <span class="row-action" aria-hidden="true">View details<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
+                        </a>
+                    </li>
+                }
+            </ul>
+            <div class="panel-footer">@_postings.Count @(_postings.Count == 1 ? "posting" : "postings") in your workspace</div>
+        }
+    </section>
 }
 
 @code {

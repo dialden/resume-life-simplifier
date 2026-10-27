@@ -29,7 +29,7 @@ public class PostingsPage
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
     {
         var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
-        var empty = _page.GetByRole(AriaRole.Status);
+        var empty = _page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No postings yet." });
         var alert = _page.GetByRole(AriaRole.Alert);
         var errorBanner = _page.Locator("#blazor-error-ui").Filter(new() { Visible = true });
         await postings.Or(empty).Or(alert).Or(errorBanner).First.WaitForAsync();
