@@ -15,7 +15,7 @@ public static class RLSEndpoints
         app.MapGet("/", () => TypedResults.Ok(new RLSEntryPoint([
                 new Link("create-posting", "/postings", "POST"),
                 new Link("list-postings", "/postings", "GET"),
-                new Link("publish-posting", "/postings/{id}/publish", "POST"),
+                new Link("publish-posting", "/postings/{id}", "PATCH"),
                 new Link("view-posting", "/postings/{id}", "GET")
             ])))
             .WithName("EntryPoint")
@@ -74,20 +74,31 @@ public static class RLSEndpoints
             .Produces<ViewPostingResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        app.MapPost("/postings/{id:int}/publish", async Task<IResult> (
+        app.MapPatch("/postings/{id:int}", async Task<IResult> (
                 int id,
+                UpdatePostingRequest request,
                 [FromServices] IPublishPosting publishPosting,
                 CancellationToken cancellationToken) =>
             {
+                if (request.Status is not PostingStatus.Published)
+                {
+                    return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["status"] = ["Only publishing a posting is currently supported."]
+                    });
+                }
+
                 var posting = await publishPosting.Publish(new PublishPostingRequest(id), cancellationToken);
                 return posting is null
                     ? TypedResults.NotFound()
                     : TypedResults.Ok(posting);
             })
-            .WithName("PublishPosting")
-            .WithSummary("Publishes a job posting.")
+            .WithName("UpdatePosting")
+            .WithSummary("Updates a job posting's status.")
+            .Accepts<UpdatePostingRequest>("application/json")
             .Produces<PublishPostingResponse>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status404NotFound)
+            .ProducesValidationProblem();
 
         return app;
     }

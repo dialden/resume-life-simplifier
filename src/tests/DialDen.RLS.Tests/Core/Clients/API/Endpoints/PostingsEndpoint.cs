@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
+using PostingStatus = DialDen.RLS.Abstractions.Postings.PostingStatus;
 
 namespace DialDen.RLS.Tests.Core.Clients.API.Endpoints;
 
@@ -49,7 +50,10 @@ public class PostingsEndpoint
 
     public async Task<Result<PublishPostingResponse, SystemError>> Publish(int id)
     {
-        using var response = await _httpClient.PostAsync($"/postings/{id}/publish", content: null);
+        using var response = await _httpClient.PatchAsJsonAsync(
+            $"/postings/{id}",
+            new { Status = PostingStatus.Published },
+            ResponseJsonOptions);
         if (!response.IsSuccessStatusCode)
         {
             return Result<PublishPostingResponse, SystemError>.Failure(SystemError.Of(

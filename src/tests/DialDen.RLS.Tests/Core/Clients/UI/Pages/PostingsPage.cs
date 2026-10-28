@@ -71,8 +71,8 @@ public class PostingsPage : BasePage
         var alert = _page.GetByRole(AriaRole.Alert);
         var response = await _page.RunAndWaitForResponseAsync(
             () => _page.GetByRole(AriaRole.Button, new() { Name = "Publish selected", Exact = true }).ClickAsync(),
-            response => response.Request.Method == "POST" &&
-                        new Uri(response.Url).AbsolutePath == $"/postings/{id}/publish");
+            response => response.Request.Method == "PATCH" &&
+                        new Uri(response.Url).AbsolutePath == $"/postings/{id}");
         if (!response.Ok)
         {
             await alert.WaitForAsync();

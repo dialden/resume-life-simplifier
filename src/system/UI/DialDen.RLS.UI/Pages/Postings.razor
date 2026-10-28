@@ -207,7 +207,7 @@ else
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
                 ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
             var publishLink = entryPoint.Links.SingleOrDefault(
-                link => link is { Rel: "publish-posting", Method: "POST" });
+                link => link is { Rel: "publish-posting", Method: "PATCH" });
             if (publishLink is null)
             {
                 _error = "The RLS API does not currently offer posting publishing.";
@@ -215,7 +215,10 @@ else
             }
 
             var href = publishLink.Href.Replace("{id}", postingId.ToString(CultureInfo.InvariantCulture));
-            using var response = await Api.PostAsync(href, content: null);
+            using var response = await Api.PatchAsJsonAsync(
+                href,
+                new { Status = PostingStatus.Published },
+                ApiJsonSerializerOptions.Default);
             if (!response.IsSuccessStatusCode)
             {
                 _error = response.StatusCode == System.Net.HttpStatusCode.NotFound
