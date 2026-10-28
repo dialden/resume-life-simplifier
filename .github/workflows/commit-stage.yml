@@ -1,0 +1,50 @@
+name: Commit stage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  checks: write
+  contents: read
+  packages: write
+
+concurrency:
+  group: commit-stage-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commit:
+    name: Build, test, and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run commit stage in devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: '"$WORKSPACE_ROOT/ops/pipelines/stages/commit/invoke.cs"'
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: commit-test-results
+          path: .artifacts/commit/*/test-results/
+          include-hidden-files: true
+          if-no-files-found: warn
+
+      - name: Upload published applications
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: commit-publish
+          path: .artifacts/commit/*/publish/
+          include-hidden-files: true
+          if-no-files-found: error

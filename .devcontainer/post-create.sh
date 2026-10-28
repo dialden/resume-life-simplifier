@@ -11,7 +11,7 @@ printf '[1/4] Migrating development and test databases...\n'
 dotnet run ops/database/migrate.cs
 
 printf '\n[2/4] Generating UI settings...\n'
-dotnet run ops/ui/generate-settings.cs
+dotnet run .vscode/generate-ui-settings.cs
 
 printf '\n[3/4] Generating API and UI launch settings...\n'
 dotnet run .vscode/generate-launch-settings.cs
