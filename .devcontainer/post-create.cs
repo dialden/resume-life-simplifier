@@ -67,4 +67,6 @@ async Task RunStepAsync(string message, string scriptPath)
         throw new InvalidOperationException(
             $"'{scriptPath}' failed with exit code {process.ExitCode}.");
     }
+
+    Console.WriteLine("Done.");
 }
