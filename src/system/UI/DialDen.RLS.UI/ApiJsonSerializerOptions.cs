@@ -8,6 +8,10 @@ internal static class ApiJsonSerializerOptions
 {
     public static JsonSerializerOptions Default { get; } = new(JsonSerializerDefaults.Web)
     {
-        Converters = { new JsonStringEnumConverter<PostingStatus>() }
+        Converters =
+        {
+            new JsonStringEnumConverter<PostingStatus>(),
+            new JsonStringEnumConverter<PostingDeliveryStatus>()
+        }
     };
 }

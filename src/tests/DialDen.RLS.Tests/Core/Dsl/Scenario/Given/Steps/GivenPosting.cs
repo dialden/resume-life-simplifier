@@ -5,6 +5,7 @@ public class GivenPosting : BaseGiven
     private string _idAlias = ScenarioDefaults.PostingId;
     private string _title = "Software Engineer";
     private int _count = 1;
+    private string[]? _publishedJobSites;
 
     internal GivenPosting(GivenStage givenStage) : base(givenStage)
     {
@@ -28,8 +29,20 @@ public class GivenPosting : BaseGiven
         for (var index = 1; index <= _count; index++)
         {
             var result = await app.RLS.CreatePosting().WithTitle(_title).Execute();
-            result.ShouldSucceed().SaveIdAs(_count == 1 ? _idAlias : $"{_idAlias}-{index}");
+            var alias = _count == 1 ? _idAlias : $"{_idAlias}-{index}";
+            result.ShouldSucceed().SaveIdAs(alias);
+            if (_publishedJobSites is not null)
+            {
+                var published = await app.RLS.PublishPosting().WithId(alias).ToJobSites(_publishedJobSites).Execute();
+                published.ShouldSucceed();
+            }
         }
+    }
+
+    public GivenPosting PublishedTo(params string[] jobSiteIds)
+    {
+        _publishedJobSites = jobSiteIds;
+        return this;
     }
 
     public GivenPosting WithCount(int count)

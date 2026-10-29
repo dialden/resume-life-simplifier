@@ -7,7 +7,7 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
     where TSuccessVerification : ResponseVerification<TSuccessResponse>
 {
     private readonly ThenStage<TSuccessResponse, TSuccessVerification> _stage;
-    private readonly List<Action<IPostingStatusVerification>> _verifications = [];
+    private readonly List<Action<object>> _verifications = [];
 
     internal ThenPosting(ThenStage<TSuccessResponse, TSuccessVerification> stage)
     {
@@ -44,13 +44,36 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
 
     public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
 
+    public ThenPosting<TSuccessResponse, TSuccessVerification> HasDelivery(string jobSiteId, string expectedStatus)
+    {
+        _verifications.Add(v =>
+        {
+            if (v is not IPostingDeliveryVerification posting)
+            {
+                throw new InvalidOperationException("Deliveries can only be verified for publishing or viewing a posting.");
+            }
+            posting.HasDelivery(jobSiteId, expectedStatus);
+        });
+        return this;
+    }
+
+    public ThenPosting<TSuccessResponse, TSuccessVerification> HasNoDeliveries()
+    {
+        _verifications.Add(v =>
+        {
+            if (v is not IPostingDeliveryVerification posting)
+            {
+                throw new InvalidOperationException("Deliveries can only be verified for publishing or viewing a posting.");
+            }
+            posting.HasNoDeliveries();
+        });
+        return this;
+    }
+
     private async Task Execute()
     {
         var result = await _stage.GetExecutionResult();
-        if (result.Result.ShouldSucceed() is not IPostingStatusVerification verification)
-        {
-            throw new InvalidOperationException("Posting() can only verify a posting creation or publishing operation.");
-        }
+        var verification = result.Result.ShouldSucceed();
 
         foreach (var check in _verifications)
         {

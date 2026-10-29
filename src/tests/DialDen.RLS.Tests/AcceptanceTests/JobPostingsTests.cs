@@ -38,6 +38,85 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task CanSelectJobSitesWhenPublishing(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting()
+            .When().PublishPosting().ToJobSites("jobillico")
+            .Then().ShouldSucceed()
+                .And().Posting().HasStatus("Published")
+                    .HasDelivery("jobillico", "Pending");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CanViewPendingJobSiteDelivery(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo("jobillico")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().HasStatus("Published")
+                    .HasDelivery("jobillico", "Pending");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CanPublishWithoutExternalJobSites(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting()
+            .When().PublishPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().HasStatus("Published").HasNoDeliveries();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CannotPublishAnAlreadyPublishedPosting(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().WithId("opportunity").PublishedTo()
+            .When().PublishPosting().WithId("opportunity")
+            .Then().ShouldFail().ErrorMessage("This posting cannot be published again.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CanListPendingJobSiteDelivery(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().WithId("opportunity").PublishedTo("jobillico")
+            .When().ListPostings().AcrossAllPages()
+            .Then().ShouldSucceed()
+                .And().PostingPages().HasPostingDelivery("opportunity", "jobillico", "Pending");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory]
+    [InlineData("unknown")]
+    [InlineData("")]
+    [InlineData("Jobillico")]
+    public async Task CannotPublishToAnUnavailableJobSite(string jobSiteId)
+    {
+        await _testEnvironment.Scenario(Channel.API)
+            .Given().Posting()
+            .When().PublishPosting().ToJobSites(jobSiteId)
+            .Then().ShouldFail().FieldErrorMessage("jobSiteIds", "Select distinct, available job sites.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task CannotSelectTheSameJobSiteTwice()
+    {
+        await _testEnvironment.Scenario(Channel.API)
+            .Given().Posting()
+            .When().PublishPosting().ToJobSites("jobillico", "jobillico")
+            .Then().ShouldFail().FieldErrorMessage("jobSiteIds", "Select distinct, available job sites.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task CanViewCreatedPosting(Channel channel)
     {
         await _testEnvironment.Scenario(channel)

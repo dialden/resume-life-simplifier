@@ -16,15 +16,19 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
         return new Posting(entity.Id, entity.Title, entity.Status);
     }
 
-    public Task<Posting?> FindById(int postingId, CancellationToken cancellationToken) =>
-        context.Postings
-            .AsNoTracking()
-            .Where(entity => entity.Id == postingId)
-            .Select(entity => new Posting(entity.Id, entity.Title, entity.Status))
-            .SingleOrDefaultAsync(cancellationToken);
-
-    public async Task<Posting?> Publish(int postingId, CancellationToken cancellationToken)
+    public async Task<Posting?> FindById(int postingId, CancellationToken cancellationToken)
     {
+        var entity = await context.Postings
+            .AsNoTracking()
+            .Include(entity => entity.Deliveries)
+            .SingleOrDefaultAsync(entity => entity.Id == postingId, cancellationToken);
+        return entity is null ? null : ToPosting(entity);
+    }
+
+    public async Task<Posting?> Publish(
+        int postingId, IReadOnlyList<string> jobSiteIds, CancellationToken cancellationToken)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         var entity = await context.Postings.SingleOrDefaultAsync(
             entity => entity.Id == postingId, cancellationToken);
         if (entity is null)
@@ -32,11 +36,36 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
             return null;
         }
 
-        entity.Status = PostingStatus.Published;
+        var published = ToPosting(entity).Publish(jobSiteIds);
+        entity.Status = published.Status;
+        try
+        {
+            // Claim publication before inserting deliveries, so concurrent requests cannot insert duplicates.
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new PostingAlreadyPublishedException();
+        }
+        entity.Deliveries = published.Deliveries.Select(delivery => new PostingDeliveryEntity
+        {
+            PostingId = postingId,
+            JobSiteId = delivery.JobSiteId,
+            Status = delivery.Status
+        }).ToList();
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
-        return new Posting(entity.Id, entity.Title, entity.Status);
+        return published;
     }
+
+    private static Posting ToPosting(PostingEntity entity) => new(entity.Id, entity.Title, entity.Status)
+    {
+        Deliveries = entity.Deliveries
+            .OrderBy(delivery => delivery.JobSiteId, StringComparer.Ordinal)
+            .Select(delivery => new PostingDelivery(delivery.JobSiteId, delivery.Status))
+            .ToArray()
+    };
 
     public async Task<PostingList> List(int pageNumber, int postingsPerPage, CancellationToken cancellationToken)
     {
@@ -48,17 +77,17 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
         await using var transaction = await context.Database.BeginTransactionAsync(
             IsolationLevel.RepeatableRead, cancellationToken);
         var totalPostings = await context.Postings.LongCountAsync(cancellationToken);
-        var postings = offset >= totalPostings
+        var entities = offset >= totalPostings
             ? []
             : await context.Postings
                 .AsNoTracking()
+                .Include(entity => entity.Deliveries)
                 .OrderBy(entity => entity.Id)
                 .Skip(checked((int)offset))
                 .Take(postingsPerPage)
-                .Select(entity => new Posting(entity.Id, entity.Title, entity.Status))
                 .ToListAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new PostingList(postings, totalPostings);
+        return new PostingList(entities.Select(ToPosting).ToArray(), totalPostings);
     }
 }

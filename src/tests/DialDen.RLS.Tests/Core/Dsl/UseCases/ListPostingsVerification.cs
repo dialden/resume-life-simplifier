@@ -34,4 +34,11 @@ public sealed class ListPostingsVerification(ListPostingsResponse response, UseC
         var posting = all.Single(posting => posting.Id == id);
         posting.Status.ToString().ShouldBe(expectedStatus);
     }
+
+    public void HasPostingDelivery(string alias, string jobSiteId, string expectedStatus)
+    {
+        var id = int.Parse(Context.GetResultValue(alias)!, CultureInfo.InvariantCulture);
+        var posting = Response.Pages.SelectMany(page => page.Items).Single(posting => posting.Id == id);
+        posting.Deliveries.ShouldHaveSingleItem().ShouldBe(new PostingDeliveryResponse(jobSiteId, expectedStatus));
+    }
 }

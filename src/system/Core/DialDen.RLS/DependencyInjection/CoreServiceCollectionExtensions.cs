@@ -14,6 +14,7 @@ public static class CoreServiceCollectionExtensions
         services.AddScoped<IPublishPosting, PublishPosting>();
         services.AddScoped<IViewPosting, ViewPosting>();
         services.AddScoped<IListPostings, ListPostings>();
+        services.AddSingleton<IJobSites, JobSites>();
 
         return services;
     }

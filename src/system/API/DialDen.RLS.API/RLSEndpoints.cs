@@ -15,12 +15,18 @@ public static class RLSEndpoints
         app.MapGet("/", () => TypedResults.Ok(new RLSEntryPoint([
                 new Link("create-posting", "/postings", "POST"),
                 new Link("list-postings", "/postings", "GET"),
+                new Link("list-job-sites", "/job-sites", "GET"),
                 new Link("publish-posting", "/postings/{id}", "PATCH"),
                 new Link("view-posting", "/postings/{id}", "GET")
             ])))
             .WithName("EntryPoint")
             .WithSummary("API entry point returning links to the available actions.")
             .Produces<RLSEntryPoint>(StatusCodes.Status200OK);
+
+        app.MapGet("/job-sites", ([FromServices] IJobSites jobSites) => TypedResults.Ok(jobSites.List()))
+            .WithName("ListJobSites")
+            .WithSummary("Lists available external job-site destinations.")
+            .Produces<IReadOnlyList<JobSite>>(StatusCodes.Status200OK);
 
         app.MapPost("/postings", async (
                 CreatePostingRequest request,
@@ -88,16 +94,33 @@ public static class RLSEndpoints
                     });
                 }
 
-                var posting = await publishPosting.Publish(new PublishPostingRequest(id), cancellationToken);
-                return posting is null
-                    ? TypedResults.NotFound()
-                    : TypedResults.Ok(posting);
+                try
+                {
+                    var posting = await publishPosting.Publish(
+                        new PublishPostingRequest(id) { JobSiteIds = request.JobSiteIds }, cancellationToken);
+                    return posting is null
+                        ? TypedResults.NotFound()
+                        : TypedResults.Ok(posting);
+                }
+                catch (PostingAlreadyPublishedException exception)
+                {
+                    return TypedResults.Problem(
+                        statusCode: StatusCodes.Status409Conflict, detail: exception.Message);
+                }
+                catch (InvalidJobSitesException exception)
+                {
+                    return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["jobSiteIds"] = [exception.Message]
+                    });
+                }
             })
             .WithName("UpdatePosting")
             .WithSummary("Updates a job posting's status.")
             .Accepts<UpdatePostingRequest>("application/json")
             .Produces<PublishPostingResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesValidationProblem();
 
         return app;

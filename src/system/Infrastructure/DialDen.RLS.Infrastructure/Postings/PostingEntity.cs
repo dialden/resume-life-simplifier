@@ -9,4 +9,6 @@ internal sealed class PostingEntity
     public required string Title { get; set; }
 
     public PostingStatus Status { get; set; } = PostingStatus.Draft;
+
+    public List<PostingDeliveryEntity> Deliveries { get; set; } = [];
 }

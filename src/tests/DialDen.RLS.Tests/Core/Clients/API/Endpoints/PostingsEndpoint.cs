@@ -1,7 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DialDen.RLS.Tests.Core.Drivers.RLS;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
+using Microsoft.AspNetCore.Mvc;
 using PostingStatus = DialDen.RLS.Abstractions.Postings.PostingStatus;
 
 namespace DialDen.RLS.Tests.Core.Clients.API.Endpoints;
@@ -48,14 +50,27 @@ public class PostingsEndpoint
         return Result<ViewPostingResponse, SystemError>.Success(posting);
     }
 
-    public async Task<Result<PublishPostingResponse, SystemError>> Publish(int id)
+    public async Task<Result<PublishPostingResponse, SystemError>> Publish(int id, IReadOnlyList<string> jobSiteIds)
     {
         using var response = await _httpClient.PatchAsJsonAsync(
             $"/postings/{id}",
-            new { Status = PostingStatus.Published },
+            new { Status = PostingStatus.Published, JobSiteIds = jobSiteIds },
             ResponseJsonOptions);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>()
+                    ?? throw new InvalidOperationException("The publishing conflict response was empty.");
+                return Result<PublishPostingResponse, SystemError>.Failure(SystemError.Of(
+                    problem.Detail ?? throw new InvalidOperationException("The publishing conflict had no explanation.")));
+            }
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>()
+                    ?? throw new InvalidOperationException("The publishing validation response was empty.");
+                return Result<PublishPostingResponse, SystemError>.Failure(problem.MapError());
+            }
             return Result<PublishPostingResponse, SystemError>.Failure(SystemError.Of(
                 $"Publishing posting {id} returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
         }

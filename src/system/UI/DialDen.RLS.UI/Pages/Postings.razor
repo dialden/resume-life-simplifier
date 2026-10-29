@@ -39,11 +39,14 @@ else
             <span class="panel-caption">Your opportunity library</span>
         </div>
         <div class="posting-list-actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       Disabled="@(_selectedPostingId is null || _isPublishing)"
-                       OnClick="PublishSelected">
-                @(_isPublishing ? "Publishing..." : "Publish selected")
-            </MudButton>
+            <div class="publishing-submit">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           Disabled="@(!CanPublishSelected || _isPublishing)"
+                           OnClick="OpenPublishDialog">
+                    Publish selected
+                </MudButton>
+                <p class="publishing-help">Select a draft posting below to publish.</p>
+            </div>
         </div>
         @if (_page.Items.Count == 0)
         {
@@ -84,6 +87,18 @@ else
                             <span class="posting-summary">
                                 <span class="posting-name" role="heading" aria-level="3">@posting.Title</span>
                                 <span class="posting-reference">Posting #@posting.Id</span>
+                                @if (posting.Deliveries.Count > 0)
+                                {
+                                    <span role="list" aria-label="External deliveries">
+                                        @foreach (var delivery in posting.Deliveries)
+                                        {
+                                            <span role="listitem" data-job-site-id="@delivery.JobSiteId">
+                                                @delivery.JobSiteId:
+                                                <span data-testid="delivery-status">@delivery.Status</span>
+                                            </span>
+                                        }
+                                    </span>
+                                }
                             </span>
                             <span class="posting-status" data-testid="posting-status-@posting.Id">@posting.Status</span>
                             <span class="row-action" aria-hidden="true">View details<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
@@ -126,6 +141,45 @@ else
     </section>
 }
 
+<MudDialog @bind-Visible="_showPublishDialog" Options="_publishDialogOptions">
+    <TitleContent>
+        <h2>Publish posting</h2>
+    </TitleContent>
+    <DialogContent>
+        <p class="publishing-posting-title">@_page?.Items.SingleOrDefault(posting => posting.Id == _selectedPostingId)?.Title</p>
+        @if (_publishError is not null)
+        {
+            <MudAlert Severity="Severity.Error" role="alert">@_publishError</MudAlert>
+        }
+        <fieldset class="publishing-channels" disabled="@_isPublishing"
+                  aria-describedby="publishing-channels-help">
+            <legend>Publishing channels</legend>
+            <p id="publishing-channels-help" class="publishing-help">Your posting will be published in RLS. Select any external job sites to include.</p>
+            <div class="publishing-options">
+                @foreach (var site in _jobSites)
+                {
+                    <label class="publishing-option">
+                        <input type="checkbox" data-testid="job-site-@site.Id"
+                               aria-label="@($"Publish to {site.Name}")"
+                               checked="@_selectedJobSiteIds.Contains(site.Id)"
+                               @onchange="@(args => SelectJobSite(site.Id, args.Value is true))" />
+                        <span>@site.Name</span>
+                    </label>
+                }
+            </div>
+            <p class="publishing-help">Leave all sites unchecked to publish only in RLS.</p>
+            <p class="publishing-notice">Demo: external delivery is not active. Selected sites remain Pending.</p>
+        </fieldset>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Disabled="@_isPublishing" OnClick="CancelPublishDialog">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@_isPublishing" OnClick="PublishSelected">
+            @(_isPublishing ? "Publishing..." : "Confirm publication")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     [SupplyParameterFromQuery(Name = "page")]
     public string? Page { get; set; }
@@ -135,6 +189,50 @@ else
     private int _loadVersion;
     private int? _selectedPostingId;
     private bool _isPublishing;
+    private bool _showPublishDialog;
+    private string? _publishError;
+    private readonly DialogOptions _publishDialogOptions = new()
+    {
+        FullWidth = true,
+        MaxWidth = MaxWidth.Small,
+        BackdropClick = false,
+        CloseOnEscapeKey = false
+    };
+    private IReadOnlyList<JobSite> _jobSites = [];
+    private readonly HashSet<string> _selectedJobSiteIds = new(StringComparer.Ordinal);
+
+    private bool CanPublishSelected => _page?.Items.Any(posting =>
+        posting.Id == _selectedPostingId && posting.Status == PostingStatus.Draft) == true;
+
+    private void OpenPublishDialog()
+    {
+        if (!CanPublishSelected || _isPublishing)
+        {
+            return;
+        }
+        _selectedJobSiteIds.Clear();
+        _publishError = null;
+        _showPublishDialog = true;
+    }
+
+    private void CancelPublishDialog()
+    {
+        _showPublishDialog = false;
+        _selectedJobSiteIds.Clear();
+        _publishError = null;
+    }
+
+    private void SelectJobSite(string id, bool selected)
+    {
+        if (selected)
+        {
+            _selectedJobSiteIds.Add(id);
+        }
+        else
+        {
+            _selectedJobSiteIds.Remove(id);
+        }
+    }
 
     private long TotalPages => _page is null ? 1 : Math.Max(1, _page.TotalCount / _page.PageSize +
         (_page.TotalCount % _page.PageSize == 0 ? 0 : 1));
@@ -149,6 +247,8 @@ else
         _page = null;
         _error = null;
         _selectedPostingId = null;
+        _showPublishDialog = false;
+        _selectedJobSiteIds.Clear();
         var pageNumber = 1;
         if (Page is not null &&
             (!int.TryParse(Page, NumberStyles.None, CultureInfo.InvariantCulture, out pageNumber) || pageNumber < 1))
@@ -173,6 +273,16 @@ else
                 return;
             }
 
+            var sitesLink = entryPoint.Links.SingleOrDefault(
+                link => link is { Rel: "list-job-sites", Method: "GET" });
+            if (sitesLink is null)
+            {
+                _error = "The RLS API does not currently offer job-site destinations.";
+                return;
+            }
+            var sites = await Api.GetFromJsonAsync<JobSite[]>(sitesLink.Href)
+                ?? throw new System.Text.Json.JsonException("The API returned no job-site destinations.");
+
             var separator = listLink.Href.Contains('?') ? '&' : '?';
             var href = $"{listLink.Href}{separator}pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}";
             var page = await Api.GetFromJsonAsync<ListPostingsResponse>(
@@ -182,6 +292,7 @@ else
             if (version == _loadVersion)
             {
                 _page = page;
+                _jobSites = sites;
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
@@ -195,13 +306,13 @@ else
 
     private async Task PublishSelected()
     {
-        if (_isPublishing || _selectedPostingId is not { } postingId || _page is null)
+        if (_isPublishing || !CanPublishSelected || _selectedPostingId is not { } postingId || _page is null)
         {
             return;
         }
 
         _isPublishing = true;
-        _error = null;
+        _publishError = null;
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
@@ -210,20 +321,23 @@ else
                 link => link is { Rel: "publish-posting", Method: "PATCH" });
             if (publishLink is null)
             {
-                _error = "The RLS API does not currently offer posting publishing.";
+                _publishError = "The RLS API does not currently offer posting publishing.";
                 return;
             }
 
             var href = publishLink.Href.Replace("{id}", postingId.ToString(CultureInfo.InvariantCulture));
             using var response = await Api.PatchAsJsonAsync(
                 href,
-                new { Status = PostingStatus.Published },
+                new { Status = PostingStatus.Published, JobSiteIds = _selectedJobSiteIds.ToArray() },
                 ApiJsonSerializerOptions.Default);
             if (!response.IsSuccessStatusCode)
             {
-                _error = response.StatusCode == System.Net.HttpStatusCode.NotFound
-                    ? "The selected posting could not be found."
-                    : $"Could not publish the posting: the API returned HTTP {(int)response.StatusCode}.";
+                _publishError = response.StatusCode switch
+                {
+                    System.Net.HttpStatusCode.NotFound => "The selected posting could not be found.",
+                    System.Net.HttpStatusCode.Conflict => "This posting cannot be published again.",
+                    _ => $"Could not publish the posting: the API returned HTTP {(int)response.StatusCode}."
+                };
                 return;
             }
 
@@ -233,14 +347,16 @@ else
             _page = _page with
             {
                 Items = _page.Items.Select(posting => posting.Id == published.Id
-                    ? posting with { Status = published.Status }
+                    ? posting with { Status = published.Status, Deliveries = published.Deliveries }
                     : posting).ToArray()
             };
             _selectedPostingId = null;
+            _selectedJobSiteIds.Clear();
+            _showPublishDialog = false;
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _error = $"Could not publish the posting: {ex.Message}";
+            _publishError = $"Could not publish the posting: {ex.Message}";
         }
         finally
         {

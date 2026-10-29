@@ -21,7 +21,15 @@
             "cwd": "${workspaceFolder}/src/system/UI/DialDen.RLS.UI.Root",
             "preLaunchTask": "build ui",
             "url": "${env:UI_HTTP_URL}",
-            "browser": "edge"
+            "browser": "edge",
+            "dotNetConfig": {
+                "args": [
+                    "run",
+                    "--no-build",
+                    "--launch-profile",
+                    "http"
+                ]
+            }
         }
     ],
     "compounds": [

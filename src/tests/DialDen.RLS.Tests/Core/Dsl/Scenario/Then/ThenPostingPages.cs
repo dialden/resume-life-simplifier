@@ -31,6 +31,13 @@ public sealed class ThenPostingPages<TResponse, TVerification>
 
     public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
 
+    public ThenPostingPages<TResponse, TVerification> HasPostingDelivery(
+        string alias, string jobSiteId, string expectedStatus)
+    {
+        _checks.Add(verification => verification.HasPostingDelivery(alias, jobSiteId, expectedStatus));
+        return this;
+    }
+
     private async Task Execute()
     {
         var result = await _stage.GetExecutionResult();

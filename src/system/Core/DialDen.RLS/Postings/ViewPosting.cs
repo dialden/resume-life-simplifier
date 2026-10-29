@@ -20,6 +20,11 @@ internal sealed class ViewPosting : IViewPosting
         var posting = await _postingsArchive.FindById(request.Id, cancellationToken);
         return posting is null
             ? null
-            : new ViewPostingResponse(posting.Id, posting.Title, posting.Status);
+            : new ViewPostingResponse(posting.Id, posting.Title, posting.Status)
+            {
+                Deliveries = posting.Deliveries
+                    .Select(delivery => new PostingDeliveryResponse(delivery.JobSiteId, delivery.Status))
+                    .ToArray()
+            };
     }
 }

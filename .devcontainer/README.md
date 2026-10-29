@@ -58,6 +58,12 @@ generates local, Git-ignored API and UI launch settings with `http` and `https`
 profiles, preserving Swagger and Blazor browser debugging support. VS Code's
 API and UI debug configurations use `API_HTTP_URL` and `UI_HTTP_URL`.
 
+The UI debugger explicitly selects the `http` launch profile and runs with
+`--no-build`. Its `build ui` pre-launch task builds the app before debugging;
+startup reuses that output instead of running a second build under the debugger.
+If the pre-launch build fails, fix the build error rather than choosing
+**Debug Anyway**, which could launch stale output.
+
 After changing these values, rebuild the container to refresh its environment
 and regenerate the settings. Do not edit generated launch settings directly.
 

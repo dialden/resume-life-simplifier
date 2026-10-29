@@ -70,6 +70,48 @@ UI acceptance-test page objects inherit shared workspace navigation from
 subsequent returns home click **Overview**, allowing Blazor to navigate without
 restarting the WebAssembly app.
 
+### Publishing and external destinations
+
+Select a draft posting in the library and choose **Publish selected**. In the
+confirmation dialog, optionally select Jobillico and choose **Confirm
+publication**. **Cancel** closes the dialog without publishing or saving channel
+choices. With no destinations selected, publication is
+local to RLS. A published posting cannot be published again; the UI disables the
+action and the API returns HTTP 409 for another attempt.
+
+The dialog's **Publishing channels** section uses selectable job-site cards and
+a demo notice. Publication errors remain in the dialog; its controls are disabled
+while publication is in progress.
+
+The API advertises `GET /job-sites` through the `list-job-sites` entry-point link.
+It currently returns `[{"id":"jobillico","name":"Jobillico"}]`. Publish with
+`PATCH /postings/{id}`:
+
+```json
+{
+  "status": "Published",
+  "jobSiteIds": ["jobillico"]
+}
+```
+
+Omitting `jobSiteIds` is equivalent to an empty selection. Identifiers are
+case-sensitive; unknown, duplicate, or null selections return HTTP 400 with a
+`jobSiteIds` validation error. Posting publication and its per-site delivery
+records are saved atomically. Concurrent publication attempts cannot create
+duplicate deliveries.
+
+Publishing, viewing, and listing responses include `deliveries`, for example
+`[{"jobSiteId":"jobillico","status":"Pending"}]`. The UI shows these outcomes in
+the list and posting details. Existing postings have no external deliveries.
+
+**This increment only records delivery intent.** MassTransit, the transactional
+outbox, and provider execution are not wired yet. Selected destinations remain
+`Pending`; no request is sent to Jobillico. Its provider implementation will
+remain unimplemented when the plugin wiring is added.
+
+Apply [migration V3](src/system/Database/migrations/V3__Add_posting_deliveries.sql)
+through Flyway before running the updated API or tests.
+
 ### Posting pagination
 
 The posting library uses server-side paging with **10 postings per page**, ordered
@@ -170,8 +212,9 @@ values; setup regenerates the Git-ignored launch settings. See the
 ### Build and run the tests
 - Make sure you have completed the [Prerequisites](#Prerequisites)
 
-The shared acceptance-test fixture empties `postings` and resets its identity
-sequence once before each test run (including filtered runs). It preserves the
+The shared acceptance-test fixture empties `posting_deliveries` and `postings`
+and resets the posting identity sequence once before each test run (including
+filtered runs). It preserves the
 schema and does not clear data between scenarios. Cleanup requires
 `RLS_TEST_DATABASE` and `RLS_DEV_DATABASE` and refuses connections that do not
 target the named test database or that target the development database.

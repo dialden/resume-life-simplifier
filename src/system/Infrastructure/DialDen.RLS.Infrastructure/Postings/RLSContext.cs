@@ -20,6 +20,18 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
         posting.Property(entity => entity.Status)
             .HasColumnName("status")
             .HasConversion<string>()
+            .IsConcurrencyToken()
             .IsRequired();
+
+        var delivery = modelBuilder.Entity<PostingDeliveryEntity>();
+        delivery.ToTable("posting_deliveries");
+        delivery.HasKey(entity => new { entity.PostingId, entity.JobSiteId });
+        delivery.Property(entity => entity.PostingId).HasColumnName("posting_id");
+        delivery.Property(entity => entity.JobSiteId).HasColumnName("job_site_id");
+        delivery.Property(entity => entity.Status).HasColumnName("status").HasConversion<string>();
+        posting.HasMany(entity => entity.Deliveries)
+            .WithOne()
+            .HasForeignKey(entity => entity.PostingId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

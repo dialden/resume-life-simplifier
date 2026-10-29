@@ -33,6 +33,7 @@ public class PostingPage : BasePage
         var status = Enum.Parse<PostingStatus>(
             await details.GetByRole(AriaRole.Definition).Nth(2).InnerTextAsync(),
             ignoreCase: false);
-        return Result<ViewPostingResponse, SystemError>.Success(new ViewPostingResponse(id, title, status));
+        return Result<ViewPostingResponse, SystemError>.Success(
+            new ViewPostingResponse(id, title, status) { Deliveries = await ReadDeliveries(details) });
     }
 }

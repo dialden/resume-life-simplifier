@@ -15,7 +15,10 @@ builder.Configuration
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingStatus>()));
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingStatus>());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingDeliveryStatus>());
+});
 builder.Services
     .AddRLSCore()
     .AddRLSInfrastructure(builder.Configuration);
