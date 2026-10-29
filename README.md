@@ -94,14 +94,27 @@ array (an API response-shape change):
 
 Omitting `pageNumber` selects page 1. Non-positive, non-integer, or out-of-range
 integer page numbers return HTTP 400. A valid page number beyond the last page
-returns an empty `items` array with the actual `totalCount`. PostgreSQL computes
-the count and the limited page in a single statement, keeping both values
+returns an empty `items` array with the actual `totalCount`. EF Core reads the
+count and the limited page in a repeatable-read transaction, keeping both values
 consistent for that request.
 
 Core represents identified opportunities with `Posting` and listing results with
 `PostingList` (`Postings` and `TotalPostings`). Its `IPostingsArchive` contract uses
-page numbers and postings per page; the `PostgresJobPostings` infrastructure
-adapter owns the SQL offset/limit translation.
+page numbers and postings per page; the `EntityFrameworkPostingsArchive`
+infrastructure adapter owns pagination and persistence through a scoped EF Core
+context. Core and its contracts remain independent of EF Core.
+
+### Persistence
+
+Application persistence uses EF Core with the Npgsql PostgreSQL provider, rather
+than direct Npgsql commands. The context maps the existing `postings` table,
+including its identity identifier and text-based posting status. The
+`ConnectionStrings:RLS` setting remains unchanged.
+
+Flyway remains the schema owner. Application startup does not create the
+database, run EF migrations, or modify its schema. Continue adding schema changes
+under `src/system/Database/migrations`. Test database safety checks and cleanup
+continue using the underlying Npgsql driver.
 
 ## Repository Strategy
 Mono-Repo
