@@ -68,6 +68,7 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+.artifacts/
 
 # Tye
 .tye/
@@ -397,6 +398,7 @@ src/system/UI/DialDen.RLS.UI.Root/Properties/launchSettings.json
 .vscode/*
 !.vscode/configure-postgres-connection.cs
 !.vscode/generate-launch-settings.cs
+!.vscode/generate-ui-settings.cs
 !.vscode/default.runsettings
 !.vscode/tasks.json
 !.vscode/launch.json

@@ -8,7 +8,7 @@
 	  ],
 	  "service": "dev",
 	  "workspaceFolder": "/workspaces/resume-life-simplifier",
-	"postCreateCommand": "bash .devcontainer/post-create.sh",
+	"postCreateCommand": "./.devcontainer/post-create.cs",
 	"waitFor": "postCreateCommand",
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [5191, 5294, 5432],
@@ -18,7 +18,8 @@
 		"DISPLAY": "host.docker.internal:0.0"
 	},
 	"features": {
-		"ghcr.io/devcontainers/features/docker-in-docker:4.1.3": {}
+		"ghcr.io/devcontainers/features/docker-in-docker:4.1.3": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
 		},
     // Configure tool-specific properties.
     "customizations": {

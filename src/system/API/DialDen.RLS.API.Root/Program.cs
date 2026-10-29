@@ -39,7 +39,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "DialDen RLS API v1"));
 }
-app.UseHttpsRedirection();
+else
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors();
 app.MapRLSEndpoints();
 app.MapHealthChecks("/health");

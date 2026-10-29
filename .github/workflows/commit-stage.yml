@@ -1,0 +1,65 @@
+name: Commit stage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  checks: write
+  contents: read
+  packages: write
+
+concurrency:
+  group: commit-stage-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commit:
+    name: Build, test, and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # This authentication is only for pushing the dev container to GHCR
+      # Authentication for running commands inside the dev container will be handled separately
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Push the dev container so it can be cached and reused in subsequent steps
+      - name: Pre-build dev container and push to GHCR (if on main branch)
+        uses: devcontainers/ci@v0.3
+        if: github.event_name == 'push'
+        with:
+          imageName: ghcr.io/dialden/resume-life-simplifier/devcontainer
+          cacheFrom: ghcr.io/dialden/resume-life-simplifier/devcontainer
+          push: always        
+
+      - name: Run Commit Stage Script in dev container
+        uses: ./.github/actions/run-in-authenticated-devcontainer
+        with:
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+
+          run_command: |
+            VERSION="${{ github.sha }}"
+            GITHUB_EVENT_NAME="${{ github.event_name }}"
+
+            args=(
+              "--version" "$VERSION"
+            )
+
+            if [ "$GITHUB_EVENT_NAME" == "push" ]; then
+              args+=(
+                "--push-images"
+              )
+            fi
+
+            "./ops/pipelines/stages/commit/invoke.cs" "${args[@]}"

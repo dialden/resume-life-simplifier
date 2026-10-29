@@ -1,6 +1,6 @@
 # Development container setup
 
-VS Code waits for [post-create.sh](./post-create.sh) to finish before attaching
+VS Code waits for [post-create.cs](./post-create.cs) to finish before attaching
 to a newly created container. Setup migrates the development and test databases,
 generates UI settings and API/UI launch profiles, and configures the local
 PostgreSQL connection in VS Code.
@@ -12,7 +12,7 @@ Run and Debug and press **F5**.
 If setup fails, resolve the reported error and rerun from the repository root:
 
 ```sh
-bash .devcontainer/post-create.sh
+./.devcontainer/post-create.cs
 ```
 
 The ready message is printed only after all setup steps succeed. Rebuild the
