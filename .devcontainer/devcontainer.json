@@ -8,7 +8,7 @@
 	  ],
 	  "service": "dev",
 	  "workspaceFolder": "/workspaces/resume-life-simplifier",
-	"postCreateCommand": "bash .devcontainer/post-create.sh",
+	"postCreateCommand": "./.devcontainer/post-create.cs",
 	"waitFor": "postCreateCommand",
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [5191, 5294, 5432],

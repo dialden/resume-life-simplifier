@@ -25,26 +25,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run commit stage in devcontainer
+      # This authentication is only for pushing the dev container to GHCR
+      # Authentication for running commands inside the dev container will be handled separately
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Push the dev container so it can be cached and reused in subsequent steps
+      - name: Pre-build dev container and push to GHCR (if on main branch)
         uses: devcontainers/ci@v0.3
+        if: github.event_name == 'push'
         with:
-          push: never
-          runCmd: '"$WORKSPACE_ROOT/ops/pipelines/stages/commit/invoke.cs"'
+          imageName: ghcr.io/dialden/resume-life-simplifier/devcontainer
+          cacheFrom: ghcr.io/dialden/resume-life-simplifier/devcontainer
+          push: always        
 
-      - name: Upload test results
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+      - name: Run Commit Stage Script in dev container
+        uses: ./.github/actions/run-in-authenticated-devcontainer
         with:
-          name: commit-test-results
-          path: .artifacts/commit/*/test-results/
-          include-hidden-files: true
-          if-no-files-found: warn
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload published applications
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: commit-publish
-          path: .artifacts/commit/*/publish/
-          include-hidden-files: true
-          if-no-files-found: error
+          run_command: |
+            VERSION="${{ github.sha }}"
+            GITHUB_EVENT_NAME="${{ github.event_name }}"
+
+            args=(
+              "-Version" "$VERSION"
+            )
+
+            if [ "$GITHUB_EVENT_NAME" == "push" ]; then
+              args+=(
+                "--push-images"
+              )
+            fi
+
+            "./ops/pipelines/stages/commit/invoke.cs" "${args[@]}"
