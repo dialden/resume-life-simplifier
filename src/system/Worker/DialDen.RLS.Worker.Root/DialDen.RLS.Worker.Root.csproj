@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DialDen.RLS.Worker/DialDen.RLS.Worker.csproj" />
+    <ProjectReference Include="../../Core/DialDen.RLS/DialDen.RLS.csproj" />
+    <ProjectReference Include="../../Infrastructure/DialDen.RLS.Infrastructure/DialDen.RLS.Infrastructure.csproj" />
+    <ProjectReference Include="../../JobSites/DialDen.RLS.JobSites.Jobillico/DialDen.RLS.JobSites.Jobillico.csproj" />
+  </ItemGroup>
+</Project>

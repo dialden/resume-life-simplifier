@@ -50,14 +50,29 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task CanViewPendingJobSitePublication(Channel channel)
+    public async Task CanViewSucceededJobSitePublication(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
-            .Given().Posting().PublishedTo("jobillico")
+            .Given().JobSite("jobillico").AcceptsPostings()
+            .And().Posting().PublishedTo("jobillico")
+            .And().JobSite("jobillico").HasResponded()
             .When().ViewPosting()
             .Then().ShouldSucceed()
                 .And().Posting().HasStatus("Published")
-                    .HasJobSitePublication("jobillico", "Pending");
+                    .HasJobSitePublication("jobillico", "Succeeded");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task JobSitePublicationFailsWhenTheJobSiteRejectsThePosting(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().JobSite("jobillico").RejectsPostings()
+            .And().Posting().PublishedTo("jobillico")
+            .And().JobSite("jobillico").HasResponded()
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().HasJobSitePublication("jobillico", "Failed");
     }
 
     [Trait("Category", "Acceptance")]
@@ -83,13 +98,15 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task CanListPendingJobSitePublication(Channel channel)
+    public async Task CanListJobSitePublicationOutcome(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
-            .Given().Posting().WithId("opportunity").PublishedTo("jobillico")
+            .Given().JobSite("jobillico").AcceptsPostings()
+            .And().Posting().WithId("opportunity").PublishedTo("jobillico")
+            .And().JobSite("jobillico").HasResponded()
             .When().ListPostings().AcrossAllPages()
             .Then().ShouldSucceed()
-                .And().PostingPages().HasPostingJobSitePublication("opportunity", "jobillico", "Pending");
+                .And().PostingPages().HasPostingJobSitePublication("opportunity", "jobillico", "Succeeded");
     }
 
     [Trait("Category", "Acceptance")]

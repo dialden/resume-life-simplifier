@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Core/DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
+    <ProjectReference Include="../../Messaging/DialDen.RLS.Messaging.Contracts/DialDen.RLS.Messaging.Contracts.csproj" />
+    <PackageReference Include="MassTransit" Version="8.5.12" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
+  </ItemGroup>
+
+</Project>

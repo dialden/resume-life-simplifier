@@ -1,3 +1,4 @@
+using DialDen.RLS.Infrastructure.JobSites;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,8 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
     public DbSet<PostingEntity> Postings => Set<PostingEntity>();
 
     public DbSet<JobSitePublicationEntity> JobSitePublications => Set<JobSitePublicationEntity>();
+
+    public DbSet<JobSiteEntity> JobSites => Set<JobSiteEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,5 +42,12 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
             .WithMany()
             .HasForeignKey(entity => entity.PostingId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        var jobSite = modelBuilder.Entity<JobSiteEntity>();
+        jobSite.ToTable("job_sites");
+        jobSite.HasKey(entity => entity.Id);
+        jobSite.Property(entity => entity.Id).HasColumnName("id");
+        jobSite.Property(entity => entity.Name).HasColumnName("name").IsRequired();
+        jobSite.Property(entity => entity.IsAvailable).HasColumnName("is_available");
     }
 }

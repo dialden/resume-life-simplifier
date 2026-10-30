@@ -16,6 +16,7 @@ public abstract class TestEnvironment
 {
     private readonly IHttpHost _apiHost;
     private readonly IHttpHost _uiHost;
+    private readonly InProcessWorkerHost? _workerHost;
     private readonly object _startLock = new();
     private RLSConfiguration? _configuration;
     private IServiceScope _scope = null!;
@@ -32,7 +33,16 @@ public abstract class TestEnvironment
         var hosting = TestConfiguration.From(testsConfiguration).Hosting;
         if (hosting.Mode == HostingMode.InProcess)
         {
-            _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix);
+            // Each environment's worker consumes its own queue, so it only answers with its own external systems.
+            var settings = new Dictionary<string, string?>
+            {
+                ["Messaging:JobSitePublicationQueue"] = JobSitePublicationQueue
+            };
+            _workerHost = new InProcessWorkerHost(
+                ConfigurationEnvironmentVariablesPrefix,
+                settings,
+                services => ConfigureWorkerServices(services, _scope.ServiceProvider));
+            _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix, settings);
             _uiHost = new InProcessUIHttpHost(() => _apiHost.Url);
         }
         else
@@ -93,7 +103,18 @@ public abstract class TestEnvironment
     {
     }
 
+    /// <summary>
+    /// Override to replace the services of the in-process worker, such as its external systems.
+    /// </summary>
+    /// <param name="services">The worker services to configure.</param>
+    /// <param name="testServices">The tests' services, to share stubs with the worker.</param>
+    protected virtual void ConfigureWorkerServices(IServiceCollection services, IServiceProvider testServices)
+    {
+    }
+
     protected abstract string ConfigurationEnvironmentVariablesPrefix { get; }
+
+    protected abstract string JobSitePublicationQueue { get; }
 
     protected virtual void Dispose(bool disposing)
     {
@@ -105,6 +126,7 @@ public abstract class TestEnvironment
                 _scope.Dispose();
                 _uiHost.Dispose();
                 _apiHost.Dispose();
+                _workerHost?.Dispose();
             }
             disposedValue = true;
         }
@@ -132,6 +154,8 @@ public abstract class TestEnvironment
         lock (_startLock)
         {
             if (_configuration != null) return;
+            // The worker registers the available job sites before the API offers them.
+            _workerHost?.Start();
             _apiHost.Start();
             _configuration = CreateConfiguration(_apiHost.Url);
         }

@@ -8,7 +8,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
+    <ProjectReference Include="../../JobSites/DialDen.RLS.JobSites.Abstractions/DialDen.RLS.JobSites.Abstractions.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
 
 </Project>

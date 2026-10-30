@@ -23,7 +23,8 @@ public static class RLSEndpoints
             .WithSummary("API entry point returning links to the available actions.")
             .Produces<RLSEntryPoint>(StatusCodes.Status200OK);
 
-        app.MapGet("/job-sites", ([FromServices] IJobSites jobSites) => TypedResults.Ok(jobSites.List()))
+        app.MapGet("/job-sites", async ([FromServices] IJobSites jobSites, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await jobSites.List(cancellationToken)))
             .WithName("ListJobSites")
             .WithSummary("Lists available external job-site destinations.")
             .Produces<IReadOnlyList<JobSite>>(StatusCodes.Status200OK);

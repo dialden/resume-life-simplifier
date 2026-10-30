@@ -32,7 +32,7 @@ try
     Console.WriteLine();
     Console.WriteLine("============================================================");
     Console.WriteLine("RLS setup complete. You can start working and debugging now.");
-    Console.WriteLine("Select \"API + UI\" in Run and Debug, then press F5.");
+    Console.WriteLine("Select \"API + Worker + UI\" in Run and Debug, then press F5.");
     Console.WriteLine("============================================================");
     completed = true;
 }

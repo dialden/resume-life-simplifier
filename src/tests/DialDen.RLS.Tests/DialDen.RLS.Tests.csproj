@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../system/API/DialDen.RLS.API.Root/DialDen.RLS.API.Root.csproj" />
+    <ProjectReference Include="../../system/Worker/DialDen.RLS.Worker.Root/DialDen.RLS.Worker.Root.csproj" />
     <!-- Built before the tests, but not referenced: the UI is only served as static assets -->
     <ProjectReference Include="../../system/UI/DialDen.RLS.UI.Root/DialDen.RLS.UI.Root.csproj"
                       ReferenceOutputAssembly="false" />

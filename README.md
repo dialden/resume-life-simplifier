@@ -35,12 +35,16 @@ flowchart LR
 
     subgraph rls["Resume Life Simplifier"]
         api["RLS API<br/>ASP.NET Core Minimal API (.NET 10)<br/>Posting use cases and PostgreSQL adapter"]
-        database[("PostgreSQL<br/>Job postings")]
+        worker["RLS Worker<br/>.NET 10 worker service<br/>Publishes postings on job sites through plugins"]
+        database[("PostgreSQL<br/>Job postings, job sites and message queues")]
     end
+    jobSites["External job sites<br/>e.g. Jobillico"]
 
     user -->|Uses| browser
     browser -->|Calls API over HTTP with JSON| api
-    api -->|Reads and writes postings| database
+    api -->|Reads and writes postings, queues job-site publications| database
+    worker -->|Consumes job-site publications, registers job sites| database
+    worker -->|Publishes postings| jobSites
 ```
 
 ## Tech stack
@@ -84,7 +88,8 @@ a demo notice. Publication errors remain in the dialog; its controls are disable
 while publication is in progress.
 
 The API advertises `GET /job-sites` through the `list-job-sites` entry-point link.
-It currently returns `[{"id":"jobillico","name":"Jobillico"}]`. Publish with
+It returns the job sites registered by the Worker, for example
+`[{"id":"jobillico","name":"Jobillico"}]`, and none until the Worker has started once. Publish with
 `PATCH /postings/{id}`:
 
 ```json
@@ -101,33 +106,62 @@ job-site publication requests are saved atomically. Concurrent publication
 attempts cannot create duplicate job-site publications.
 
 Publishing, viewing, and listing responses include `jobSitePublications`, for example
-`[{"jobSiteId":"jobillico","status":"Pending"}]`. The UI shows these outcomes in
+`[{"jobSiteId":"jobillico","status":"Pending"}]`. A publication stays `Pending` until
+the Worker gets the job site's response, then becomes `Succeeded` or `Failed`; the
+publish response is therefore always `Pending`. The UI shows these outcomes in
 the list and posting details. Postings without external destinations have an
 empty `jobSitePublications` collection.
 
 Publication saves a MassTransit command for each selected site in the EF Core
 transactional outbox, in the same transaction as the posting and job-site
-publication records. The API does not wait for transport delivery. A background service
+publication records. The API does not wait for transport delivery. The Worker
 forwards committed commands to the durable PostgreSQL queue
 `rls-job-site-publication`; pending outbox work is retried and survives restarts.
 Publishing without external destinations creates no job-site publication commands.
 
-**Provider consumption is the next increment.** The queue intentionally has no
-consumer yet. Selected destinations remain `Pending` and their commands remain
-queued; no request is sent to Jobillico. Its provider implementation will remain
-unimplemented when plugin wiring is added. Queued work will become eligible for
-processing when that consumer is introduced.
+### Worker and job-site plugins
+
+The Worker (`DialDen.RLS.Worker.Root`) is a separate process. It consumes the
+job-site publication commands and publishes each posting on its job site through
+a plugin. A plugin implements `IJobSite` from `DialDen.RLS.JobSites.Abstractions`
+(identifier, name, and `Publish`) and is registered in the Worker's composition
+root, the only project referencing plugins. The only plugin is Jobillico
+(`DialDen.RLS.JobSites.Jobillico`), which is not implemented for the demo: its
+publications always become `Failed`.
+
+At startup, the Worker registers its plugins in the `job_sites` table. Job sites
+it no longer has are kept but become unavailable, so the API stops offering them.
+Run a single Worker per database; Workers with different plugins would undo each
+other's registrations.
+
+When a job site rejects a posting (the plugin throws), its publication becomes
+`Failed` without retrying. A publication whose job site is unavailable also
+fails. The Worker's own errors, such as a lost database connection, are retried
+a few times, then the command moves to the queue's error queue. Each command is
+processed at most once, in the same transaction as its publication's outcome,
+through MassTransit's EF Core inbox. The plugin is called within that
+transaction, which is acceptable for the demo.
+
+The Worker reads configuration from environment variables prefixed with
+`RLS_WORKER_` and command-line arguments, like the API. It requires
+`ConnectionStrings:RLS`. `Messaging:JobSitePublicationQueue` (default
+`rls-job-site-publication`) names the queue, and must match the API's setting.
+Commands queued while the Worker is stopped are processed when it starts.
 
 Apply all Flyway migrations, including
 [V3](src/system/Database/migrations/V3__Add_posting_deliveries.sql),
 [V4](src/system/Database/migrations/V4__Add_messaging_transport_and_outbox.sql),
-[V5](src/system/Database/migrations/V5__Queue_existing_pending_deliveries.sql) and
+[V5](src/system/Database/migrations/V5__Queue_existing_pending_deliveries.sql),
 [V6](src/system/Database/migrations/V6__Rename_deliveries_to_job_site_publications.sql),
-before running the updated API or tests.
+[V7](src/system/Database/migrations/V7__Pin_job_site_publication_message_type.sql) and
+[V8](src/system/Database/migrations/V8__Add_job_sites.sql),
+before running the updated API, Worker or tests.
 V5 queues previously recorded Pending job-site publications without duplicating commands
 already present in the outbox or destination queue. V6 renames the deliveries table
 to `job_site_publications` and the queued command to `PublishPostingOnJobSite`.
-Stop API hosts while applying the migrations.
+V7 moves queued commands to the command's pinned message type,
+`urn:message:DialDen.RLS.Messaging:PublishPostingOnJobSite`, and V8 adds the
+`job_sites` catalog. Stop API and Worker hosts while applying the migrations.
 
 ### Posting pagination
 
@@ -196,9 +230,9 @@ table, sequence, and function creation permissions. The runtime account needs
 access to the messaging/transport tables and sequences and permission to execute
 transport functions.
 
-The bus and outbox delivery service run inside the API host for now and stop with
-it. Dispatch is at-least-once, not exactly-once; the forthcoming consumer and
-providers must handle repeated commands using the posting/site identity.
+The API only writes commands to the outbox. The Worker runs the outbox delivery
+service and the consumers. Dispatch is at-least-once; the Worker's inbox and the
+publication's `Pending` status ignore repeated commands.
 
 ## Repository Strategy
 Mono-Repo
@@ -249,7 +283,7 @@ values; setup regenerates the Git-ignored launch settings. See the
 ### Build and run the application
 - Make sure you have completed the [Prerequisites](#Prerequisites)
 #### From Visual Studio Code
-- Just press F5 and the debug task will start the application and a browser on the server address
+- Select **API + Worker + UI** in Run and Debug and press F5. It starts the API, the Worker and a browser on the UI address
 
 ### Build and run the tests
 - Make sure you have completed the [Prerequisites](#Prerequisites)
@@ -257,14 +291,25 @@ values; setup regenerates the Git-ignored launch settings. See the
 The shared acceptance-test fixture empties `job_site_publications`, `postings`,
 outbox/inbox records, and transport message/delivery records and resets the
 posting identity sequence once before each test run (including filtered runs).
-It preserves schemas and transport topology and does not clear data between
-scenarios. Cleanup requires
+It preserves schemas, transport topology and the `job_sites` catalog, and does
+not clear data between scenarios. Cleanup requires
 `RLS_TEST_DATABASE` and `RLS_DEV_DATABASE` and refuses connections that do not
 target the named test database or that target the development database.
 Real and Stubbed connections are checked before cleanup; identical connections
 are cleaned only once. Do not run simultaneous test runs against the same
 database. With external hosting, ensure the external API uses this same test
 database configuration.
+
+With in-process hosting, each test environment also hosts the Worker, started
+before the API, with its own queue (`rls-job-site-publication-stubbed` or
+`-real`) so the environments never consume each other's commands. The Worker
+reads `<ENVIRONMENT>_RLS_WORKER_` variables, such as
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS`. The stubbed environment
+replaces the Worker's job sites with a stub that scenarios control with
+`Given().JobSite("jobillico").AcceptsPostings()` or `.RejectsPostings()`, and
+`Given().JobSite("jobillico").HasResponded()` waits until the job site has
+answered the scenario's postings. These scenarios need in-process hosting; they
+do not pass with external hosting yet, including in the commit pipeline.
 
 #### Run Playwright tests with the browser inspector
 The tracked runsettings file is

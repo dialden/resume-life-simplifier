@@ -26,6 +26,16 @@ public class GivenStage
         return step;
     }
 
+    public GivenJobSite JobSite(string jobSiteId)
+    {
+        var step = new GivenJobSite(this, jobSiteId);
+        _steps.Add(step);
+        return step;
+    }
+
+    internal IReadOnlyList<string> PostingsPublishedTo(string jobSiteId) =>
+        _steps.OfType<GivenPosting>().SelectMany(step => step.AliasesPublishedTo(jobSiteId)).ToList();
+
     public When.WhenStage When() => new(_app, _scenario, Setup);
 
     internal async Task Setup()

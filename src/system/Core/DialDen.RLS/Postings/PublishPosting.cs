@@ -5,16 +5,16 @@ namespace DialDen.RLS.Postings;
 internal sealed class PublishPosting : IPublishPosting
 {
     private readonly IPostingsArchive _postingsArchive;
-    private readonly IJobSites _jobSites;
+    private readonly IJobSitesCatalog _jobSitesCatalog;
     private readonly IJobSitePublications _jobSitePublications;
 
     public PublishPosting(
         IPostingsArchive postingsArchive,
-        IJobSites jobSites,
+        IJobSitesCatalog jobSitesCatalog,
         IJobSitePublications jobSitePublications)
     {
         _postingsArchive = postingsArchive;
-        _jobSites = jobSites;
+        _jobSitesCatalog = jobSitesCatalog;
         _jobSitePublications = jobSitePublications;
     }
 
@@ -24,7 +24,7 @@ internal sealed class PublishPosting : IPublishPosting
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var jobSites = _jobSites.Find(request.JobSiteIds);
+        var jobSites = await Select(request.JobSiteIds, cancellationToken);
         var posting = await _postingsArchive.FindById(request.Id, cancellationToken);
         if (posting is null)
         {
@@ -50,5 +50,22 @@ internal sealed class PublishPosting : IPublishPosting
                 .OrderBy(publication => publication.JobSiteId, StringComparer.Ordinal)
                 .ToArray()
         };
+    }
+
+    private async Task<IReadOnlyList<JobSite>> Select(IReadOnlyList<string>? jobSiteIds, CancellationToken cancellationToken)
+    {
+        if (jobSiteIds is null || jobSiteIds.Distinct(StringComparer.Ordinal).Count() != jobSiteIds.Count)
+        {
+            throw new InvalidJobSitesException();
+        }
+        if (jobSiteIds.Count == 0)
+        {
+            return [];
+        }
+
+        var available = await _jobSitesCatalog.ListAvailable(cancellationToken);
+        return jobSiteIds
+            .Select(id => available.SingleOrDefault(site => site.Id == id) ?? throw new InvalidJobSitesException())
+            .ToArray();
     }
 }

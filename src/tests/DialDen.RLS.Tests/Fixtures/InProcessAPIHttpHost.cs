@@ -14,13 +14,16 @@ public sealed class InProcessAPIHttpHost : WebApplicationFactory<Program>, IHttp
 {
     private readonly object _startLock = new();
     private readonly string _environmentVariablesPrefix;
+    private readonly IReadOnlyDictionary<string, string?> _settings;
     private string? _url;
 
     public string Url => _url ?? throw new InvalidOperationException("The host has not been started.");
 
-    public InProcessAPIHttpHost(string environmentVariablesPrefix)
+    /// <param name="settings">Settings overriding the environment variables.</param>
+    public InProcessAPIHttpHost(string environmentVariablesPrefix, IReadOnlyDictionary<string, string?> settings)
     {
         _environmentVariablesPrefix = environmentVariablesPrefix;
+        _settings = settings;
     }
 
     /// <summary>Starts the host once. Subsequent calls are no-ops.</summary>
@@ -44,6 +47,7 @@ public sealed class InProcessAPIHttpHost : WebApplicationFactory<Program>, IHttp
             var envSource = configBuilder.Sources.OfType<EnvironmentVariablesConfigurationSource>().Single();
             var priorityPrefix = _environmentVariablesPrefix + envSource.Prefix;
             configBuilder.AddEnvironmentVariables(priorityPrefix);
+            configBuilder.AddInMemoryCollection(_settings);
         });
     }
 }

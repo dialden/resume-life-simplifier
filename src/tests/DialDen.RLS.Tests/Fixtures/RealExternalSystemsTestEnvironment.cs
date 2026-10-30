@@ -7,4 +7,6 @@ public class RealExternalSystemsTestEnvironment : TestEnvironment
 {
     protected override string ConfigurationEnvironmentVariablesPrefix => "REAL_EXT_SYSTEMS_";
 
+    protected override string JobSitePublicationQueue => "rls-job-site-publication-real";
+
 }

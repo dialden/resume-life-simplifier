@@ -45,6 +45,11 @@ public class GivenPosting : BaseGiven
         return this;
     }
 
+    internal IEnumerable<string> AliasesPublishedTo(string jobSiteId) =>
+        _publishedJobSites?.Contains(jobSiteId) == true
+            ? Enumerable.Range(1, _count).Select(index => _count == 1 ? _idAlias : $"{_idAlias}-{index}")
+            : [];
+
     public GivenPosting WithCount(int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);

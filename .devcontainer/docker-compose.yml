@@ -40,6 +40,9 @@ services:
       RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_DEV_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       REAL_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       STUBBED_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_DEV_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      REAL_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
 
 
   postgres:

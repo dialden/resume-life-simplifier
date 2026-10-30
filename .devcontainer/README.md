@@ -6,7 +6,7 @@ generates UI settings and API/UI launch profiles, and configures the local
 PostgreSQL connection in VS Code.
 
 Wait for **RLS setup complete. You can start working and debugging now.** in the
-container setup output before starting the debugger. Then select **API + UI** in
+container setup output before starting the debugger. Then select **API + Worker + UI** in
 Run and Debug and press **F5**.
 
 If setup fails, resolve the reported error and rerun from the repository root:
@@ -43,6 +43,15 @@ Compose sets `RLS_API_Cors__AllowedOrigins__0` from `UI_HTTP_URL` and
 `RLS_API_Cors__AllowedOrigins__1` from `UI_HTTPS_URL` to match the UI launch profiles.
 Loopback origins remain allowed in the Development environment. Rebuild the
 container after changing its environment variables.
+
+## Worker configuration
+
+The Worker reads its configuration the same way, from environment variables
+prefixed with `RLS_WORKER_` and command-line arguments. The container supplies
+`RLS_WORKER_ConnectionStrings__RLS`, plus
+`REAL_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS` and
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS` for the Workers hosted
+by the tests.
 
 ## Launch configuration
 
