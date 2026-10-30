@@ -50,23 +50,23 @@ else
                 <dd>@_posting.Status</dd>
             </div>
         </dl>
-        <h3>External deliveries</h3>
-        @if (_posting.Deliveries.Count == 0)
+        <h3>Job-site publications</h3>
+        @if (_posting.JobSitePublications.Count == 0)
         {
             <p>No external job sites selected.</p>
         }
         else
         {
-            <ul aria-label="External deliveries">
-                @foreach (var delivery in _posting.Deliveries)
+            <ul aria-label="Job-site publications">
+                @foreach (var publication in _posting.JobSitePublications)
                 {
-                    <li data-job-site-id="@delivery.JobSiteId">
-                        <span>@delivery.JobSiteId</span>:
-                        <span data-testid="delivery-status">@delivery.Status</span>
+                    <li data-job-site-id="@publication.JobSiteId">
+                        <span>@publication.JobSiteId</span>:
+                        <span data-testid="job-site-publication-status">@publication.Status</span>
                     </li>
                 }
             </ul>
-            <p>External delivery is not active yet; selected sites remain Pending.</p>
+            <p>Publishing to external job sites is not active yet; selected sites remain Pending.</p>
         }
         <div class="panel-footer">Part of your personal opportunity library</div>
     </section>

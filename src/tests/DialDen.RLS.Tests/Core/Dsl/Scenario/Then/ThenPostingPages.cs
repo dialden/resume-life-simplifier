@@ -31,10 +31,10 @@ public sealed class ThenPostingPages<TResponse, TVerification>
 
     public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
 
-    public ThenPostingPages<TResponse, TVerification> HasPostingDelivery(
+    public ThenPostingPages<TResponse, TVerification> HasPostingJobSitePublication(
         string alias, string jobSiteId, string expectedStatus)
     {
-        _checks.Add(verification => verification.HasPostingDelivery(alias, jobSiteId, expectedStatus));
+        _checks.Add(verification => verification.HasPostingJobSitePublication(alias, jobSiteId, expectedStatus));
         return this;
     }
 

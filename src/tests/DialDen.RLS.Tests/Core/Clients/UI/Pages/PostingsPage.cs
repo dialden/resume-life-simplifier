@@ -104,7 +104,7 @@ public class PostingsPage : BasePage
         return details.IsFailure
             ? Result<PublishPostingResponse, SystemError>.Failure(details.Error)
             : Result<PublishPostingResponse, SystemError>.Success(
-                new PublishPostingResponse(id, details.Value.Status) { Deliveries = details.Value.Deliveries });
+                new PublishPostingResponse(id, details.Value.Status) { JobSitePublications = details.Value.JobSitePublications });
     }
 
     public async Task<Result<PostingPageResponse, SystemError>> ReadPage(int pageNumber)
@@ -148,7 +148,7 @@ public class PostingsPage : BasePage
             var status = Enum.Parse<PostingStatus>(
                 await row.GetByTestId($"posting-status-{id}").InnerTextAsync(),
                 ignoreCase: false);
-            items.Add(new ViewPostingResponse(id, title, status) { Deliveries = await ReadDeliveries(row) });
+            items.Add(new ViewPostingResponse(id, title, status) { JobSitePublications = await ReadJobSitePublications(row) });
         }
 
         var total = ReadTotalCount(await _page.GetByRole(AriaRole.Status)

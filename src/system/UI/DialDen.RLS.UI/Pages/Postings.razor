@@ -87,14 +87,14 @@ else
                             <span class="posting-summary">
                                 <span class="posting-name" role="heading" aria-level="3">@posting.Title</span>
                                 <span class="posting-reference">Posting #@posting.Id</span>
-                                @if (posting.Deliveries.Count > 0)
+                                @if (posting.JobSitePublications.Count > 0)
                                 {
-                                    <span role="list" aria-label="External deliveries">
-                                        @foreach (var delivery in posting.Deliveries)
+                                    <span role="list" aria-label="Job-site publications">
+                                        @foreach (var publication in posting.JobSitePublications)
                                         {
-                                            <span role="listitem" data-job-site-id="@delivery.JobSiteId">
-                                                @delivery.JobSiteId:
-                                                <span data-testid="delivery-status">@delivery.Status</span>
+                                            <span role="listitem" data-job-site-id="@publication.JobSiteId">
+                                                @publication.JobSiteId:
+                                                <span data-testid="job-site-publication-status">@publication.Status</span>
                                             </span>
                                         }
                                     </span>
@@ -168,7 +168,7 @@ else
                 }
             </div>
             <p class="publishing-help">Leave all sites unchecked to publish only in RLS.</p>
-            <p class="publishing-notice">Demo: external delivery is not active. Selected sites remain Pending.</p>
+            <p class="publishing-notice">Demo: publishing to external job sites is not active. Selected sites remain Pending.</p>
         </fieldset>
     </DialogContent>
     <DialogActions>
@@ -347,7 +347,7 @@ else
             _page = _page with
             {
                 Items = _page.Items.Select(posting => posting.Id == published.Id
-                    ? posting with { Status = published.Status, Deliveries = published.Deliveries }
+                    ? posting with { Status = published.Status, JobSitePublications = published.JobSitePublications }
                     : posting).ToArray()
             };
             _selectedPostingId = null;

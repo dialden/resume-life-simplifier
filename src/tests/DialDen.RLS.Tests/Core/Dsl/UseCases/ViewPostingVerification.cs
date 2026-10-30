@@ -3,7 +3,7 @@ using Shouldly;
 
 namespace DialDen.RLS.Tests.Core.Dsl.UseCases;
 
-public class ViewPostingVerification : ResponseVerification<ViewPostingResponse>, IPostingStatusVerification, IPostingDeliveryVerification
+public class ViewPostingVerification : ResponseVerification<ViewPostingResponse>, IPostingStatusVerification, IJobSitePublicationVerification
 {
     public ViewPostingVerification(ViewPostingResponse response, UseCaseContext context)
         : base(response, context)
@@ -24,10 +24,10 @@ public class ViewPostingVerification : ResponseVerification<ViewPostingResponse>
 
     public void HasStatus(string expectedStatus) => Response.Status.ToString().ShouldBe(expectedStatus);
 
-    public void HasDelivery(string jobSiteId, string expectedStatus)
+    public void HasJobSitePublication(string jobSiteId, string expectedStatus)
     {
-        Response.Deliveries.ShouldHaveSingleItem().ShouldBe(new PostingDeliveryResponse(jobSiteId, expectedStatus));
+        Response.JobSitePublications.ShouldHaveSingleItem().ShouldBe(new JobSitePublicationResponse(jobSiteId, expectedStatus));
     }
 
-    public void HasNoDeliveries() => Response.Deliveries.ShouldBeEmpty();
+    public void HasNoJobSitePublications() => Response.JobSitePublications.ShouldBeEmpty();
 }

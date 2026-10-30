@@ -11,6 +11,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.5.12" />
+    <PackageReference Include="MassTransit.SqlTransport.PostgreSQL" Version="8.5.12" />
   </ItemGroup>
 
 </Project>

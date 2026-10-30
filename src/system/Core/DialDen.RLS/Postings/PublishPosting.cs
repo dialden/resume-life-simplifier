@@ -6,11 +6,16 @@ internal sealed class PublishPosting : IPublishPosting
 {
     private readonly IPostingsArchive _postingsArchive;
     private readonly IJobSites _jobSites;
+    private readonly IJobSitePublications _jobSitePublications;
 
-    public PublishPosting(IPostingsArchive postingsArchive, IJobSites jobSites)
+    public PublishPosting(
+        IPostingsArchive postingsArchive,
+        IJobSites jobSites,
+        IJobSitePublications jobSitePublications)
     {
         _postingsArchive = postingsArchive;
         _jobSites = jobSites;
+        _jobSitePublications = jobSitePublications;
     }
 
     public async Task<PublishPostingResponse?> Publish(
@@ -19,19 +24,30 @@ internal sealed class PublishPosting : IPublishPosting
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var availableIds = _jobSites.List().Select(site => site.Id).ToHashSet(StringComparer.Ordinal);
-        if (request.JobSiteIds is null ||
-            request.JobSiteIds.Distinct(StringComparer.Ordinal).Count() != request.JobSiteIds.Count ||
-            request.JobSiteIds.Any(id => !availableIds.Contains(id)))
+        var jobSites = _jobSites.Find(request.JobSiteIds);
+        var posting = await _postingsArchive.FindById(request.Id, cancellationToken);
+        if (posting is null)
         {
-            throw new InvalidJobSitesException();
+            return null;
         }
 
-        var posting = await _postingsArchive.Publish(request.Id, request.JobSiteIds, cancellationToken);
-        return posting is null ? null : new PublishPostingResponse(posting.Id, posting.Status)
+        var published = posting.Publish();
+        await _jobSitePublications.Request(published, jobSites, cancellationToken);
+        try
         {
-            Deliveries = posting.Deliveries
-                .Select(delivery => new PostingDeliveryResponse(delivery.JobSiteId, delivery.Status))
+            await _postingsArchive.Save(published, cancellationToken);
+        }
+        catch (PostingChangedConcurrentlyException)
+        {
+            // Publishing is the only change to a posting's status, so someone else published it first.
+            throw new PostingAlreadyPublishedException();
+        }
+
+        return new PublishPostingResponse(published.Id, published.Status)
+        {
+            JobSitePublications = jobSites
+                .Select(site => new JobSitePublicationResponse(site.Id, JobSitePublicationStatus.Pending))
+                .OrderBy(publication => publication.JobSiteId, StringComparer.Ordinal)
                 .ToArray()
         };
     }

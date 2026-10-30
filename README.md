@@ -96,21 +96,38 @@ It currently returns `[{"id":"jobillico","name":"Jobillico"}]`. Publish with
 
 Omitting `jobSiteIds` is equivalent to an empty selection. Identifiers are
 case-sensitive; unknown, duplicate, or null selections return HTTP 400 with a
-`jobSiteIds` validation error. Posting publication and its per-site delivery
-records are saved atomically. Concurrent publication attempts cannot create
-duplicate deliveries.
+`jobSiteIds` validation error. The posting's publication and its per-site
+job-site publication requests are saved atomically. Concurrent publication
+attempts cannot create duplicate job-site publications.
 
-Publishing, viewing, and listing responses include `deliveries`, for example
+Publishing, viewing, and listing responses include `jobSitePublications`, for example
 `[{"jobSiteId":"jobillico","status":"Pending"}]`. The UI shows these outcomes in
-the list and posting details. Existing postings have no external deliveries.
+the list and posting details. Postings without external destinations have an
+empty `jobSitePublications` collection.
 
-**This increment only records delivery intent.** MassTransit, the transactional
-outbox, and provider execution are not wired yet. Selected destinations remain
-`Pending`; no request is sent to Jobillico. Its provider implementation will
-remain unimplemented when the plugin wiring is added.
+Publication saves a MassTransit command for each selected site in the EF Core
+transactional outbox, in the same transaction as the posting and job-site
+publication records. The API does not wait for transport delivery. A background service
+forwards committed commands to the durable PostgreSQL queue
+`rls-job-site-publication`; pending outbox work is retried and survives restarts.
+Publishing without external destinations creates no job-site publication commands.
 
-Apply [migration V3](src/system/Database/migrations/V3__Add_posting_deliveries.sql)
-through Flyway before running the updated API or tests.
+**Provider consumption is the next increment.** The queue intentionally has no
+consumer yet. Selected destinations remain `Pending` and their commands remain
+queued; no request is sent to Jobillico. Its provider implementation will remain
+unimplemented when plugin wiring is added. Queued work will become eligible for
+processing when that consumer is introduced.
+
+Apply all Flyway migrations, including
+[V3](src/system/Database/migrations/V3__Add_posting_deliveries.sql),
+[V4](src/system/Database/migrations/V4__Add_messaging_transport_and_outbox.sql),
+[V5](src/system/Database/migrations/V5__Queue_existing_pending_deliveries.sql) and
+[V6](src/system/Database/migrations/V6__Rename_deliveries_to_job_site_publications.sql),
+before running the updated API or tests.
+V5 queues previously recorded Pending job-site publications without duplicating commands
+already present in the outbox or destination queue. V6 renames the deliveries table
+to `job_site_publications` and the queued command to `PublishPostingOnJobSite`.
+Stop API hosts while applying the migrations.
 
 ### Posting pagination
 
@@ -157,6 +174,31 @@ Flyway remains the schema owner. Application startup does not create the
 database, run EF migrations, or modify its schema. Continue adding schema changes
 under `src/system/Database/migrations`. Test database safety checks and cleanup
 continue using the underlying Npgsql driver.
+
+### Background messaging
+
+MassTransit **8.5.12** is pinned for this POC. Its packages declare Apache-2.0
+licensing and provide .NET 10 / EF Core 10 support. MassTransit v9 requires a
+commercial license; upgrading to v9 is not part of this implementation.
+
+The transport reuses `ConnectionStrings:RLS`, with its objects in the `transport`
+schema. EF outbox/inbox tables live in `messaging`. These schemas are separate
+from the application tables in `public`, but use the same PostgreSQL database.
+No separate message broker or additional connection setting is required.
+
+Flyway V4 contains the PostgreSQL transport SQL derived from the pinned
+MassTransit version and outbox DDL generated from its EF model. The transport
+SQL's [Apache license](src/system/Database/licenses/MassTransit-LICENSE.txt) is
+included. Application startup does not create or migrate these schemas.
+Coordinate future MassTransit package upgrades with a new Flyway migration;
+do not edit an already-applied migration. The migration account needs schema,
+table, sequence, and function creation permissions. The runtime account needs
+access to the messaging/transport tables and sequences and permission to execute
+transport functions.
+
+The bus and outbox delivery service run inside the API host for now and stop with
+it. Dispatch is at-least-once, not exactly-once; the forthcoming consumer and
+providers must handle repeated commands using the posting/site identity.
 
 ## Repository Strategy
 Mono-Repo
@@ -212,10 +254,11 @@ values; setup regenerates the Git-ignored launch settings. See the
 ### Build and run the tests
 - Make sure you have completed the [Prerequisites](#Prerequisites)
 
-The shared acceptance-test fixture empties `posting_deliveries` and `postings`
-and resets the posting identity sequence once before each test run (including
-filtered runs). It preserves the
-schema and does not clear data between scenarios. Cleanup requires
+The shared acceptance-test fixture empties `job_site_publications`, `postings`,
+outbox/inbox records, and transport message/delivery records and resets the
+posting identity sequence once before each test run (including filtered runs).
+It preserves schemas and transport topology and does not clear data between
+scenarios. Cleanup requires
 `RLS_TEST_DATABASE` and `RLS_DEV_DATABASE` and refuses connections that do not
 target the named test database or that target the development database.
 Real and Stubbed connections are checked before cleanup; identical connections

@@ -11,7 +11,7 @@ internal static class ApiJsonSerializerOptions
         Converters =
         {
             new JsonStringEnumConverter<PostingStatus>(),
-            new JsonStringEnumConverter<PostingDeliveryStatus>()
+            new JsonStringEnumConverter<JobSitePublicationStatus>()
         }
     };
 }

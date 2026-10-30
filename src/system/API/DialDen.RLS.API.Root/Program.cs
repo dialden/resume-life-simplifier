@@ -17,7 +17,7 @@ builder.Services.AddHealthChecks();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingStatus>());
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingDeliveryStatus>());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<JobSitePublicationStatus>());
 });
 builder.Services
     .AddRLSCore()

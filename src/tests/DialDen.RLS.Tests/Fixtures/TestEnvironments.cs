@@ -42,7 +42,12 @@ public class TestEnvironments : IDisposable, IAsyncLifetime
             await using var connection = new NpgsqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new NpgsqlCommand(
-                "TRUNCATE TABLE posting_deliveries, postings RESTART IDENTITY;", connection);
+                """
+                TRUNCATE TABLE job_site_publications, postings,
+                    messaging."OutboxMessage", messaging."OutboxState", messaging."InboxState",
+                    transport.message_delivery, transport.message
+                RESTART IDENTITY;
+                """, connection);
             await command.ExecuteNonQueryAsync();
         }
     }

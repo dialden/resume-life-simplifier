@@ -44,28 +44,28 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
 
     public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
 
-    public ThenPosting<TSuccessResponse, TSuccessVerification> HasDelivery(string jobSiteId, string expectedStatus)
+    public ThenPosting<TSuccessResponse, TSuccessVerification> HasJobSitePublication(string jobSiteId, string expectedStatus)
     {
         _verifications.Add(v =>
         {
-            if (v is not IPostingDeliveryVerification posting)
+            if (v is not IJobSitePublicationVerification posting)
             {
-                throw new InvalidOperationException("Deliveries can only be verified for publishing or viewing a posting.");
+                throw new InvalidOperationException("Job-site publications can only be verified for publishing or viewing a posting.");
             }
-            posting.HasDelivery(jobSiteId, expectedStatus);
+            posting.HasJobSitePublication(jobSiteId, expectedStatus);
         });
         return this;
     }
 
-    public ThenPosting<TSuccessResponse, TSuccessVerification> HasNoDeliveries()
+    public ThenPosting<TSuccessResponse, TSuccessVerification> HasNoJobSitePublications()
     {
         _verifications.Add(v =>
         {
-            if (v is not IPostingDeliveryVerification posting)
+            if (v is not IJobSitePublicationVerification posting)
             {
-                throw new InvalidOperationException("Deliveries can only be verified for publishing or viewing a posting.");
+                throw new InvalidOperationException("Job-site publications can only be verified for publishing or viewing a posting.");
             }
-            posting.HasNoDeliveries();
+            posting.HasNoJobSitePublications();
         });
         return this;
     }

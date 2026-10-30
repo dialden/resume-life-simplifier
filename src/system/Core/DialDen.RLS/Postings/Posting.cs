@@ -4,21 +4,13 @@ namespace DialDen.RLS.Postings;
 
 public sealed record Posting(int Id, string Title, PostingStatus Status)
 {
-    public IReadOnlyList<PostingDelivery> Deliveries { get; init; } = [];
-
-    public Posting Publish(IReadOnlyList<string> jobSiteIds)
+    public Posting Publish()
     {
         if (Status == PostingStatus.Published)
         {
             throw new PostingAlreadyPublishedException();
         }
 
-        return this with
-        {
-            Status = PostingStatus.Published,
-            Deliveries = jobSiteIds
-                .Select(id => new PostingDelivery(id, PostingDeliveryStatus.Pending))
-                .ToArray()
-        };
+        return this with { Status = PostingStatus.Published };
     }
 }

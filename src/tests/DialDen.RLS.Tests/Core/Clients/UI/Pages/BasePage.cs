@@ -19,17 +19,17 @@ public abstract class BasePage
         return new HomePage(_page);
     }
 
-    protected static async Task<IReadOnlyList<PostingDeliveryResponse>> ReadDeliveries(ILocator container)
+    protected static async Task<IReadOnlyList<JobSitePublicationResponse>> ReadJobSitePublications(ILocator container)
     {
-        var deliveries = new List<PostingDeliveryResponse>();
-        foreach (var delivery in await container.GetByRole(AriaRole.List, new() { Name = "External deliveries", Exact = true })
+        var publications = new List<JobSitePublicationResponse>();
+        foreach (var publication in await container.GetByRole(AriaRole.List, new() { Name = "Job-site publications", Exact = true })
                      .GetByRole(AriaRole.Listitem).AllAsync())
         {
-            var jobSiteId = await delivery.GetAttributeAsync("data-job-site-id")
-                ?? throw new InvalidOperationException("The delivery has no job-site identifier.");
-            deliveries.Add(new PostingDeliveryResponse(
-                jobSiteId, await delivery.GetByTestId("delivery-status").InnerTextAsync()));
+            var jobSiteId = await publication.GetAttributeAsync("data-job-site-id")
+                ?? throw new InvalidOperationException("The job-site publication has no job-site identifier.");
+            publications.Add(new JobSitePublicationResponse(
+                jobSiteId, await publication.GetByTestId("job-site-publication-status").InnerTextAsync()));
         }
-        return deliveries;
+        return publications;
     }
 }

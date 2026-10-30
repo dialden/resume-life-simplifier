@@ -45,19 +45,19 @@ public class JobPostingsTests
             .When().PublishPosting().ToJobSites("jobillico")
             .Then().ShouldSucceed()
                 .And().Posting().HasStatus("Published")
-                    .HasDelivery("jobillico", "Pending");
+                    .HasJobSitePublication("jobillico", "Pending");
     }
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task CanViewPendingJobSiteDelivery(Channel channel)
+    public async Task CanViewPendingJobSitePublication(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
             .Given().Posting().PublishedTo("jobillico")
             .When().ViewPosting()
             .Then().ShouldSucceed()
                 .And().Posting().HasStatus("Published")
-                    .HasDelivery("jobillico", "Pending");
+                    .HasJobSitePublication("jobillico", "Pending");
     }
 
     [Trait("Category", "Acceptance")]
@@ -68,7 +68,7 @@ public class JobPostingsTests
             .Given().Posting()
             .When().PublishPosting()
             .Then().ShouldSucceed()
-                .And().Posting().HasStatus("Published").HasNoDeliveries();
+                .And().Posting().HasStatus("Published").HasNoJobSitePublications();
     }
 
     [Trait("Category", "Acceptance")]
@@ -83,13 +83,13 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task CanListPendingJobSiteDelivery(Channel channel)
+    public async Task CanListPendingJobSitePublication(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
             .Given().Posting().WithId("opportunity").PublishedTo("jobillico")
             .When().ListPostings().AcrossAllPages()
             .Then().ShouldSucceed()
-                .And().PostingPages().HasPostingDelivery("opportunity", "jobillico", "Pending");
+                .And().PostingPages().HasPostingJobSitePublication("opportunity", "jobillico", "Pending");
     }
 
     [Trait("Category", "Acceptance")]

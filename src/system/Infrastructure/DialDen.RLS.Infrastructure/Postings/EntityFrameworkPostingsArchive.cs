@@ -1,5 +1,4 @@
 using System.Data;
-using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.Postings;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,59 +12,43 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
         context.Postings.Add(entity);
         await context.SaveChangesAsync(cancellationToken);
 
-        return new Posting(entity.Id, entity.Title, entity.Status);
+        return ToPosting(entity);
     }
 
     public async Task<Posting?> FindById(int postingId, CancellationToken cancellationToken)
     {
-        var entity = await context.Postings
-            .AsNoTracking()
-            .Include(entity => entity.Deliveries)
-            .SingleOrDefaultAsync(entity => entity.Id == postingId, cancellationToken);
+        // Tracked, so Save can detect changes made after the posting was found.
+        var entity = await context.Postings.SingleOrDefaultAsync(
+            entity => entity.Id == postingId, cancellationToken);
         return entity is null ? null : ToPosting(entity);
     }
 
-    public async Task<Posting?> Publish(
-        int postingId, IReadOnlyList<string> jobSiteIds, CancellationToken cancellationToken)
+    public async Task Save(Posting posting, CancellationToken cancellationToken)
     {
+        var entity = context.Postings.Local.SingleOrDefault(entity => entity.Id == posting.Id)
+            ?? throw new InvalidOperationException("Find the posting before saving it.");
+        var found = context.Entry(entity).OriginalValues.ToObject() as PostingEntity
+            ?? throw new InvalidOperationException("The found posting could not be read.");
+
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        var entity = await context.Postings.SingleOrDefaultAsync(
-            entity => entity.Id == postingId, cancellationToken);
-        if (entity is null)
+        // Claim the change before saving pending work such as job-site publication requests, so
+        // concurrent saves fail here instead of inserting duplicates.
+        var claimed = await context.Postings
+            .Where(stored => stored.Id == found.Id && stored.Title == found.Title && stored.Status == found.Status)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(stored => stored.Title, posting.Title)
+                .SetProperty(stored => stored.Status, posting.Status), cancellationToken);
+        if (claimed == 0)
         {
-            return null;
+            throw new PostingChangedConcurrentlyException();
         }
 
-        var published = ToPosting(entity).Publish(jobSiteIds);
-        entity.Status = published.Status;
-        try
-        {
-            // Claim publication before inserting deliveries, so concurrent requests cannot insert duplicates.
-            await context.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw new PostingAlreadyPublishedException();
-        }
-        entity.Deliveries = published.Deliveries.Select(delivery => new PostingDeliveryEntity
-        {
-            PostingId = postingId,
-            JobSiteId = delivery.JobSiteId,
-            Status = delivery.Status
-        }).ToList();
+        entity.Title = posting.Title;
+        entity.Status = posting.Status;
+        context.Entry(entity).State = EntityState.Unchanged;
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-
-        return published;
     }
-
-    private static Posting ToPosting(PostingEntity entity) => new(entity.Id, entity.Title, entity.Status)
-    {
-        Deliveries = entity.Deliveries
-            .OrderBy(delivery => delivery.JobSiteId, StringComparer.Ordinal)
-            .Select(delivery => new PostingDelivery(delivery.JobSiteId, delivery.Status))
-            .ToArray()
-    };
 
     public async Task<PostingList> List(int pageNumber, int postingsPerPage, CancellationToken cancellationToken)
     {
@@ -81,7 +64,6 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
             ? []
             : await context.Postings
                 .AsNoTracking()
-                .Include(entity => entity.Deliveries)
                 .OrderBy(entity => entity.Id)
                 .Skip(checked((int)offset))
                 .Take(postingsPerPage)
@@ -90,4 +72,6 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
 
         return new PostingList(entities.Select(ToPosting).ToArray(), totalPostings);
     }
+
+    private static Posting ToPosting(PostingEntity entity) => new(entity.Id, entity.Title, entity.Status);
 }
