@@ -39,6 +39,7 @@ public sealed class ListPostingsVerification(ListPostingsResponse response, UseC
     {
         var id = int.Parse(Context.GetResultValue(alias)!, CultureInfo.InvariantCulture);
         var posting = Response.Pages.SelectMany(page => page.Items).Single(posting => posting.Id == id);
-        posting.JobSitePublications.ShouldHaveSingleItem().ShouldBe(new JobSitePublicationResponse(jobSiteId, expectedStatus));
+        posting.JobSitePublications.Where(publication => publication.JobSiteId == jobSiteId)
+            .ShouldHaveSingleItem().ShouldBe(new JobSitePublicationResponse(jobSiteId, expectedStatus));
     }
 }

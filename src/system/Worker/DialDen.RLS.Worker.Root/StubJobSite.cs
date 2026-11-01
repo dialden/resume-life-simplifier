@@ -3,14 +3,11 @@ using DialDen.RLS.JobSites;
 namespace DialDen.RLS.Worker.Root;
 
 /// <summary>A test-only job site whose responses are provided by WireMock.</summary>
-internal sealed class StubJobSite(HttpClient httpClient) : IJobSite
+internal sealed class StubJobSite(string id, string name, HttpClient httpClient) : IJobSite, IDisposable
 {
-    public const string JobSiteId = "stub-job-site";
-    public const string JobSiteName = "Stub Job Site";
+    public string Id => id;
 
-    public string Id => JobSiteId;
-
-    public string Name => JobSiteName;
+    public string Name => name;
 
     public async Task Publish(JobSitePosting posting, CancellationToken cancellationToken)
     {
@@ -20,4 +17,6 @@ internal sealed class StubJobSite(HttpClient httpClient) : IJobSite
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }
+
+    public void Dispose() => httpClient.Dispose();
 }

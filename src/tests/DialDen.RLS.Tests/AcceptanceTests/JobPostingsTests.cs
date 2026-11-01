@@ -50,6 +50,36 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task CanSelectMultipleJobSitesWhenPublishing(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting()
+            .When().PublishPosting().ToJobSites("stub-job-site", "another-stub-job-site")
+            .Then().ShouldSucceed()
+                .And().Posting().HasStatus("Published")
+                    .HasJobSitePublicationCount(2)
+                    .HasJobSitePublication("stub-job-site", "Pending")
+                    .HasJobSitePublication("another-stub-job-site", "Pending");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task JobSitesRespondIndependentlyToTheSamePosting(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().JobSite("stub-job-site").AcceptsPostings()
+            .And().JobSite("another-stub-job-site").RejectsPostings()
+            .And().Posting()
+            .When().PublishPosting().ToJobSites("stub-job-site", "another-stub-job-site")
+            .Then().ShouldSucceed()
+                .And().Posting()
+                    .HasJobSitePublicationCount(2)
+                    .EventuallyHasJobSitePublication("stub-job-site", "Succeeded")
+                    .EventuallyHasJobSitePublication("another-stub-job-site", "Failed");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task CanViewSucceededJobSitePublication(Channel channel)
     {
         await _testEnvironment.Scenario(channel)

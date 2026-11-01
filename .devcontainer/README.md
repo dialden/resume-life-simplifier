@@ -53,12 +53,16 @@ prefixed with `RLS_WORKER_` and command-line arguments. The container supplies
 `STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS` for the Workers hosted
 by the tests.
 
-`RLS_WORKER_JobSites__Type` selects `real` (default, Jobillico) or `stubbed`
-(`stub-job-site`). Stubbed mode also requires `RLS_WORKER_JobSites__Url` pointing
-to the stub service. This works for the normal Worker executable, including
+`RLS_WORKER_JobSites__Type` selects `real` (explicitly set by Compose) or `stubbed`.
+Real mode discovers implementations in shipped `DialDen.RLS.JobSites.*.dll`
+assemblies, currently Jobillico. Stubbed mode requires a `JobSites:Sites` list;
+each entry specifies `Id`, `Name`, and `Url`, using environment variables such as
+`RLS_WORKER_JobSites__Sites__0__Id` and `RLS_WORKER_JobSites__Sites__0__Url`.
+This works for the normal Worker executable, including
 external deployments, without test-time service replacements. In-process
 stubbed tests read `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type` and
-`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Url`, supplied by Compose, before
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__<index>__Id`, `Name`, and `Url`,
+supplied by Compose for two independent stub sites, before
 the Worker's registrations run. No fixture override selects the provider.
 
 ## WireMock job-site stub

@@ -1,15 +1,16 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DialDen.RLS.JobSites.Jobillico.DependencyInjection;
 
 public static class JobillicoServiceCollectionExtensions
 {
-    public static IServiceCollection AddJobillico(this IServiceCollection services)
+    public static IServiceCollection AddJobillicoDependencies(
+        this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IJobSite, JobillicoJobSite>();
-
+        ArgumentNullException.ThrowIfNull(configuration);
         return services;
     }
 }

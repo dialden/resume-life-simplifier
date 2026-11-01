@@ -3,17 +3,16 @@ using WireMock.Client;
 
 namespace DialDen.RLS.Tests.Core.Drivers.JobSites;
 
-public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi) : IJobSitesDriver
+public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnlyList<string> jobSiteIds) : IJobSitesDriver
 {
     public async Task ResetAndAcceptByDefault()
     {
         await adminApi.ResetMappingsAsync();
         await adminApi.ResetRequestsAsync();
-        await PostMapping(
-            "stub-job-site",
-            postingId: ".*",
-            accepts: true,
-            matcher: "RegexMatcher");
+        foreach (var jobSiteId in jobSiteIds)
+        {
+            await PostMapping(jobSiteId, postingId: ".*", accepts: true, matcher: "RegexMatcher");
+        }
     }
 
     public Task SetResponse(string jobSiteId, int postingId, bool accepts) =>

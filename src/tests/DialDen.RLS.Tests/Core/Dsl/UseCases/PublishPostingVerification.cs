@@ -17,8 +17,11 @@ public sealed class PublishPostingVerification(
 
     public void HasJobSitePublication(string jobSiteId, string expectedStatus)
     {
-        Response.JobSitePublications.ShouldHaveSingleItem().ShouldBe(new JobSitePublicationResponse(jobSiteId, expectedStatus));
+        Response.JobSitePublications.Where(publication => publication.JobSiteId == jobSiteId)
+            .ShouldHaveSingleItem().ShouldBe(new JobSitePublicationResponse(jobSiteId, expectedStatus));
     }
+
+    public void HasJobSitePublicationCount(int count) => Response.JobSitePublications.Count.ShouldBe(count);
 
     public void HasNoJobSitePublications() => Response.JobSitePublications.ShouldBeEmpty();
 }

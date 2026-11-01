@@ -90,6 +90,19 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
         return this;
     }
 
+    public ThenPosting<TSuccessResponse, TSuccessVerification> HasJobSitePublicationCount(int count)
+    {
+        _verifications.Add(v =>
+        {
+            if (v is not IJobSitePublicationVerification posting)
+            {
+                throw new InvalidOperationException("Job-site publications can only be verified for publishing or viewing a posting.");
+            }
+            posting.HasJobSitePublicationCount(count);
+        });
+        return this;
+    }
+
     private async Task Execute()
     {
         var result = await _stage.GetExecutionResult();

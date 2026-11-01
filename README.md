@@ -124,10 +124,21 @@ Publishing without external destinations creates no job-site publication command
 The Worker (`DialDen.RLS.Worker.Root`) is a separate process. It consumes the
 job-site publication commands and publishes each posting on its job site through
 a plugin. A plugin implements `IJobSite` from `DialDen.RLS.JobSites.Abstractions`
-(identifier, name, and `Publish`) and is registered in the Worker's composition
-root, the only production project referencing plugins. The default plugin is Jobillico
+(identifier, name, and `Publish`). In real mode, the Worker scans shipped
+`DialDen.RLS.JobSites.*.dll` assemblies for concrete implementations. Worker.Root
+keeps project references to deploy the plugins; it does not call provider-specific
+registration methods. The default plugin is Jobillico
 (`DialDen.RLS.JobSites.Jobillico`), which is not implemented for the demo: its
 publications always become `Failed`.
+
+Plugins may expose a public, parameterless `IJobSitePlugin` entry point to register
+their own dependencies through a plugin-owned `IServiceCollection` extension
+(for example, named HTTP clients and authentication settings). Discovery invokes
+these entry points before registering `IJobSite` implementations as transient
+services. Stub implementations live outside the scanned assemblies. Only ship
+trusted plugin assemblies; there is no hot reload or plugin isolation.
+Invalid plugin entry points, unresolved site dependencies, and duplicate site
+IDs fail startup rather than silently skipping providers.
 
 At startup, the Worker registers its plugins in the `job_sites` table. Job sites
 it no longer has are kept but become unavailable, so the API stops offering them.
@@ -157,12 +168,23 @@ RLS_WORKER_JobSites__Type=real
 
 # Test/demo: register "stub-job-site" / "Stub Job Site" using HTTP.
 RLS_WORKER_JobSites__Type=stubbed
-RLS_WORKER_JobSites__Url=http://wiremock-job-site/
+RLS_WORKER_JobSites__Sites__0__Id=stub-job-site
+RLS_WORKER_JobSites__Sites__0__Name="Stub Job Site"
+RLS_WORKER_JobSites__Sites__0__Url=http://wiremock-job-site/
 ```
+
+Stubbed mode skips real-plugin discovery and creates one HTTP-backed site per
+`JobSites:Sites` configuration entry. Each requires a distinct, case-sensitive
+ID, display name, and absolute HTTP(S) URL without a query or fragment. An empty
+list fails startup. Add further sites using indexes `1`, `2`, and so on.
+
+The devcontainer Compose configuration explicitly selects `real` for the
+development Worker. Real-external-system tests inherit this setting; stubbed
+tests override it through their prefixed environment variables.
 
 The small `StubJobSite` implementation lives in `DialDen.RLS.Worker.Root`,
 alongside its configuration, rather than in a separate plugin project or the tests.
-It sends `POST /publish/stub-job-site?postingId=<id>`; a successful HTTP status
+It sends `POST /publish/<configured-site-id>?postingId=<id>`; a successful HTTP status
 means accepted, while a non-success status fails publication. Unsupported types
 or an invalid/missing HTTP URL prevent startup. Stubbed mode is opt-in and should
 only be enabled in test/demo environments.
@@ -325,8 +347,9 @@ before the API, with its own queue (`rls-job-site-publication-stubbed` or
 reads `<ENVIRONMENT>_RLS_WORKER_` variables, such as
 `STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS`. The stubbed environment
 reads `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type=stubbed` and
-`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Url` from the environment to select the provider registered
-as `stub-job-site` (display name **Stub Job Site**). Scenarios configure its
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__<index>__Id`, `Name`, and `Url`
+from the environment. Compose configures `stub-job-site` (**Stub Job Site**) and
+`another-stub-job-site` (**Another Stub Job Site**). Scenarios configure each site's
 response with `Given().JobSite("stub-job-site").AcceptsPostings()` or
 `.RejectsPostings()`. Processing scenarios publish in When and assert
 `EventuallyHasJobSitePublication(...)` in Then: they observe the expected final
@@ -334,15 +357,15 @@ status for up to 30 seconds, failing immediately on an opposite final outcome.
 View/list scenarios use `Given().Posting().PublishedOnJobSite(...)` to establish
 a successfully completed publication through the system; setup publishes and
 waits internally. `PublishedTo(...)` only requests publication. Each scenario resets
-the WireMock mappings and request journal; unmatched publication requests
-default to an accepted response. The WireMock admin URL is configured with
+the WireMock mappings and request journal; configured sites accept postings by
+default unless a scenario overrides the response. The WireMock admin URL is configured with
 `RLS_TEST_JobSites__WireMockUrl` and defaults to `http://wiremock-job-site/` in
 the dev container.
 
 An externally deployed Worker uses the same executable with
-`RLS_WORKER_JobSites__Type=stubbed` and `RLS_WORKER_JobSites__Url` set to its
-reachable WireMock URL. Tests configure the admin URL separately with
-`RLS_TEST_JobSites__WireMockUrl`; both URLs must reach the same WireMock server
+`RLS_WORKER_JobSites__Type=stubbed` and each `RLS_WORKER_JobSites__Sites__<index>__Url`
+set to its reachable WireMock URL. Tests configure the admin URL separately with
+`RLS_TEST_JobSites__WireMockUrl`; all URLs must reach the same WireMock server
 but may differ across networks. No test-only Worker composition is needed.
 The commit stage builds API, UI and Worker images and runs acceptance/smoke tests
 against their containers in External hosting mode. Each run creates a private

@@ -1,4 +1,5 @@
 using DialDen.RLS.Tests.Core.Drivers.JobSites;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RestEase;
 using WireMock.Client;
@@ -26,7 +27,18 @@ public class StubbedExternalSystemsTestEnvironment : TestEnvironment
             var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("WireMockJobSiteAdmin");
             return new RestClient(client).For<IWireMockAdminApi>();
         });
-        services.AddTransient<IJobSitesDriver, WireMockJobSitesDriver>();
+        var workerConfiguration = new ConfigurationBuilder()
+            .AddEnvironmentVariables(ConfigurationEnvironmentVariablesPrefix + "RLS_WORKER_")
+            .Build();
+        var siteIds = workerConfiguration.GetSection("JobSites:Sites").GetChildren()
+            .Select(site => site["Id"] ?? throw new InvalidOperationException("Stubbed test job sites require an Id."))
+            .ToArray();
+        if (siteIds.Length == 0)
+        {
+            throw new InvalidOperationException("Configure STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites for acceptance tests.");
+        }
+        services.AddTransient<IJobSitesDriver>(provider =>
+            new WireMockJobSitesDriver(provider.GetRequiredService<IWireMockAdminApi>(), siteIds));
     }
 
 }

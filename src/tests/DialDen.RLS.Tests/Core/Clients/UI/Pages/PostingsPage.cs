@@ -100,11 +100,22 @@ public class PostingsPage : BasePage
                 SystemError.Of(await alert.InnerTextAsync()));
         }
 
-        var details = await ViewPosting(id);
-        return details.IsFailure
-            ? Result<PublishPostingResponse, SystemError>.Failure(details.Error)
-            : Result<PublishPostingResponse, SystemError>.Success(
-                new PublishPostingResponse(id, details.Value.Status) { JobSitePublications = details.Value.JobSitePublications });
+        var publishedPosting = await response.JsonAsync()
+            ?? throw new InvalidOperationException("The API returned no published posting.");
+        var publishedStatus = Enum.Parse<PostingStatus>(publishedPosting.GetProperty("status").GetString()
+            ?? throw new InvalidOperationException("The API returned no posting status."), ignoreCase: false);
+        var publications = publishedPosting.GetProperty("jobSitePublications").EnumerateArray()
+            .Select(publication => new JobSitePublicationResponse(
+                publication.GetProperty("jobSiteId").GetString()
+                    ?? throw new InvalidOperationException("The API returned no job-site identifier."),
+                publication.GetProperty("status").GetString()
+                    ?? throw new InvalidOperationException("The API returned no job-site publication status.")))
+            .ToArray();
+        return Result<PublishPostingResponse, SystemError>.Success(
+            new PublishPostingResponse(publishedPosting.GetProperty("id").GetInt32(), publishedStatus)
+            {
+                JobSitePublications = publications
+            });
     }
 
     public async Task<Result<PostingPageResponse, SystemError>> ReadPage(int pageNumber)

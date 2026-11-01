@@ -159,7 +159,12 @@ public sealed class CommitStage
             workerEnvironment["RLS_WORKER_ConnectionStrings__RLS"] = connectionString;
             workerEnvironment["RLS_WORKER_Messaging__JobSitePublicationQueue"] = queue;
             workerEnvironment["RLS_WORKER_JobSites__Type"] = "stubbed";
-            workerEnvironment["RLS_WORKER_JobSites__Url"] = $"http://{wireMockName}/";
+            foreach (var key in workerEnvironment.Keys
+                .Where(key => key.StartsWith("RLS_WORKER_JobSites__Sites__", StringComparison.Ordinal)
+                    && key.EndsWith("__Url", StringComparison.Ordinal)).ToArray())
+            {
+                workerEnvironment[key] = $"http://{wireMockName}/";
+            }
             apiEnvironment["RLS_API_Messaging__JobSitePublicationQueue"] = queue;
 
             await StartContainer(workerImage, null, null, workerEnvironment, network, containers, workerName);

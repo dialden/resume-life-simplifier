@@ -1,5 +1,4 @@
 using DialDen.RLS.JobSites;
-using DialDen.RLS.JobSites.Jobillico.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,18 +14,38 @@ public static class JobSitesServiceCollectionExtensions
         switch (options.Type)
         {
             case "real":
-                return services.AddJobillico();
+                return services.AddDiscoveredJobSites(configuration);
             case "stubbed":
-                if (!Uri.TryCreate(options.Url, UriKind.Absolute, out var address)
-                    || (address.Scheme != Uri.UriSchemeHttp && address.Scheme != Uri.UriSchemeHttps)
-                    || !string.IsNullOrEmpty(address.Query) || !string.IsNullOrEmpty(address.Fragment))
+                if (options.Sites.Count == 0)
                 {
-                    throw new InvalidOperationException(
-                        "JobSites:Url must be an absolute HTTP(S) base URL without a query or fragment.");
+                    throw new InvalidOperationException("JobSites:Sites must contain at least one stubbed job site.");
                 }
-
-                services.AddHttpClient<IJobSite, StubJobSite>(client =>
-                    client.BaseAddress = new Uri(address.AbsoluteUri.TrimEnd('/') + "/"));
+                var ids = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var site in options.Sites)
+                {
+                    if (string.IsNullOrWhiteSpace(site.Id) || string.IsNullOrWhiteSpace(site.Name))
+                    {
+                        throw new InvalidOperationException("Each stubbed job site requires an Id and Name.");
+                    }
+                    if (!ids.Add(site.Id))
+                    {
+                        throw new InvalidOperationException($"Several stubbed job sites are identified by '{site.Id}'.");
+                    }
+                    if (!Uri.TryCreate(site.Url, UriKind.Absolute, out var address)
+                        || (address.Scheme != Uri.UriSchemeHttp && address.Scheme != Uri.UriSchemeHttps)
+                        || !string.IsNullOrEmpty(address.Query) || !string.IsNullOrEmpty(address.Fragment))
+                    {
+                        throw new InvalidOperationException(
+                            $"JobSites:Sites URL for '{site.Id}' must be an absolute HTTP(S) base URL without a query or fragment.");
+                    }
+                    var clientName = $"job-site:{site.Id}";
+                    var id = site.Id;
+                    var name = site.Name;
+                    services.AddHttpClient(clientName, client =>
+                        client.BaseAddress = new Uri(address.AbsoluteUri.TrimEnd('/') + "/"));
+                    services.AddTransient<IJobSite>(provider => new StubJobSite(
+                        id, name, provider.GetRequiredService<IHttpClientFactory>().CreateClient(clientName)));
+                }
                 return services;
             default:
                 throw new InvalidOperationException($"Unsupported JobSites:Type: '{options.Type}'.");

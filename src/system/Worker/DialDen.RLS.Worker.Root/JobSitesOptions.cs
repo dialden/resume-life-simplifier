@@ -6,5 +6,5 @@ public sealed class JobSitesOptions
 
     public string Type { get; set; } = "real";
 
-    public string? Url { get; set; }
+    public List<StubJobSiteOptions> Sites { get; set; } = [];
 }
