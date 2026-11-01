@@ -8,6 +8,7 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
 {
     private readonly ThenStage<TSuccessResponse, TSuccessVerification> _stage;
     private readonly List<Action<object>> _verifications = [];
+    private readonly List<Func<object, Task>> _observations = [];
 
     internal ThenPosting(ThenStage<TSuccessResponse, TSuccessVerification> stage)
     {
@@ -44,6 +45,25 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
 
     public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
 
+    public ThenPosting<TSuccessResponse, TSuccessVerification> EventuallyHasJobSitePublication(
+        string jobSiteId, string expectedStatus)
+    {
+        if (expectedStatus is not ("Succeeded" or "Failed"))
+        {
+            throw new ArgumentException("Expected a final publication status: Succeeded or Failed.", nameof(expectedStatus));
+        }
+        _observations.Add(async verification =>
+        {
+            if (verification is not PublishPostingVerification publication)
+            {
+                throw new InvalidOperationException("Eventual publication outcomes can only be verified after publishing.");
+            }
+            await _stage.App.RLS.ViewPosting().WithId(publication.Id).UntilJobSiteResponded(
+                jobSiteId, TimeSpan.FromSeconds(30), expectedStatus);
+        });
+        return this;
+    }
+
     public ThenPosting<TSuccessResponse, TSuccessVerification> HasJobSitePublication(string jobSiteId, string expectedStatus)
     {
         _verifications.Add(v =>
@@ -78,6 +98,10 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
         foreach (var check in _verifications)
         {
             check(verification);
+        }
+        foreach (var observation in _observations)
+        {
+            await observation(verification);
         }
     }
 }

@@ -328,8 +328,12 @@ reads `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type=stubbed` and
 `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Url` from the environment to select the provider registered
 as `stub-job-site` (display name **Stub Job Site**). Scenarios configure its
 response with `Given().JobSite("stub-job-site").AcceptsPostings()` or
-`.RejectsPostings()`, and `Given().JobSite("stub-job-site").HasResponded()`
-waits until the site has answered the scenario's postings. Each scenario resets
+`.RejectsPostings()`. Processing scenarios publish in When and assert
+`EventuallyHasJobSitePublication(...)` in Then: they observe the expected final
+status for up to 30 seconds, failing immediately on an opposite final outcome.
+View/list scenarios use `Given().Posting().PublishedOnJobSite(...)` to establish
+a successfully completed publication through the system; setup publishes and
+waits internally. `PublishedTo(...)` only requests publication. Each scenario resets
 the WireMock mappings and request journal; unmatched publication requests
 default to an accepted response. The WireMock admin URL is configured with
 `RLS_TEST_JobSites__WireMockUrl` and defaults to `http://wiremock-job-site/` in
@@ -340,7 +344,14 @@ An externally deployed Worker uses the same executable with
 reachable WireMock URL. Tests configure the admin URL separately with
 `RLS_TEST_JobSites__WireMockUrl`; both URLs must reach the same WireMock server
 but may differ across networks. No test-only Worker composition is needed.
-The commit pipeline still needs to start the Worker and WireMock containers.
+The commit stage builds API, UI and Worker images and runs acceptance/smoke tests
+against their containers in External hosting mode. Each run creates a private
+Docker network and WireMock container, configures the Worker as `stubbed`, and
+uses an isolated publication queue shared by API and Worker. Tests reach WireMock
+through its published host port; the Worker uses its Docker-network address.
+Startup checks cover WireMock, API, UI and the Worker's job-site registration.
+Containers and the network are removed after the run, including on test failure.
+`--push-images` publishes all three application images after tests pass.
 
 `ExternalSystemsDsl` exposes constructor-injected external-system DSLs, following
 the sandbox pattern. The fixtures supply real or WireMock drivers; real job sites

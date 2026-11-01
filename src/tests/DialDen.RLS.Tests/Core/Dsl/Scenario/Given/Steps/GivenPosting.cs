@@ -6,6 +6,7 @@ public class GivenPosting : BaseGiven
     private string _title = "Software Engineer";
     private int _count = 1;
     private string[]? _publishedJobSites;
+    private bool _completedPublication;
 
     internal GivenPosting(GivenStage givenStage) : base(givenStage)
     {
@@ -37,6 +38,14 @@ public class GivenPosting : BaseGiven
                 await app.ExternalSystems.JobSites.ConfigureForPosting(postingId, _publishedJobSites);
                 var published = await app.RLS.PublishPosting().WithId(alias).ToJobSites(_publishedJobSites).Execute();
                 published.ShouldSucceed();
+                if (_completedPublication)
+                {
+                    foreach (var jobSiteId in _publishedJobSites)
+                    {
+                        await app.RLS.ViewPosting().WithId(postingId).UntilJobSiteResponded(
+                            jobSiteId, TimeSpan.FromSeconds(30), "Succeeded");
+                    }
+                }
             }
         }
     }
@@ -44,13 +53,17 @@ public class GivenPosting : BaseGiven
     public GivenPosting PublishedTo(params string[] jobSiteIds)
     {
         _publishedJobSites = jobSiteIds;
+        _completedPublication = false;
         return this;
     }
 
-    internal IEnumerable<string> AliasesPublishedTo(string jobSiteId) =>
-        _publishedJobSites?.Contains(jobSiteId) == true
-            ? Enumerable.Range(1, _count).Select(index => _count == 1 ? _idAlias : $"{_idAlias}-{index}")
-            : [];
+    public GivenPosting PublishedOnJobSite(string jobSiteId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobSiteId);
+        _publishedJobSites = [jobSiteId];
+        _completedPublication = true;
+        return this;
+    }
 
     public GivenPosting WithCount(int count)
     {

@@ -28,6 +28,7 @@ public sealed class WhenPublishPosting : BaseWhen<PublishPostingResponse, Publis
 
     protected override async Task<ExecutionResult<PublishPostingResponse, PublishPostingVerification>> Execute(UseCaseDsl app)
     {
+        await app.ExternalSystems.JobSites.ConfigureForPosting(_idAlias, _jobSiteIds);
         var result = await app.RLS.PublishPosting().WithId(_idAlias).ToJobSites(_jobSiteIds).Execute();
         return new ExecutionResult<PublishPostingResponse, PublishPostingVerification>(result);
     }

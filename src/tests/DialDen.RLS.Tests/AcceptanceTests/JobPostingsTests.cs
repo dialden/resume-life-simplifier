@@ -53,9 +53,7 @@ public class JobPostingsTests
     public async Task CanViewSucceededJobSitePublication(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
-            .Given().JobSite("stub-job-site").AcceptsPostings()
-            .And().Posting().PublishedTo("stub-job-site")
-            .And().JobSite("stub-job-site").HasResponded()
+            .Given().Posting().PublishedOnJobSite("stub-job-site")
             .When().ViewPosting()
             .Then().ShouldSucceed()
                 .And().Posting().HasStatus("Published")
@@ -68,11 +66,22 @@ public class JobPostingsTests
     {
         await _testEnvironment.Scenario(channel)
             .Given().JobSite("stub-job-site").RejectsPostings()
-            .And().Posting().PublishedTo("stub-job-site")
-            .And().JobSite("stub-job-site").HasResponded()
-            .When().ViewPosting()
+            .And().Posting()
+            .When().PublishPosting().ToJobSites("stub-job-site")
             .Then().ShouldSucceed()
-                .And().Posting().HasJobSitePublication("stub-job-site", "Failed");
+                .And().Posting().EventuallyHasJobSitePublication("stub-job-site", "Failed");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task JobSitePublicationSucceedsWhenTheJobSiteAcceptsThePosting(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().JobSite("stub-job-site").AcceptsPostings()
+            .And().Posting()
+            .When().PublishPosting().ToJobSites("stub-job-site")
+            .Then().ShouldSucceed()
+                .And().Posting().EventuallyHasJobSitePublication("stub-job-site", "Succeeded");
     }
 
     [Trait("Category", "Acceptance")]
@@ -101,9 +110,7 @@ public class JobPostingsTests
     public async Task CanListJobSitePublicationOutcome(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
-            .Given().JobSite("stub-job-site").AcceptsPostings()
-            .And().Posting().WithId("opportunity").PublishedTo("stub-job-site")
-            .And().JobSite("stub-job-site").HasResponded()
+            .Given().Posting().WithId("opportunity").PublishedOnJobSite("stub-job-site")
             .When().ListPostings().AcrossAllPages()
             .Then().ShouldSucceed()
                 .And().PostingPages().HasPostingJobSitePublication("opportunity", "stub-job-site", "Succeeded");
@@ -113,7 +120,7 @@ public class JobPostingsTests
     [Theory]
     [InlineData("unknown")]
     [InlineData("")]
-    [InlineData("Jobillico")]
+    [InlineData("Stub-Job-Site")]
     public async Task CannotPublishToAnUnavailableJobSite(string jobSiteId)
     {
         await _testEnvironment.Scenario(Channel.API)

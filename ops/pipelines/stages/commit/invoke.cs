@@ -19,12 +19,14 @@ var config = ReadConfig();
 var app = config.App;
 var apiImage = $"{config.Images.Api}:{version}";
 var uiImage = $"{config.Images.Ui}:{version}";
+var workerImage = $"{config.Images.Worker}:{version}";
 
 var artifacts = Path.Combine(root, ".artifacts", "commit",
     $"{DateTime.UtcNow:yyyyMMddTHHmmssfffZ}-{Guid.NewGuid():N}");
 var results = Path.Combine(artifacts, "test-results");
 var apiOutput = Path.Combine(artifacts, "publish", "api");
 var uiOutput = Path.Combine(artifacts, "publish", "ui");
+var workerOutput = Path.Combine(artifacts, "publish", "worker");
 var uiRoot = Path.Combine(uiOutput, "wwwroot");
 Directory.CreateDirectory(results);
 Log($"Starting commit stage. Artifacts: {artifacts}");
@@ -38,8 +40,9 @@ if (pushImages)
 {
     await Run("docker", ["push", apiImage]);
     await Run("docker", ["push", uiImage]);
+    await Run("docker", ["push", workerImage]);
 }
-Log($"Commit stage completed. Images: {apiImage}, {uiImage}. Pushed: {pushImages}");
+Log($"Commit stage completed. Images: {apiImage}, {uiImage}, {workerImage}. Pushed: {pushImages}");
 
 async Task PublishApplications()
 {
@@ -47,6 +50,8 @@ async Task PublishApplications()
         "--configuration", "Release", "--no-restore", "--output", apiOutput]);
     await Run("dotnet", ["publish", app.UiProject,
         "--configuration", "Release", "--no-restore", "--output", uiOutput]);
+    await Run("dotnet", ["publish", app.WorkerProject,
+        "--configuration", "Release", "--no-restore", "--output", workerOutput]);
 
     // Local browser settings must not become environment-specific release artifacts.
     foreach (var suffix in new[] { "", ".br", ".gz" })
@@ -54,12 +59,14 @@ async Task PublishApplications()
         File.Delete(Path.Combine(uiRoot, $"appsettings.json{suffix}"));
     }
     RequireFile(Path.Combine(apiOutput, "DialDen.RLS.API.Root.dll"));
+    RequireFile(Path.Combine(workerOutput, "DialDen.RLS.Worker.Root.dll"));
     RequireFile(Path.Combine(uiRoot, "index.html"));
 }
 
 async Task BuildImages()
 {
     await BuildImage(apiImage, Path.Combine(root, app.DockerDirectory, "api/Dockerfile"), apiOutput);
+    await BuildImage(workerImage, Path.Combine(root, app.DockerDirectory, "worker/Dockerfile"), workerOutput);
 
     // The UI image's own files are build inputs, so they are only present in the context during the build.
     foreach (var file in uiImageFiles)
@@ -93,16 +100,40 @@ async Task RunAcceptanceTests()
 {
     var apiPort = FreePort();
     var uiPort = FreePort();
+    var wireMockPort = FreePort();
     var apiUrl = $"http://127.0.0.1:{apiPort}";
     var uiUrl = $"http://127.0.0.1:{uiPort}";
+    var wireMockUrl = $"http://127.0.0.1:{wireMockPort}";
+    var network = $"rls-commit-{Guid.NewGuid():N}";
+    var wireMockName = $"rls-wiremock-{Guid.NewGuid():N}";
+    var workerName = $"rls-worker-{Guid.NewGuid():N}";
+    var queue = $"rls-commit-publications-{Guid.NewGuid():N}";
     var containers = new List<string>();
+    await Run("docker", ["network", "create", network]);
     try
     {
-        containers.Add(await StartContainer(apiImage, 8080, apiPort, ApiEnvironment(uiUrl)));
-        containers.Add(await StartContainer(uiImage, 80, uiPort,
-            new Dictionary<string, string> { ["API_BASE_URL"] = apiUrl }));
+        await StartContainer("sheyenrath/wiremock.net", 80, wireMockPort,
+            new Dictionary<string, string>(), network, containers, wireMockName);
+        await WaitUntilReady(wireMockUrl + "/__admin/health");
+
+        var workerEnvironment = ApplicationEnvironment("RLS_WORKER_");
+        // Both processes use the API's guarded test database and the same isolated queue.
+        var apiEnvironment = ApiEnvironment(uiUrl);
+        var connectionString = apiEnvironment.GetValueOrDefault("RLS_API_ConnectionStrings__RLS")
+            ?? throw new InvalidOperationException("STUBBED_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS is required.");
+        workerEnvironment["RLS_WORKER_ConnectionStrings__RLS"] = connectionString;
+        workerEnvironment["RLS_WORKER_Messaging__JobSitePublicationQueue"] = queue;
+        workerEnvironment["RLS_WORKER_JobSites__Type"] = "stubbed";
+        workerEnvironment["RLS_WORKER_JobSites__Url"] = $"http://{wireMockName}/";
+        apiEnvironment["RLS_API_Messaging__JobSitePublicationQueue"] = queue;
+
+        await StartContainer(workerImage, null, null, workerEnvironment, network, containers, workerName);
+        await StartContainer(apiImage, 8080, apiPort, apiEnvironment, network, containers);
+        await StartContainer(uiImage, 80, uiPort,
+            new Dictionary<string, string> { ["API_BASE_URL"] = apiUrl }, network, containers);
         await WaitUntilReady(apiUrl + "/health");
         await WaitUntilReady(uiUrl + "/");
+        await WaitUntilJobSiteRegistered(apiUrl, workerName);
 
         await Run("dotnet",
             [
@@ -117,7 +148,8 @@ async Task RunAcceptanceTests()
             {
                 ["RLS_TEST_Hosting__Mode"] = "External",
                 ["RLS_TEST_Hosting__APIUrl"] = apiUrl,
-                ["RLS_TEST_Hosting__UIUrl"] = uiUrl
+                ["RLS_TEST_Hosting__UIUrl"] = uiUrl,
+                ["RLS_TEST_JobSites__WireMockUrl"] = wireMockUrl
             });
     }
     catch
@@ -131,37 +163,75 @@ async Task RunAcceptanceTests()
     }
     finally
     {
-        foreach (var container in containers)
+        foreach (var container in containers.AsEnumerable().Reverse())
         {
             await Run("docker", ["rm", "--force", container]);
         }
+        await Run("docker", ["network", "rm", network]);
     }
 }
 
 // The test-environment API settings (e.g. the test database connection) become the API container's own.
 Dictionary<string, string> ApiEnvironment(string uiUrl)
 {
-    const string TestEnvironmentPrefix = "STUBBED_EXT_SYSTEMS_RLS_API_";
-    var environment = new Dictionary<string, string> { ["RLS_API_Cors__AllowedOrigins__0"] = uiUrl };
+    var environment = ApplicationEnvironment("RLS_API_");
+    environment["RLS_API_Cors__AllowedOrigins__0"] = uiUrl;
+    return environment;
+}
+
+Dictionary<string, string> ApplicationEnvironment(string applicationPrefix)
+{
+    var testEnvironmentPrefix = "STUBBED_EXT_SYSTEMS_" + applicationPrefix;
+    var environment = new Dictionary<string, string>();
     foreach (var name in Environment.GetEnvironmentVariables().Keys.Cast<string>()
-        .Where(name => name.StartsWith(TestEnvironmentPrefix, StringComparison.Ordinal)))
+        .Where(name => name.StartsWith(testEnvironmentPrefix, StringComparison.Ordinal)))
     {
-        environment["RLS_API_" + name[TestEnvironmentPrefix.Length..]] =
+        environment[applicationPrefix + name[testEnvironmentPrefix.Length..]] =
             Environment.GetEnvironmentVariable(name)!;
     }
     return environment;
 }
 
-async Task<string> StartContainer(string image, int containerPort, int hostPort,
-    Dictionary<string, string> environment)
+async Task StartContainer(string image, int? containerPort, int? hostPort,
+    Dictionary<string, string> environment, string network, List<string> containers, string? containerName = null)
 {
-    var name = $"rls-commit-{Guid.NewGuid():N}";
+    var name = containerName ?? $"rls-commit-{Guid.NewGuid():N}";
     // Values travel through the process environment so secrets never appear in the logged command line.
     string[] environmentArguments = [.. environment.Keys.SelectMany(key => new[] { "--env", key })];
-    await Run("docker", ["run", "--detach", "--name", name,
-        "--publish", $"127.0.0.1:{hostPort}:{containerPort}",
+    string[] portArguments = containerPort is not null && hostPort is not null
+        ? ["--publish", $"127.0.0.1:{hostPort}:{containerPort}"]
+        : [];
+    await Run("docker", ["create", "--name", name,
+        "--network", network, .. portArguments,
         .. await DatabaseHostArguments(), .. environmentArguments, image], environment);
-    return name;
+    containers.Add(name);
+    await Run("docker", ["start", name]);
+}
+
+async Task WaitUntilJobSiteRegistered(string apiUrl, string workerName)
+{
+    using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+    var deadline = DateTime.UtcNow.AddSeconds(30);
+    while (DateTime.UtcNow < deadline)
+    {
+        var running = await Run("docker", ["inspect", "--format", "{{.State.Running}}", workerName],
+            captureOutput: true);
+        if (running.Trim() != "true")
+        {
+            throw new InvalidOperationException("The acceptance-test Worker stopped before it was ready.");
+        }
+
+        using var response = await client.GetAsync(apiUrl + "/job-sites");
+        response.EnsureSuccessStatusCode();
+        using var sites = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        if (sites.RootElement.EnumerateArray().Any(site => site.GetProperty("id").GetString() == "stub-job-site"))
+        {
+            Log("Worker running; stub-job-site is available.");
+            return;
+        }
+        await Task.Delay(500);
+    }
+    throw new TimeoutException("The acceptance-test Worker did not register stub-job-site within 30 seconds.");
 }
 
 // Containers started here cannot resolve the compose service name of the database, so pin its address.
@@ -285,7 +355,8 @@ PipelineConfig ReadConfig()
         File.ReadAllText(Path.Combine(root, ConfigFile)), new JsonSerializerOptions(JsonSerializerDefaults.Web))
         ?? throw new InvalidOperationException($"{ConfigFile} is empty.");
     RequireFile(Path.Combine(root, config.App.Solution));
-    foreach (var image in new[] { config.Images.Api, config.Images.Ui })
+    var images = new[] { config.Images.Api, config.Images.Ui, config.Images.Worker };
+    foreach (var image in images)
     {
         if (!Regex.IsMatch(image, @"\A[a-z0-9][a-z0-9.-]*(?::[0-9]+)?/[a-z0-9._/-]+\z") ||
             image.Contains("..", StringComparison.Ordinal) || image.EndsWith('/'))
@@ -294,9 +365,9 @@ PipelineConfig ReadConfig()
                 $"Image '{image}' in {ConfigFile} must be a lowercase registry/repository name without a tag.");
         }
     }
-    return config.Images.Api != config.Images.Ui
+    return images.Distinct(StringComparer.Ordinal).Count() == images.Length
         ? config
-        : throw new InvalidOperationException("API and UI image names must differ.");
+        : throw new InvalidOperationException("API, UI and Worker image names must differ.");
 }
 
 static int FreePort()
@@ -327,6 +398,6 @@ static void Log(string message) =>
 // Missing keys in config.json fail deserialization instead of surfacing later as nulls.
 record PipelineConfig(AppConfig App, ImagesConfig Images);
 
-record AppConfig(string Solution, string ApiProject, string UiProject, string TestProject, string DockerDirectory);
+record AppConfig(string Solution, string ApiProject, string UiProject, string WorkerProject, string TestProject, string DockerDirectory);
 
-record ImagesConfig(string Api, string Ui);
+record ImagesConfig(string Api, string Ui, string Worker);

@@ -28,7 +28,7 @@ public class ViewPosting : RLSUseCase<ViewPostingResponse, ViewPostingVerificati
     }
 
     /// <summary>Views the posting until its publication on the job site is no longer pending.</summary>
-    public async Task UntilJobSiteResponded(string jobSiteId, TimeSpan timeout)
+    public async Task UntilJobSiteResponded(string jobSiteId, TimeSpan timeout, string? expectedStatus = null)
     {
         var id = ResolveId();
         var deadline = DateTimeOffset.UtcNow + timeout;
@@ -43,6 +43,11 @@ public class ViewPosting : RLSUseCase<ViewPostingResponse, ViewPostingVerificati
                 ?? throw new InvalidOperationException($"Posting {id} was not published to job site '{jobSiteId}'.");
             if (publication.Status != "Pending")
             {
+                if (expectedStatus is not null)
+                {
+                    var verification = new ViewPostingVerification(result.Value, Context);
+                    verification.HasJobSitePublication(jobSiteId, expectedStatus);
+                }
                 return;
             }
             if (DateTimeOffset.UtcNow >= deadline)

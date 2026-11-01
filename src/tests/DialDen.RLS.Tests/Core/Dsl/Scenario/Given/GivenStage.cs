@@ -33,9 +33,6 @@ public class GivenStage
         return step;
     }
 
-    internal IReadOnlyList<string> PostingsPublishedTo(string jobSiteId) =>
-        _steps.OfType<GivenPosting>().SelectMany(step => step.AliasesPublishedTo(jobSiteId)).ToList();
-
     public When.WhenStage When() => new(_app, _scenario, Setup);
 
     internal async Task Setup()

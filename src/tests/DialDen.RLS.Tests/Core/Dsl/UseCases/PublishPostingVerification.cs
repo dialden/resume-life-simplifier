@@ -8,6 +8,8 @@ public sealed class PublishPostingVerification(
     UseCaseContext context)
     : ResponseVerification<PublishPostingResponse>(response, context), IPostingStatusVerification, IJobSitePublicationVerification
 {
+    public int Id => Response.Id;
+
     public void HasStatus(string expectedStatus)
     {
         Response.Status.ToString().ShouldBe(expectedStatus);
