@@ -38,7 +38,7 @@ internal sealed class PublishOnJobSite(
 
         try
         {
-            await jobSite.Publish(new JobSitePosting(posting.Id, posting.Title), cancellationToken);
+            await jobSite.Publish(new JobSitePosting(posting.Id, posting.Title, posting.Description), cancellationToken);
             return publication.Succeed();
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

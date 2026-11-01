@@ -45,6 +45,25 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
 
     public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
 
+    public ThenPosting<TSuccessResponse, TSuccessVerification> HasDescription(string description)
+    {
+        _verifications.Add(v =>
+        {
+            switch (v)
+            {
+                case CreatePostingVerification creation:
+                    creation.HasDescription(description);
+                    break;
+                case ViewPostingVerification view:
+                    view.HasDescription(description);
+                    break;
+                default:
+                    throw new InvalidOperationException("Descriptions can only be verified when creating or viewing a posting.");
+            }
+        });
+        return this;
+    }
+
     public ThenPosting<TSuccessResponse, TSuccessVerification> EventuallyHasJobSitePublication(
         string jobSiteId, string expectedStatus)
     {

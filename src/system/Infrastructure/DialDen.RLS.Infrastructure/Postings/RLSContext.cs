@@ -31,6 +31,7 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
             .HasColumnName("status")
             .HasConversion<string>()
             .IsRequired();
+        posting.Property(entity => entity.Description).HasColumnName("description").IsRequired();
 
         var publication = modelBuilder.Entity<JobSitePublicationEntity>();
         publication.ToTable("job_site_publications");

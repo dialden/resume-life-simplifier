@@ -4,6 +4,7 @@ namespace DialDen.RLS.Postings;
 
 public sealed record Posting(int Id, string Title, PostingStatus Status)
 {
+    public string Description { get; init; } = "";
     public Posting Publish()
     {
         if (Status == PostingStatus.Published)

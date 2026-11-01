@@ -12,7 +12,7 @@ public class PostingsPage : BasePage
     {
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)
+    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
         await _page.GetByRole(AriaRole.Link, new() { Name = "Create posting", Exact = true }).ClickAsync();
         await _page.WaitForURLAsync("**/postings/create");
@@ -22,6 +22,8 @@ public class PostingsPage : BasePage
         {
             return Result<CreatePostingResponse, SystemError>.Failure(fillTitleResult.Error);
         }
+
+        await createPostingPage.FillDescription(description);
 
         return await createPostingPage.ClickCreatePosting();
     }

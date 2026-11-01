@@ -24,6 +24,8 @@ public class ViewPostingVerification : ResponseVerification<ViewPostingResponse>
 
     public void HasStatus(string expectedStatus) => Response.Status.ToString().ShouldBe(expectedStatus);
 
+    public void HasDescription(string description) => Response.Description.ShouldBe(description);
+
     public void HasJobSitePublication(string jobSiteId, string expectedStatus)
     {
         Response.JobSitePublications.Where(publication => publication.JobSiteId == jobSiteId)

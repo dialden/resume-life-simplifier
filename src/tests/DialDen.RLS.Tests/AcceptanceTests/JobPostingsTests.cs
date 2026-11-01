@@ -15,6 +15,50 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task CanCreatePostingWithDescription(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .When().CreatePosting().WithDescription("Build tools & support customers <globally>.")
+            .Then().ShouldSucceed()
+                .And().Posting().HasDescription("Build tools & support customers <globally>.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CanViewPostingDescription(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().WithDescription("Build tools & support customers <globally>.")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().HasDescription("Build tools & support customers <globally>.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public async Task CannotCreatePostingWithoutDescription(string? description)
+    {
+        await _testEnvironment.Scenario(Channel.API)
+            .When().CreatePosting().WithDescription(description!)
+            .Then().ShouldFail().FieldErrorMessage("description", "A posting description is required.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CannotCreatePostingWithoutDescriptionThroughUI(string description)
+    {
+        await _testEnvironment.Scenario(Channel.UI)
+            .When().CreatePosting().WithDescription(description)
+            .Then().ShouldFail().ErrorMessage("A posting description is required.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task CanCreatePosting(Channel channel)
     {
         await _testEnvironment.Scenario(channel)

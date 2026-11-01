@@ -8,5 +8,7 @@ internal sealed class PostingEntity
 
     public required string Title { get; set; }
 
+    public required string Description { get; set; }
+
     public PostingStatus Status { get; set; } = PostingStatus.Draft;
 }

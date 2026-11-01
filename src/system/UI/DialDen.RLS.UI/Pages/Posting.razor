@@ -50,6 +50,8 @@ else
                 <dd>@_posting.Status</dd>
             </div>
         </dl>
+        <h3>Description</h3>
+        <p data-testid="posting-description" style="white-space: pre-wrap">@_posting.Description</p>
         <h3>Job-site publications</h3>
         @if (_posting.JobSitePublications.Count == 0)
         {
@@ -66,7 +68,7 @@ else
                     </li>
                 }
             </ul>
-            <p>Publishing to external job sites is not active yet; selected sites remain Pending.</p>
+            <p>External publications are processed asynchronously. Refresh to see their latest outcomes.</p>
         }
         <div class="panel-footer">Part of your personal opportunity library</div>
     </section>

@@ -41,6 +41,9 @@ else
                     <MudTextField T="string" Label="Title" InputId="posting-title-input"
                                   Variant="Variant.Outlined" HelperText="Use a title you'll recognize, such as Software Engineer."
                                   @bind-Value="_title" Disabled="_isCreating" />
+                    <MudTextField T="string" Label="Description" InputId="posting-description-input"
+                                  Variant="Variant.Outlined" Lines="6" HelperText="Describe the role and responsibilities."
+                                  @bind-Value="_description" Disabled="_isCreating" />
                     @if (_creationError is not null)
                     {
                         <MudAlert Class="mt-4" Severity="Severity.Error" role="alert">@_creationError</MudAlert>
@@ -69,6 +72,7 @@ else
     private Link? _createLink;
     private string? _loadError;
     private string _title = string.Empty;
+    private string _description = string.Empty;
     private bool _isCreating;
     private string? _creationError;
 
@@ -105,7 +109,15 @@ else
 
         try
         {
-            using var response = await Api.PostAsJsonAsync(link.Href, new CreatePostingRequest(_title));
+            using var response = await Api.PostAsJsonAsync(link.Href, new CreatePostingRequest(_title, _description));
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var problem = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                _creationError = string.Join(" ", problem.GetProperty("errors").EnumerateObject()
+                    .SelectMany(error => error.Value.EnumerateArray())
+                    .Select(error => error.GetString()));
+                return;
+            }
             response.EnsureSuccessStatusCode();
             _ = await response.Content.ReadFromJsonAsync<CreatePostingResponse>(
                 ApiJsonSerializerOptions.Default)

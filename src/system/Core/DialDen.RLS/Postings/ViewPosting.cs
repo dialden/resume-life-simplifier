@@ -28,6 +28,7 @@ internal sealed class ViewPosting : IViewPosting
         var publications = await _jobSitePublications.ListFor(posting.Id, cancellationToken);
         return new ViewPostingResponse(posting.Id, posting.Title, posting.Status)
         {
+            Description = posting.Description,
             JobSitePublications = publications.Select(ToResponse).ToArray()
         };
     }

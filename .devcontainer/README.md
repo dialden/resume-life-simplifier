@@ -1,7 +1,8 @@
 # Development container setup
 
 VS Code waits for [post-create.cs](./post-create.cs) to finish before attaching
-to a newly created container. Setup migrates the development and test databases,
+to a newly created container. Setup creates an empty [.env.local](./.env.local)
+if missing, preserving any existing contents, then migrates the development and test databases,
 generates UI settings and API/UI launch profiles, and configures the local
 PostgreSQL connection in VS Code.
 
@@ -64,6 +65,24 @@ stubbed tests read `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type` and
 `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__<index>__Id`, `Name`, and `Url`,
 supplied by Compose for two independent stub sites, before
 the Worker's registrations run. No fixture override selects the provider.
+
+`JOBILLICO_ENDPOINT` in [.env](./.env) supplies
+`RLS_WORKER_Jobillico__Endpoint` (currently `https://www.jobillico.com/api/push`).
+Real Jobillico publishing additionally requires `RLS_WORKER_Jobillico__Username`,
+`RLS_WORKER_Jobillico__Password`, `RLS_WORKER_Jobillico__RecruiterId`, and
+`RLS_WORKER_Jobillico__LocationId` in the Git-ignored [.env.local](./.env.local).
+Post-creation setup creates this file empty if absent; it is not distributed through Git.
+Add your values and rebuild the container to load them. Creating or editing the
+file after container startup does not change the running container's environment.
+The dev service loads it as an optional `env_file`. Shared settings remain in
+the tracked [.env](./.env) and Compose `environment` section; `environment`
+takes priority over matching `env_file` keys, so credentials are not duplicated there.
+Compose explicitly
+enables production (`Jobillico:UseProduction=true`). Publishing can create live
+jobs. Rebuild after configuring credentials; never commit them.
+The real-system test environment inherits the normal Jobillico configuration,
+including its production endpoint and credentials. Stubbed tests use the generic
+WireMock job sites instead.
 
 ## WireMock job-site stub
 

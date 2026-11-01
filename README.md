@@ -84,7 +84,7 @@ local to RLS. A published posting cannot be published again; the UI disables the
 action and the API returns HTTP 409 for another attempt.
 
 The dialog's **Publishing channels** section uses selectable job-site cards and
-a demo notice. Publication errors remain in the dialog; its controls are disabled
+a production-publication notice. Publication errors remain in the dialog; its controls are disabled
 while publication is in progress.
 
 The API advertises `GET /job-sites` through the `list-job-sites` entry-point link.
@@ -127,9 +127,8 @@ a plugin. A plugin implements `IJobSite` from `DialDen.RLS.JobSites.Abstractions
 (identifier, name, and `Publish`). In real mode, the Worker scans shipped
 `DialDen.RLS.JobSites.*.dll` assemblies for concrete implementations. Worker.Root
 keeps project references to deploy the plugins; it does not call provider-specific
-registration methods. The default plugin is Jobillico
-(`DialDen.RLS.JobSites.Jobillico`), which is not implemented for the demo: its
-publications always become `Failed`.
+registration methods. The Jobillico plugin (`DialDen.RLS.JobSites.Jobillico`)
+posts English jobs as UTF-8 XML to `https://www.jobillico.com/api/push`.
 
 Plugins may expose a public, parameterless `IJobSitePlugin` entry point to register
 their own dependencies through a plugin-owned `IServiceCollection` extension
@@ -163,7 +162,7 @@ Like the sandbox's clock provider, the Worker selects its job-site provider from
 configuration:
 
 ```sh
-# Default: register real providers (Jobillico remains unimplemented).
+# Default: register real providers.
 RLS_WORKER_JobSites__Type=real
 
 # Test/demo: register "stub-job-site" / "Stub Job Site" using HTTP.
@@ -188,6 +187,53 @@ It sends `POST /publish/<configured-site-id>?postingId=<id>`; a successful HTTP 
 means accepted, while a non-success status fails publication. Unsupported types
 or an invalid/missing HTTP URL prevent startup. Stubbed mode is opt-in and should
 only be enabled in test/demo environments.
+
+### Jobillico manual publishing
+
+New postings require a description through both API and UI. `POST /postings`
+accepts `title` and `description`; creation, viewing, and listing return the
+description. Migration V9 preserves existing postings with an empty description,
+without inventing content; Jobillico may reject such older postings.
+
+The plugin maps the posting title and description to `stitle_en` and
+`sdescription_en`, sets `elang=en`, and sends no French fields. Recruiter and
+location identifiers, creator (the username), and authentication are configuration,
+not posting data. XML text is escaped safely, including special characters.
+The local posting ID is sent as `srefnumber`; it is not an exactly-once guarantee.
+
+For manual testing in the devcontainer, set these in the Git-ignored
+[.env.local](.devcontainer/.env.local), then rebuild the container:
+
+```sh
+RLS_WORKER_Jobillico__Username=<your-username>
+RLS_WORKER_Jobillico__Password=<your-password>
+RLS_WORKER_Jobillico__RecruiterId=<recruiter-id>
+RLS_WORKER_Jobillico__LocationId=<location-id>
+```
+
+Create the local file if absent. Do not commit credentials or paste them into
+chat. Compose loads these Worker variables through the dev service's optional
+`env_file`; the tracked `.env` retains shared settings only.
+Missing credentials or invalid IDs prevent the real Worker from starting.
+
+**The development Compose configuration explicitly sets
+`RLS_WORKER_Jobillico__UseProduction=true`, sending `bsandboxoff=1`.
+Confirming publication to Jobillico can create a live job.**
+The plugin defaults to sandbox unless production is explicitly selected; the
+Jobillico sandbox is reported unavailable. Start API + Worker + UI, create a
+posting with an English description, select Jobillico when publishing, and
+refresh the posting details to observe the outcome.
+
+HTTP success alone is not acceptance: any XML `error` element fails publication.
+Success requires one `results/job` with a positive `ijob`. HTTP errors, malformed
+XML, missing/invalid identifiers, and timeouts also fail publication. Responses
+and credentials are not logged by the plugin.
+
+The existing acceptance tests cover required descriptions and generic job-site
+publication through the existing real/stubbed test environments. Real-system
+smoke tests inherit the normal Jobillico endpoint and credentials;
+they only check readiness and do not publish jobs. Verify actual Jobillico submission manually through
+RLS. No automated test submits to Jobillico production.
 
 Apply all Flyway migrations, including
 [V3](src/system/Database/migrations/V3__Add_posting_deliveries.sql),

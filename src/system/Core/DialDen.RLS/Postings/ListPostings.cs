@@ -21,6 +21,7 @@ internal sealed class ListPostings : IListPostings
         return new ListPostingsResponse(
             list.Postings.Select(posting => new ViewPostingResponse(posting.Id, posting.Title, posting.Status)
             {
+                Description = posting.Description,
                 JobSitePublications = publications.GetValueOrDefault(posting.Id, [])
                     .Select(publication => new JobSitePublicationResponse(publication.JobSiteId, publication.Status))
                     .ToArray()

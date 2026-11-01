@@ -31,6 +31,9 @@ public class CreatePostingPage : BasePage
         return Result.Success<SystemError>();
     }
 
+    public Task FillDescription(string description) =>
+        _page.GetByLabel("Description", new() { Exact = true }).FillAsync(description);
+
     public async Task<Result<CreatePostingResponse, SystemError>> ClickCreatePosting()
     {
         var response = await _page.RunAndWaitForResponseAsync(
@@ -64,6 +67,10 @@ public class CreatePostingPage : BasePage
         var postingLink = await new PostingsPage(_page).FindPostingLink(createdId);
         var createdTitle = await postingLink.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
         return Result<CreatePostingResponse, SystemError>.Success(
-            new CreatePostingResponse(createdId, createdTitle, createdStatus));
+            new CreatePostingResponse(createdId, createdTitle, createdStatus)
+            {
+                Description = createdPosting.GetProperty("description").GetString()
+                    ?? throw new InvalidOperationException("The API returned no posting description.")
+            });
     }
 }

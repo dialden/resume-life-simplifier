@@ -31,4 +31,6 @@ public class CreatePostingVerification : ResponseVerification<CreatePostingRespo
     {
         Response.Status.ToString().ShouldBe(expectedStatus);
     }
+
+    public void HasDescription(string description) => Response.Description.ShouldBe(description);
 }

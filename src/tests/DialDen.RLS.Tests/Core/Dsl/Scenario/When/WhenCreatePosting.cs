@@ -6,6 +6,13 @@ namespace DialDen.RLS.Tests.Core.Dsl.Scenario.When;
 public class WhenCreatePosting : BaseWhen<CreatePostingResponse, CreatePostingVerification>
 {
     private string _title = "Software Engineer";
+    private string _description = "Build and maintain software for our customers.";
+
+    public WhenCreatePosting WithDescription(string description)
+    {
+        _description = description;
+        return this;
+    }
 
     internal WhenCreatePosting(UseCaseDsl app, ScenarioDsl scenario, Func<Task> setup)
         : base(app, scenario, setup)
@@ -20,7 +27,7 @@ public class WhenCreatePosting : BaseWhen<CreatePostingResponse, CreatePostingVe
 
     protected override async Task<ExecutionResult<CreatePostingResponse, CreatePostingVerification>> Execute(UseCaseDsl app)
     {
-        var result = await app.RLS.CreatePosting().WithTitle(_title).Execute();
+        var result = await app.RLS.CreatePosting().WithTitle(_title).WithDescription(_description).Execute();
         return new ExecutionResult<CreatePostingResponse, CreatePostingVerification>(result);
     }
 }

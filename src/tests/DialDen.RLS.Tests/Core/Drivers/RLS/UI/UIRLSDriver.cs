@@ -23,10 +23,10 @@ public class UIRLSDriver : IRLSDriver
             : Result.Failure<SystemError>(SystemError.Of($"The RLS UI displayed an error: {error}"));
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)
+    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
         var homePage = await _uiClient.OpenHomePage();
-        return await homePage.CreatePosting(title);
+        return await homePage.CreatePosting(title, description);
     }
 
     public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds)

@@ -22,11 +22,17 @@ public class PostingsEndpoint
         _httpClient = httpClient;
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> Create(string title)
+    public async Task<Result<CreatePostingResponse, SystemError>> Create(string title, string description)
     {
-        using var response = await _httpClient.PostAsJsonAsync("/postings", new { Title = title });
+        using var response = await _httpClient.PostAsJsonAsync("/postings", new { Title = title, Description = description });
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>()
+                    ?? throw new InvalidOperationException("The creation validation response was empty.");
+                return Result<CreatePostingResponse, SystemError>.Failure(problem.MapError());
+            }
             return Result<CreatePostingResponse, SystemError>.Failure(SystemError.Of(
                 $"Creating a posting returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
         }

@@ -29,18 +29,29 @@ public static class RLSEndpoints
             .WithSummary("Lists available external job-site destinations.")
             .Produces<IReadOnlyList<JobSite>>(StatusCodes.Status200OK);
 
-        app.MapPost("/postings", async (
+        app.MapPost("/postings", async Task<Results<Created<CreatePostingResponse>, ValidationProblem>> (
                 CreatePostingRequest request,
                 [FromServices] ICreatePosting createPosting,
                 CancellationToken cancellationToken) =>
             {
-                var posting = await createPosting.Create(request, cancellationToken);
-                return TypedResults.Created($"/postings/{posting.Id}", posting);
+                try
+                {
+                    var posting = await createPosting.Create(request, cancellationToken);
+                    return TypedResults.Created($"/postings/{posting.Id}", posting);
+                }
+                catch (InvalidPostingDescriptionException exception)
+                {
+                    return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["description"] = [exception.Message]
+                    });
+                }
             })
             .WithName("CreatePosting")
             .WithSummary("Creates a job posting.")
             .Accepts<CreatePostingRequest>("application/json")
-            .Produces<CreatePostingResponse>(StatusCodes.Status201Created);
+            .Produces<CreatePostingResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
 
         app.MapGet("/postings", async Task<Results<Ok<ListPostingsResponse>, ValidationProblem>> (
                 [FromServices] IListPostings listPostings,
