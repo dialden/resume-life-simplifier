@@ -6,6 +6,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      wiremock-job-site:
+        condition: service_healthy
     volumes:
       - ../:/workspaces/resume-life-simplifier
       # The chat catalog and conversation databases live in separate directories.
@@ -18,6 +20,9 @@ services:
       - /bin/sh
       - -c
       - exec sleep infinity
+    env_file:
+      - path: .env.local
+        required: false
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?Required}
       API_HTTP_URL: ${API_HTTP_URL:?Required}
@@ -40,6 +45,20 @@ services:
       RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_DEV_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       REAL_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       STUBBED_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_DEV_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      REAL_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      RLS_TEST_JobSites__WireMockUrl: http://wiremock-job-site/
+      RLS_WORKER_JobSites__Type: real
+      RLS_WORKER_Jobillico__Endpoint: ${JOBILLICO_ENDPOINT:?Required}
+      RLS_WORKER_Jobillico__UseProduction: "true"
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type: stubbed
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__0__Id: stub-job-site
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__0__Name: Stub Job Site
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__0__Url: http://wiremock-job-site/
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__1__Id: another-stub-job-site
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__1__Name: Another Stub Job Site
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__1__Url: http://wiremock-job-site/
 
 
   postgres:
@@ -61,6 +80,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  wiremock-job-site:
+    image: sheyenrath/wiremock.net
+    ports:
+      - "9095:80"
+    command: --verbose
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - 'exec 3<>/dev/tcp/127.0.0.1/80 && printf "GET /__admin/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && IFS= read -r response <&3 && [[ "$$response" == *"200 OK"* ]]'
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   vscode-user-data:

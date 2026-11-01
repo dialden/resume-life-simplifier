@@ -1,0 +1,11 @@
+namespace DialDen.RLS.Tests.Core.Drivers.JobSites;
+
+public sealed class RealJobSitesDriver : IJobSitesDriver
+{
+    // Real job sites are not reset or given a default response by the test harness.
+    public Task ResetAndAcceptByDefault() => Task.CompletedTask;
+
+    public Task SetResponse(string jobSiteId, int postingId, bool accepts) =>
+        throw new InvalidOperationException(
+            "Controlling job-site responses requires the stubbed external systems environment.");
+}

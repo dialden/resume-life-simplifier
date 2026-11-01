@@ -4,6 +4,8 @@
     <Project Path="system/UI/DialDen.RLS.UI.Root/DialDen.RLS.UI.Root.csproj" />
     <Project Path="system/UI/DialDen.RLS.UI/DialDen.RLS.UI.csproj" />
     <Project Path="system/API/DialDen.RLS.API/DialDen.RLS.API.csproj" />
+    <Project Path="system/Worker/DialDen.RLS.Worker.Root/DialDen.RLS.Worker.Root.csproj" />
+    <Project Path="system/Worker/DialDen.RLS.Worker/DialDen.RLS.Worker.csproj" />
   </Folder>
   <Folder Name="/system/Core/">
     <Project Path="system/Core/DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
@@ -11,6 +13,13 @@
   </Folder>
   <Folder Name="/system/Infrastructure/">
     <Project Path="system/Infrastructure/DialDen.RLS.Infrastructure/DialDen.RLS.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/system/JobSites/">
+    <Project Path="system/JobSites/DialDen.RLS.JobSites.Abstractions/DialDen.RLS.JobSites.Abstractions.csproj" />
+    <Project Path="system/JobSites/DialDen.RLS.JobSites.Jobillico/DialDen.RLS.JobSites.Jobillico.csproj" />
+  </Folder>
+  <Folder Name="/system/Messaging/">
+    <Project Path="system/Messaging/DialDen.RLS.Messaging.Contracts/DialDen.RLS.Messaging.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DialDen.RLS.Tests/DialDen.RLS.Tests.csproj" />

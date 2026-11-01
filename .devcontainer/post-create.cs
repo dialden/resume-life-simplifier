@@ -17,22 +17,25 @@ try
     Console.WriteLine();
 
     await RunStepAsync(
-        "[1/4] Migrating development and test databases...",
+        "[1/5] Creating the local environment file if missing...",
+        ".devcontainer/create-local-env.cs");
+    await RunStepAsync(
+        "[2/5] Migrating development and test databases...",
         "ops/database/migrate.cs");
     await RunStepAsync(
-        "[2/4] Generating UI settings...",
+        "[3/5] Generating UI settings...",
         ".vscode/generate-ui-settings.cs");
     await RunStepAsync(
-        "[3/4] Generating API and UI launch settings...",
+        "[4/5] Generating API and UI launch settings...",
         ".vscode/generate-launch-settings.cs");
     await RunStepAsync(
-        "[4/4] Configuring the VS Code PostgreSQL connection...",
+        "[5/5] Configuring the VS Code PostgreSQL connection...",
         ".vscode/configure-postgres-connection.cs");
 
     Console.WriteLine();
     Console.WriteLine("============================================================");
     Console.WriteLine("RLS setup complete. You can start working and debugging now.");
-    Console.WriteLine("Select \"API + UI\" in Run and Debug, then press F5.");
+    Console.WriteLine("Select \"API + Worker + UI\" in Run and Debug, then press F5.");
     Console.WriteLine("============================================================");
     completed = true;
 }

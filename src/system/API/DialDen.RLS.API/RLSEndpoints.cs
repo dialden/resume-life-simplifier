@@ -15,6 +15,7 @@ public static class RLSEndpoints
         app.MapGet("/", () => TypedResults.Ok(new RLSEntryPoint([
                 new Link("create-posting", "/postings", "POST"),
                 new Link("list-postings", "/postings", "GET"),
+                new Link("list-job-sites", "/job-sites", "GET"),
                 new Link("publish-posting", "/postings/{id}", "PATCH"),
                 new Link("view-posting", "/postings/{id}", "GET")
             ])))
@@ -22,18 +23,35 @@ public static class RLSEndpoints
             .WithSummary("API entry point returning links to the available actions.")
             .Produces<RLSEntryPoint>(StatusCodes.Status200OK);
 
-        app.MapPost("/postings", async (
+        app.MapGet("/job-sites", async ([FromServices] IJobSites jobSites, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await jobSites.List(cancellationToken)))
+            .WithName("ListJobSites")
+            .WithSummary("Lists available external job-site destinations.")
+            .Produces<IReadOnlyList<JobSite>>(StatusCodes.Status200OK);
+
+        app.MapPost("/postings", async Task<Results<Created<CreatePostingResponse>, ValidationProblem>> (
                 CreatePostingRequest request,
                 [FromServices] ICreatePosting createPosting,
                 CancellationToken cancellationToken) =>
             {
-                var posting = await createPosting.Create(request, cancellationToken);
-                return TypedResults.Created($"/postings/{posting.Id}", posting);
+                try
+                {
+                    var posting = await createPosting.Create(request, cancellationToken);
+                    return TypedResults.Created($"/postings/{posting.Id}", posting);
+                }
+                catch (InvalidPostingDescriptionException exception)
+                {
+                    return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["description"] = [exception.Message]
+                    });
+                }
             })
             .WithName("CreatePosting")
             .WithSummary("Creates a job posting.")
             .Accepts<CreatePostingRequest>("application/json")
-            .Produces<CreatePostingResponse>(StatusCodes.Status201Created);
+            .Produces<CreatePostingResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
 
         app.MapGet("/postings", async Task<Results<Ok<ListPostingsResponse>, ValidationProblem>> (
                 [FromServices] IListPostings listPostings,
@@ -88,16 +106,33 @@ public static class RLSEndpoints
                     });
                 }
 
-                var posting = await publishPosting.Publish(new PublishPostingRequest(id), cancellationToken);
-                return posting is null
-                    ? TypedResults.NotFound()
-                    : TypedResults.Ok(posting);
+                try
+                {
+                    var posting = await publishPosting.Publish(
+                        new PublishPostingRequest(id) { JobSiteIds = request.JobSiteIds }, cancellationToken);
+                    return posting is null
+                        ? TypedResults.NotFound()
+                        : TypedResults.Ok(posting);
+                }
+                catch (PostingAlreadyPublishedException exception)
+                {
+                    return TypedResults.Problem(
+                        statusCode: StatusCodes.Status409Conflict, detail: exception.Message);
+                }
+                catch (InvalidJobSitesException exception)
+                {
+                    return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["jobSiteIds"] = [exception.Message]
+                    });
+                }
             })
             .WithName("UpdatePosting")
             .WithSummary("Updates a job posting's status.")
             .Accepts<UpdatePostingRequest>("application/json")
             .Produces<PublishPostingResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesValidationProblem();
 
         return app;

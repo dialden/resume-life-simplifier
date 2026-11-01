@@ -1,12 +1,13 @@
 # Development container setup
 
 VS Code waits for [post-create.cs](./post-create.cs) to finish before attaching
-to a newly created container. Setup migrates the development and test databases,
+to a newly created container. Setup creates an empty [.env.local](./.env.local)
+if missing, preserving any existing contents, then migrates the development and test databases,
 generates UI settings and API/UI launch profiles, and configures the local
 PostgreSQL connection in VS Code.
 
 Wait for **RLS setup complete. You can start working and debugging now.** in the
-container setup output before starting the debugger. Then select **API + UI** in
+container setup output before starting the debugger. Then select **API + Worker + UI** in
 Run and Debug and press **F5**.
 
 If setup fails, resolve the reported error and rerun from the repository root:
@@ -44,6 +45,54 @@ Compose sets `RLS_API_Cors__AllowedOrigins__0` from `UI_HTTP_URL` and
 Loopback origins remain allowed in the Development environment. Rebuild the
 container after changing its environment variables.
 
+## Worker configuration
+
+The Worker reads its configuration the same way, from environment variables
+prefixed with `RLS_WORKER_` and command-line arguments. The container supplies
+`RLS_WORKER_ConnectionStrings__RLS`, plus
+`REAL_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS` and
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS` for the Workers hosted
+by the tests.
+
+`RLS_WORKER_JobSites__Type` selects `real` (explicitly set by Compose) or `stubbed`.
+Real mode discovers implementations in shipped `DialDen.RLS.JobSites.*.dll`
+assemblies, currently Jobillico. Stubbed mode requires a `JobSites:Sites` list;
+each entry specifies `Id`, `Name`, and `Url`, using environment variables such as
+`RLS_WORKER_JobSites__Sites__0__Id` and `RLS_WORKER_JobSites__Sites__0__Url`.
+This works for the normal Worker executable, including
+external deployments, without test-time service replacements. In-process
+stubbed tests read `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type` and
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__<index>__Id`, `Name`, and `Url`,
+supplied by Compose for two independent stub sites, before
+the Worker's registrations run. No fixture override selects the provider.
+
+`JOBILLICO_ENDPOINT` in [.env](./.env) supplies
+`RLS_WORKER_Jobillico__Endpoint` (currently `https://www.jobillico.com/api/push`).
+Real Jobillico publishing additionally requires `RLS_WORKER_Jobillico__Username`,
+`RLS_WORKER_Jobillico__Password`, `RLS_WORKER_Jobillico__RecruiterId`, and
+`RLS_WORKER_Jobillico__LocationId` in the Git-ignored [.env.local](./.env.local).
+Post-creation setup creates this file empty if absent; it is not distributed through Git.
+Add your values and rebuild the container to load them. Creating or editing the
+file after container startup does not change the running container's environment.
+The dev service loads it as an optional `env_file`. Shared settings remain in
+the tracked [.env](./.env) and Compose `environment` section; `environment`
+takes priority over matching `env_file` keys, so credentials are not duplicated there.
+Compose explicitly
+enables production (`Jobillico:UseProduction=true`). Publishing can create live
+jobs. Rebuild after configuring credentials; never commit them.
+The real-system test environment inherits the normal Jobillico configuration,
+including its production endpoint and credentials. Stubbed tests use the generic
+WireMock job sites instead.
+
+## WireMock job-site stub
+
+The `wiremock-job-site` Compose service backs the acceptance-test job-site
+provider. The tests configure mappings through its admin API, and the in-process
+test Worker calls the same service at `http://wiremock-job-site/`. From the
+host, the service is available at `http://localhost:9095/`. The URL can be
+overridden with `RLS_TEST_JobSites__WireMockUrl`. Rebuild or recreate the
+devcontainer after changing Compose services.
+
 ## Launch configuration
 
 Set `API_HTTP_URL`, `API_HTTPS_URL`, `UI_HTTP_URL`, `UI_HTTPS_URL`,
@@ -57,6 +106,12 @@ Compose exports these values to the container. During setup,
 generates local, Git-ignored API and UI launch settings with `http` and `https`
 profiles, preserving Swagger and Blazor browser debugging support. VS Code's
 API and UI debug configurations use `API_HTTP_URL` and `UI_HTTP_URL`.
+
+The UI debugger explicitly selects the `http` launch profile and runs with
+`--no-build`. Its `build ui` pre-launch task builds the app before debugging;
+startup reuses that output instead of running a second build under the debugger.
+If the pre-launch build fails, fix the build error rather than choosing
+**Debug Anyway**, which could launch stale output.
 
 After changing these values, rebuild the container to refresh its environment
 and regenerate the settings. Do not edit generated launch settings directly.

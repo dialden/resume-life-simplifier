@@ -26,10 +26,18 @@ public class GivenStage
         return step;
     }
 
+    public GivenJobSite JobSite(string jobSiteId)
+    {
+        var step = new GivenJobSite(this, jobSiteId);
+        _steps.Add(step);
+        return step;
+    }
+
     public When.WhenStage When() => new(_app, _scenario, Setup);
 
     internal async Task Setup()
     {
+        await _app.ExternalSystems.JobSites.Reset();
         foreach (var step in _steps)
         {
             await step.Execute(_app);

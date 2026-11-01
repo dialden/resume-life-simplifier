@@ -32,7 +32,7 @@ public class HomePage : BasePage
         return null;
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)
+    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
         var postingsPage = await OpenPostings();
         if (postingsPage.IsFailure)
@@ -40,7 +40,7 @@ public class HomePage : BasePage
             return Result<CreatePostingResponse, SystemError>.Failure(postingsPage.Error);
         }
 
-        return await postingsPage.Value.CreatePosting(title);
+        return await postingsPage.Value.CreatePosting(title, description);
     }
 
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)

@@ -12,7 +12,7 @@ public class PostingsPage : BasePage
     {
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)
+    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
         await _page.GetByRole(AriaRole.Link, new() { Name = "Create posting", Exact = true }).ClickAsync();
         await _page.WaitForURLAsync("**/postings/create");
@@ -22,6 +22,8 @@ public class PostingsPage : BasePage
         {
             return Result<CreatePostingResponse, SystemError>.Failure(fillTitleResult.Error);
         }
+
+        await createPostingPage.FillDescription(description);
 
         return await createPostingPage.ClickCreatePosting();
     }
@@ -55,7 +57,7 @@ public class PostingsPage : BasePage
         return await new PostingPage(_page).ReadPosting();
     }
 
-    public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id)
+    public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds)
     {
         var postingLink = await FindPostingLink(id);
         if (!await postingLink.IsVisibleAsync())
@@ -69,8 +71,21 @@ public class PostingsPage : BasePage
 
         var status = _page.GetByTestId($"posting-status-{id}");
         var alert = _page.GetByRole(AriaRole.Alert);
+        var publishButton = _page.GetByRole(AriaRole.Button, new() { Name = "Publish selected", Exact = true });
+        if (await publishButton.IsDisabledAsync())
+        {
+            return Result<PublishPostingResponse, SystemError>.Failure(
+                SystemError.Of("This posting cannot be published again."));
+        }
+        await publishButton.ClickAsync();
+        var dialog = _page.GetByRole(AriaRole.Dialog);
+        await dialog.WaitForAsync(new() { Timeout = 5000 });
+        foreach (var jobSiteId in jobSiteIds)
+        {
+            await dialog.GetByTestId($"job-site-{jobSiteId}").CheckAsync();
+        }
         var response = await _page.RunAndWaitForResponseAsync(
-            () => _page.GetByRole(AriaRole.Button, new() { Name = "Publish selected", Exact = true }).ClickAsync(),
+            () => dialog.GetByRole(AriaRole.Button, new() { Name = "Confirm publication", Exact = true }).ClickAsync(),
             response => response.Request.Method == "PATCH" &&
                         new Uri(response.Url).AbsolutePath == $"/postings/{id}");
         if (!response.Ok)
@@ -87,8 +102,22 @@ public class PostingsPage : BasePage
                 SystemError.Of(await alert.InnerTextAsync()));
         }
 
-        var postingStatus = Enum.Parse<PostingStatus>(await status.InnerTextAsync(), ignoreCase: false);
-        return Result<PublishPostingResponse, SystemError>.Success(new PublishPostingResponse(id, postingStatus));
+        var publishedPosting = await response.JsonAsync()
+            ?? throw new InvalidOperationException("The API returned no published posting.");
+        var publishedStatus = Enum.Parse<PostingStatus>(publishedPosting.GetProperty("status").GetString()
+            ?? throw new InvalidOperationException("The API returned no posting status."), ignoreCase: false);
+        var publications = publishedPosting.GetProperty("jobSitePublications").EnumerateArray()
+            .Select(publication => new JobSitePublicationResponse(
+                publication.GetProperty("jobSiteId").GetString()
+                    ?? throw new InvalidOperationException("The API returned no job-site identifier."),
+                publication.GetProperty("status").GetString()
+                    ?? throw new InvalidOperationException("The API returned no job-site publication status.")))
+            .ToArray();
+        return Result<PublishPostingResponse, SystemError>.Success(
+            new PublishPostingResponse(publishedPosting.GetProperty("id").GetInt32(), publishedStatus)
+            {
+                JobSitePublications = publications
+            });
     }
 
     public async Task<Result<PostingPageResponse, SystemError>> ReadPage(int pageNumber)
@@ -132,7 +161,7 @@ public class PostingsPage : BasePage
             var status = Enum.Parse<PostingStatus>(
                 await row.GetByTestId($"posting-status-{id}").InnerTextAsync(),
                 ignoreCase: false);
-            items.Add(new ViewPostingResponse(id, title, status));
+            items.Add(new ViewPostingResponse(id, title, status) { JobSitePublications = await ReadJobSitePublications(row) });
         }
 
         var total = ReadTotalCount(await _page.GetByRole(AriaRole.Status)

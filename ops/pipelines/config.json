@@ -3,11 +3,13 @@
     "solution": "src/DialDen.RLS.slnx",
     "apiProject": "src/system/API/DialDen.RLS.API.Root/DialDen.RLS.API.Root.csproj",
     "uiProject": "src/system/UI/DialDen.RLS.UI.Root/DialDen.RLS.UI.Root.csproj",
+    "workerProject": "src/system/Worker/DialDen.RLS.Worker.Root/DialDen.RLS.Worker.Root.csproj",
     "testProject": "src/tests/DialDen.RLS.Tests/DialDen.RLS.Tests.csproj",
     "dockerDirectory": "ops/docker"
   },
   "images": {
     "api": "ghcr.io/dialden/resume-life-simplifier/api",
-    "ui": "ghcr.io/dialden/resume-life-simplifier/ui"
+    "ui": "ghcr.io/dialden/resume-life-simplifier/ui",
+    "worker": "ghcr.io/dialden/resume-life-simplifier/worker"
   }
 }

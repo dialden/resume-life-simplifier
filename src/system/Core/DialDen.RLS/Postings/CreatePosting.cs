@@ -17,7 +17,14 @@ internal sealed class CreatePosting : ICreatePosting
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var posting = await _postingsArchive.Add(request.Title, cancellationToken);
-        return new CreatePostingResponse(posting.Id, posting.Title, posting.Status);
+        if (string.IsNullOrWhiteSpace(request.Description))
+        {
+            throw new InvalidPostingDescriptionException();
+        }
+        var posting = await _postingsArchive.Add(request.Title, request.Description, cancellationToken);
+        return new CreatePostingResponse(posting.Id, posting.Title, posting.Status)
+        {
+            Description = posting.Description
+        };
     }
 }

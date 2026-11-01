@@ -6,6 +6,13 @@ namespace DialDen.RLS.Tests.Core.Dsl.UseCases;
 public class CreatePosting : RLSUseCase<CreatePostingResponse, CreatePostingVerification>
 {
     private string _title = "Software Engineer";
+    private string _description = "Build and maintain software for our customers.";
+
+    public CreatePosting WithDescription(string description)
+    {
+        _description = description;
+        return this;
+    }
 
     public CreatePosting(IRLSDriver driver, UseCaseContext context) : base(driver, context)
     {
@@ -19,7 +26,7 @@ public class CreatePosting : RLSUseCase<CreatePostingResponse, CreatePostingVeri
 
     public override async Task<RLSUseCaseResult<CreatePostingResponse, CreatePostingVerification>> Execute()
     {
-        var result = await Driver.CreatePosting(_title);
+        var result = await Driver.CreatePosting(_title, _description);
         return new RLSUseCaseResult<CreatePostingResponse, CreatePostingVerification>(
             result,
             Context,

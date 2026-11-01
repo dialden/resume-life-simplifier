@@ -65,12 +65,24 @@ public class UseCaseContext
     {
         EnsureAliasNotNullOrWhiteSpace(alias);
 
-        if (_resultMap.ContainsKey(alias))
+        lock (_resultMap)
         {
-            throw new InvalidOperationException($"Alias already exists: {alias}");
-        }
+            if (_resultMap.ContainsKey(alias))
+            {
+                throw new InvalidOperationException($"Alias already exists: {alias}");
+            }
 
-        _resultMap[alias] = value;
+            _resultMap[alias] = value;
+        }
+    }
+
+    // Stubbed external systems call this from the system's threads
+    public bool HasResultValue(string value)
+    {
+        lock (_resultMap)
+        {
+            return _resultMap.ContainsValue(value);
+        }
     }
 
     public void SetResultEntryFailed(string alias, string errorMessage)

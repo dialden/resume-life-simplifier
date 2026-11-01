@@ -35,12 +35,16 @@ flowchart LR
 
     subgraph rls["Resume Life Simplifier"]
         api["RLS API<br/>ASP.NET Core Minimal API (.NET 10)<br/>Posting use cases and PostgreSQL adapter"]
-        database[("PostgreSQL<br/>Job postings")]
+        worker["RLS Worker<br/>.NET 10 worker service<br/>Publishes postings on job sites through plugins"]
+        database[("PostgreSQL<br/>Job postings, job sites and message queues")]
     end
+    jobSites["External job sites<br/>e.g. Jobillico"]
 
     user -->|Uses| browser
     browser -->|Calls API over HTTP with JSON| api
-    api -->|Reads and writes postings| database
+    api -->|Reads and writes postings, queues job-site publications| database
+    worker -->|Consumes job-site publications, registers job sites| database
+    worker -->|Publishes postings| jobSites
 ```
 
 ## Tech stack
@@ -70,6 +74,182 @@ UI acceptance-test page objects inherit shared workspace navigation from
 subsequent returns home click **Overview**, allowing Blazor to navigate without
 restarting the WebAssembly app.
 
+### Publishing and external destinations
+
+Select a draft posting in the library and choose **Publish selected**. In the
+confirmation dialog, optionally select Jobillico and choose **Confirm
+publication**. **Cancel** closes the dialog without publishing or saving channel
+choices. With no destinations selected, publication is
+local to RLS. A published posting cannot be published again; the UI disables the
+action and the API returns HTTP 409 for another attempt.
+
+The dialog's **Publishing channels** section uses selectable job-site cards and
+a production-publication notice. Publication errors remain in the dialog; its controls are disabled
+while publication is in progress.
+
+The API advertises `GET /job-sites` through the `list-job-sites` entry-point link.
+It returns the job sites registered by the Worker, for example
+`[{"id":"jobillico","name":"Jobillico"}]`, and none until the Worker has started once. Publish with
+`PATCH /postings/{id}`:
+
+```json
+{
+  "status": "Published",
+  "jobSiteIds": ["jobillico"]
+}
+```
+
+Omitting `jobSiteIds` is equivalent to an empty selection. Identifiers are
+case-sensitive; unknown, duplicate, or null selections return HTTP 400 with a
+`jobSiteIds` validation error. The posting's publication and its per-site
+job-site publication requests are saved atomically. Concurrent publication
+attempts cannot create duplicate job-site publications.
+
+Publishing, viewing, and listing responses include `jobSitePublications`, for example
+`[{"jobSiteId":"jobillico","status":"Pending"}]`. A publication stays `Pending` until
+the Worker gets the job site's response, then becomes `Succeeded` or `Failed`; the
+publish response is therefore always `Pending`. The UI shows these outcomes in
+the list and posting details. Postings without external destinations have an
+empty `jobSitePublications` collection.
+
+Publication saves a MassTransit command for each selected site in the EF Core
+transactional outbox, in the same transaction as the posting and job-site
+publication records. The API does not wait for transport delivery. The Worker
+forwards committed commands to the durable PostgreSQL queue
+`rls-job-site-publication`; pending outbox work is retried and survives restarts.
+Publishing without external destinations creates no job-site publication commands.
+
+### Worker and job-site plugins
+
+The Worker (`DialDen.RLS.Worker.Root`) is a separate process. It consumes the
+job-site publication commands and publishes each posting on its job site through
+a plugin. A plugin implements `IJobSite` from `DialDen.RLS.JobSites.Abstractions`
+(identifier, name, and `Publish`). In real mode, the Worker scans shipped
+`DialDen.RLS.JobSites.*.dll` assemblies for concrete implementations. Worker.Root
+keeps project references to deploy the plugins; it does not call provider-specific
+registration methods. The Jobillico plugin (`DialDen.RLS.JobSites.Jobillico`)
+posts English jobs as UTF-8 XML to `https://www.jobillico.com/api/push`.
+
+Plugins may expose a public, parameterless `IJobSitePlugin` entry point to register
+their own dependencies through a plugin-owned `IServiceCollection` extension
+(for example, named HTTP clients and authentication settings). Discovery invokes
+these entry points before registering `IJobSite` implementations as transient
+services. Stub implementations live outside the scanned assemblies. Only ship
+trusted plugin assemblies; there is no hot reload or plugin isolation.
+Invalid plugin entry points, unresolved site dependencies, and duplicate site
+IDs fail startup rather than silently skipping providers.
+
+At startup, the Worker registers its plugins in the `job_sites` table. Job sites
+it no longer has are kept but become unavailable, so the API stops offering them.
+Run a single Worker per database; Workers with different plugins would undo each
+other's registrations.
+
+When a job site rejects a posting (the plugin throws), its publication becomes
+`Failed` without retrying. A publication whose job site is unavailable also
+fails. The Worker's own errors, such as a lost database connection, are retried
+a few times, then the command moves to the queue's error queue. Each command is
+processed at most once, in the same transaction as its publication's outcome,
+through MassTransit's EF Core inbox. The plugin is called within that
+transaction, which is acceptable for the demo.
+
+The Worker reads configuration from environment variables prefixed with
+`RLS_WORKER_` and command-line arguments, like the API. It requires
+`ConnectionStrings:RLS`. `Messaging:JobSitePublicationQueue` (default
+`rls-job-site-publication`) names the queue, and must match the API's setting.
+Commands queued while the Worker is stopped are processed when it starts.
+
+Like the sandbox's clock provider, the Worker selects its job-site provider from
+configuration:
+
+```sh
+# Default: register real providers.
+RLS_WORKER_JobSites__Type=real
+
+# Test/demo: register "stub-job-site" / "Stub Job Site" using HTTP.
+RLS_WORKER_JobSites__Type=stubbed
+RLS_WORKER_JobSites__Sites__0__Id=stub-job-site
+RLS_WORKER_JobSites__Sites__0__Name="Stub Job Site"
+RLS_WORKER_JobSites__Sites__0__Url=http://wiremock-job-site/
+```
+
+Stubbed mode skips real-plugin discovery and creates one HTTP-backed site per
+`JobSites:Sites` configuration entry. Each requires a distinct, case-sensitive
+ID, display name, and absolute HTTP(S) URL without a query or fragment. An empty
+list fails startup. Add further sites using indexes `1`, `2`, and so on.
+
+The devcontainer Compose configuration explicitly selects `real` for the
+development Worker. Real-external-system tests inherit this setting; stubbed
+tests override it through their prefixed environment variables.
+
+The small `StubJobSite` implementation lives in `DialDen.RLS.Worker.Root`,
+alongside its configuration, rather than in a separate plugin project or the tests.
+It sends `POST /publish/<configured-site-id>?postingId=<id>`; a successful HTTP status
+means accepted, while a non-success status fails publication. Unsupported types
+or an invalid/missing HTTP URL prevent startup. Stubbed mode is opt-in and should
+only be enabled in test/demo environments.
+
+### Jobillico manual publishing
+
+New postings require a description through both API and UI. `POST /postings`
+accepts `title` and `description`; creation, viewing, and listing return the
+description. Migration V9 preserves existing postings with an empty description,
+without inventing content; Jobillico may reject such older postings.
+
+The plugin maps the posting title and description to `stitle_en` and
+`sdescription_en`, sets `elang=en`, and sends no French fields. Recruiter and
+location identifiers, creator (the username), and authentication are configuration,
+not posting data. XML text is escaped safely, including special characters.
+The local posting ID is sent as `srefnumber`; it is not an exactly-once guarantee.
+
+For manual testing in the devcontainer, set these in the Git-ignored
+[.env.local](.devcontainer/.env.local), then rebuild the container:
+
+```sh
+RLS_WORKER_Jobillico__Username=<your-username>
+RLS_WORKER_Jobillico__Password=<your-password>
+RLS_WORKER_Jobillico__RecruiterId=<recruiter-id>
+RLS_WORKER_Jobillico__LocationId=<location-id>
+```
+
+Create the local file if absent. Do not commit credentials or paste them into
+chat. Compose loads these Worker variables through the dev service's optional
+`env_file`; the tracked `.env` retains shared settings only.
+Missing credentials or invalid IDs prevent the real Worker from starting.
+
+**The development Compose configuration explicitly sets
+`RLS_WORKER_Jobillico__UseProduction=true`, sending `bsandboxoff=1`.
+Confirming publication to Jobillico can create a live job.**
+The plugin defaults to sandbox unless production is explicitly selected; the
+Jobillico sandbox is reported unavailable. Start API + Worker + UI, create a
+posting with an English description, select Jobillico when publishing, and
+refresh the posting details to observe the outcome.
+
+HTTP success alone is not acceptance: any XML `error` element fails publication.
+Success requires one `results/job` with a positive `ijob`. HTTP errors, malformed
+XML, missing/invalid identifiers, and timeouts also fail publication. Responses
+and credentials are not logged by the plugin.
+
+The existing acceptance tests cover required descriptions and generic job-site
+publication through the existing real/stubbed test environments. Real-system
+smoke tests inherit the normal Jobillico endpoint and credentials;
+they only check readiness and do not publish jobs. Verify actual Jobillico submission manually through
+RLS. No automated test submits to Jobillico production.
+
+Apply all Flyway migrations, including
+[V3](src/system/Database/migrations/V3__Add_posting_deliveries.sql),
+[V4](src/system/Database/migrations/V4__Add_messaging_transport_and_outbox.sql),
+[V5](src/system/Database/migrations/V5__Queue_existing_pending_deliveries.sql),
+[V6](src/system/Database/migrations/V6__Rename_deliveries_to_job_site_publications.sql),
+[V7](src/system/Database/migrations/V7__Pin_job_site_publication_message_type.sql) and
+[V8](src/system/Database/migrations/V8__Add_job_sites.sql),
+before running the updated API, Worker or tests.
+V5 queues previously recorded Pending job-site publications without duplicating commands
+already present in the outbox or destination queue. V6 renames the deliveries table
+to `job_site_publications` and the queued command to `PublishPostingOnJobSite`.
+V7 moves queued commands to the command's pinned message type,
+`urn:message:DialDen.RLS.Messaging:PublishPostingOnJobSite`, and V8 adds the
+`job_sites` catalog. Stop API and Worker hosts while applying the migrations.
+
 ### Posting pagination
 
 The posting library uses server-side paging with **10 postings per page**, ordered
@@ -94,14 +274,52 @@ array (an API response-shape change):
 
 Omitting `pageNumber` selects page 1. Non-positive, non-integer, or out-of-range
 integer page numbers return HTTP 400. A valid page number beyond the last page
-returns an empty `items` array with the actual `totalCount`. PostgreSQL computes
-the count and the limited page in a single statement, keeping both values
+returns an empty `items` array with the actual `totalCount`. EF Core reads the
+count and the limited page in a repeatable-read transaction, keeping both values
 consistent for that request.
 
 Core represents identified opportunities with `Posting` and listing results with
 `PostingList` (`Postings` and `TotalPostings`). Its `IPostingsArchive` contract uses
-page numbers and postings per page; the `PostgresJobPostings` infrastructure
-adapter owns the SQL offset/limit translation.
+page numbers and postings per page; the `EntityFrameworkPostingsArchive`
+infrastructure adapter owns pagination and persistence through a scoped EF Core
+context. Core and its contracts remain independent of EF Core.
+
+### Persistence
+
+Application persistence uses EF Core with the Npgsql PostgreSQL provider, rather
+than direct Npgsql commands. The context maps the existing `postings` table,
+including its identity identifier and text-based posting status. The
+`ConnectionStrings:RLS` setting remains unchanged.
+
+Flyway remains the schema owner. Application startup does not create the
+database, run EF migrations, or modify its schema. Continue adding schema changes
+under `src/system/Database/migrations`. Test database safety checks and cleanup
+continue using the underlying Npgsql driver.
+
+### Background messaging
+
+MassTransit **8.5.12** is pinned for this POC. Its packages declare Apache-2.0
+licensing and provide .NET 10 / EF Core 10 support. MassTransit v9 requires a
+commercial license; upgrading to v9 is not part of this implementation.
+
+The transport reuses `ConnectionStrings:RLS`, with its objects in the `transport`
+schema. EF outbox/inbox tables live in `messaging`. These schemas are separate
+from the application tables in `public`, but use the same PostgreSQL database.
+No separate message broker or additional connection setting is required.
+
+Flyway V4 contains the PostgreSQL transport SQL derived from the pinned
+MassTransit version and outbox DDL generated from its EF model. The transport
+SQL's [Apache license](src/system/Database/licenses/MassTransit-LICENSE.txt) is
+included. Application startup does not create or migrate these schemas.
+Coordinate future MassTransit package upgrades with a new Flyway migration;
+do not edit an already-applied migration. The migration account needs schema,
+table, sequence, and function creation permissions. The runtime account needs
+access to the messaging/transport tables and sequences and permission to execute
+transport functions.
+
+The API only writes commands to the outbox. The Worker runs the outbox delivery
+service and the consumers. Dispatch is at-least-once; the Worker's inbox and the
+publication's `Pending` status ignore repeated commands.
 
 ## Repository Strategy
 Mono-Repo
@@ -152,20 +370,69 @@ values; setup regenerates the Git-ignored launch settings. See the
 ### Build and run the application
 - Make sure you have completed the [Prerequisites](#Prerequisites)
 #### From Visual Studio Code
-- Just press F5 and the debug task will start the application and a browser on the server address
+- Select **API + Worker + UI** in Run and Debug and press F5. It starts the API, the Worker and a browser on the UI address
 
 ### Build and run the tests
 - Make sure you have completed the [Prerequisites](#Prerequisites)
 
-The shared acceptance-test fixture empties `postings` and resets its identity
-sequence once before each test run (including filtered runs). It preserves the
-schema and does not clear data between scenarios. Cleanup requires
+The shared acceptance-test fixture empties `job_site_publications`, `postings`,
+outbox/inbox records, and transport message/delivery records and resets the
+posting identity sequence once before each test run (including filtered runs).
+It preserves schemas, transport topology and the `job_sites` catalog, and does
+not clear data between scenarios. Cleanup requires
 `RLS_TEST_DATABASE` and `RLS_DEV_DATABASE` and refuses connections that do not
 target the named test database or that target the development database.
 Real and Stubbed connections are checked before cleanup; identical connections
 are cleaned only once. Do not run simultaneous test runs against the same
 database. With external hosting, ensure the external API uses this same test
 database configuration.
+
+With in-process hosting, each test environment also hosts the Worker, started
+before the API, with its own queue (`rls-job-site-publication-stubbed` or
+`-real`) so the environments never consume each other's commands. The Worker
+reads `<ENVIRONMENT>_RLS_WORKER_` variables, such as
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS`. The stubbed environment
+reads `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type=stubbed` and
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Sites__<index>__Id`, `Name`, and `Url`
+from the environment. Compose configures `stub-job-site` (**Stub Job Site**) and
+`another-stub-job-site` (**Another Stub Job Site**). Scenarios configure each site's
+response with `Given().JobSite("stub-job-site").AcceptsPostings()` or
+`.RejectsPostings()`. Processing scenarios publish in When and assert
+`EventuallyHasJobSitePublication(...)` in Then: they observe the expected final
+status for up to 30 seconds, failing immediately on an opposite final outcome.
+View/list scenarios use `Given().Posting().PublishedOnJobSite(...)` to establish
+a successfully completed publication through the system; setup publishes and
+waits internally. `PublishedTo(...)` only requests publication. Each scenario resets
+the WireMock mappings and request journal; configured sites accept postings by
+default unless a scenario overrides the response. The WireMock admin URL is configured with
+`RLS_TEST_JobSites__WireMockUrl` and defaults to `http://wiremock-job-site/` in
+the dev container.
+
+An externally deployed Worker uses the same executable with
+`RLS_WORKER_JobSites__Type=stubbed` and each `RLS_WORKER_JobSites__Sites__<index>__Url`
+set to its reachable WireMock URL. Tests configure the admin URL separately with
+`RLS_TEST_JobSites__WireMockUrl`; all URLs must reach the same WireMock server
+but may differ across networks. No test-only Worker composition is needed.
+The commit stage builds API, UI and Worker images and runs acceptance/smoke tests
+against their containers in External hosting mode. Each run creates a private
+Docker network and WireMock container, configures the Worker as `stubbed`, and
+uses an isolated publication queue shared by API and Worker. Tests reach WireMock
+through its published host port; the Worker uses its Docker-network address.
+Startup checks cover WireMock, API, UI and the Worker's job-site registration.
+Containers and the network are removed after the run, including on test failure.
+`--push-images` publishes all three application images after tests pass.
+
+The [commit-stage entry script](ops/pipelines/stages/commit/invoke.cs) expresses
+the workflow as named steps, with the `CommitStage` class defined below them
+in the same script. A single `#:project` directive references the
+[shared library](ops/pipelines/shared/DialDen.RLS.Pipelines.csproj), which contains
+only reusable process execution and pipeline configuration types. The commit
+script itself has no project file.
+
+`ExternalSystemsDsl` exposes constructor-injected external-system DSLs, following
+the sandbox pattern. The fixtures supply real or WireMock drivers; real job sites
+are left untouched during setup, and attempts to configure their responses fail
+explicitly. Job-site setup stays in `JobSitesDsl`, not in the DSL container.
 
 #### Run Playwright tests with the browser inspector
 The tracked runsettings file is

@@ -6,6 +6,7 @@ using DialDen.RLS.Tests.Core.Drivers.RLS;
 using DialDen.RLS.Tests.Core.Drivers.RLS.API;
 using DialDen.RLS.Tests.Core.Drivers.RLS.UI;
 using DialDen.RLS.Tests.Core.Dsl;
+using DialDen.RLS.Tests.Core.Dsl.External.JobSites;
 using DialDen.RLS.Tests.Core.Dsl.UseCases;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ public abstract class TestEnvironment
 {
     private readonly IHttpHost _apiHost;
     private readonly IHttpHost _uiHost;
+    private readonly InProcessWorkerHost? _workerHost;
     private readonly object _startLock = new();
     private RLSConfiguration? _configuration;
     private IServiceScope _scope = null!;
@@ -32,7 +34,15 @@ public abstract class TestEnvironment
         var hosting = TestConfiguration.From(testsConfiguration).Hosting;
         if (hosting.Mode == HostingMode.InProcess)
         {
-            _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix);
+            // Each environment's worker consumes its own queue, so it only answers with its own external systems.
+            var settings = new Dictionary<string, string?>
+            {
+                ["Messaging:JobSitePublicationQueue"] = JobSitePublicationQueue
+            };
+            _workerHost = new InProcessWorkerHost(
+                ConfigurationEnvironmentVariablesPrefix,
+                settings);
+            _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix, settings);
             _uiHost = new InProcessUIHttpHost(() => _apiHost.Url);
         }
         else
@@ -95,6 +105,8 @@ public abstract class TestEnvironment
 
     protected abstract string ConfigurationEnvironmentVariablesPrefix { get; }
 
+    protected abstract string JobSitePublicationQueue { get; }
+
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
@@ -105,6 +117,7 @@ public abstract class TestEnvironment
                 _scope.Dispose();
                 _uiHost.Dispose();
                 _apiHost.Dispose();
+                _workerHost?.Dispose();
             }
             disposedValue = true;
         }
@@ -132,6 +145,8 @@ public abstract class TestEnvironment
         lock (_startLock)
         {
             if (_configuration != null) return;
+            // The worker registers the available job sites before the API offers them.
+            _workerHost?.Start();
             _apiHost.Start();
             _configuration = CreateConfiguration(_apiHost.Url);
         }
@@ -192,6 +207,7 @@ public abstract class TestEnvironment
         services.AddTransient<HealthEndpoint>();
         services.AddScoped<GoToRLS>();
         services.AddScoped<UseCaseContext>();
+        services.AddScoped<JobSitesDsl>();
         ConfigureTestServices(services);
     }
 }

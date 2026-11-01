@@ -23,13 +23,13 @@ public class UIRLSDriver : IRLSDriver
             : Result.Failure<SystemError>(SystemError.Of($"The RLS UI displayed an error: {error}"));
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title)
+    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
         var homePage = await _uiClient.OpenHomePage();
-        return await homePage.CreatePosting(title);
+        return await homePage.CreatePosting(title, description);
     }
 
-    public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id)
+    public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds)
     {
         var homePage = await _uiClient.OpenHomePage();
         var postingsPage = await homePage.OpenPostings();
@@ -38,7 +38,7 @@ public class UIRLSDriver : IRLSDriver
             return Result<PublishPostingResponse, SystemError>.Failure(postingsPage.Error);
         }
 
-        return await postingsPage.Value.PublishPosting(id);
+        return await postingsPage.Value.PublishPosting(id, jobSiteIds);
     }
 
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)

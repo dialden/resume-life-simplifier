@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
     <PackageReference Include="Microsoft.Playwright.Xunit" Version="1.63.0" />
     <PackageReference Include="Shouldly" Version="4.2.1" />
+    <PackageReference Include="WireMock.Net.RestClient" Version="2.19.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="Xunit.Combinatorial" Version="1.6.24" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
@@ -26,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../system/API/DialDen.RLS.API.Root/DialDen.RLS.API.Root.csproj" />
+    <ProjectReference Include="../../system/Worker/DialDen.RLS.Worker.Root/DialDen.RLS.Worker.Root.csproj" />
     <!-- Built before the tests, but not referenced: the UI is only served as static assets -->
     <ProjectReference Include="../../system/UI/DialDen.RLS.UI.Root/DialDen.RLS.UI.Root.csproj"
                       ReferenceOutputAssembly="false" />

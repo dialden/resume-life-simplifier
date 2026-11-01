@@ -15,20 +15,39 @@
             }
         },
         {
+            "name": "Worker",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build worker",
+            "program": "${workspaceFolder}/src/system/Worker/DialDen.RLS.Worker.Root/bin/Debug/net10.0/DialDen.RLS.Worker.Root.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src",
+            "stopAtEntry": false
+        },
+        {
             "name": "UI",
             "type": "blazorwasm",
             "request": "launch",
             "cwd": "${workspaceFolder}/src/system/UI/DialDen.RLS.UI.Root",
             "preLaunchTask": "build ui",
             "url": "${env:UI_HTTP_URL}",
-            "browser": "edge"
+            "browser": "edge",
+            "dotNetConfig": {
+                "args": [
+                    "run",
+                    "--no-build",
+                    "--launch-profile",
+                    "http"
+                ]
+            }
         }
     ],
     "compounds": [
         {
-            "name": "API + UI",
+            "name": "API + Worker + UI",
             "configurations": [
                 "API",
+                "Worker",
                 "UI"
             ],
             "stopAll": true
