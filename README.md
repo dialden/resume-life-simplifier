@@ -353,6 +353,13 @@ Startup checks cover WireMock, API, UI and the Worker's job-site registration.
 Containers and the network are removed after the run, including on test failure.
 `--push-images` publishes all three application images after tests pass.
 
+The [commit-stage entry script](ops/pipelines/stages/commit/invoke.cs) expresses
+the workflow as named steps, with the `CommitStage` class defined below them
+in the same script. A single `#:project` directive references the
+[shared library](ops/pipelines/shared/DialDen.RLS.Pipelines.csproj), which contains
+only reusable process execution and pipeline configuration types. The commit
+script itself has no project file.
+
 `ExternalSystemsDsl` exposes constructor-injected external-system DSLs, following
 the sandbox pattern. The fixtures supply real or WireMock drivers; real job sites
 are left untouched during setup, and attempts to configure their responses fail
