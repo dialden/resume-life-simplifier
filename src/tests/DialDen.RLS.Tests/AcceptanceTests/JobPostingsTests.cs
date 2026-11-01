@@ -42,10 +42,10 @@ public class JobPostingsTests
     {
         await _testEnvironment.Scenario(channel)
             .Given().Posting()
-            .When().PublishPosting().ToJobSites("jobillico")
+            .When().PublishPosting().ToJobSites("stub-job-site")
             .Then().ShouldSucceed()
                 .And().Posting().HasStatus("Published")
-                    .HasJobSitePublication("jobillico", "Pending");
+                    .HasJobSitePublication("stub-job-site", "Pending");
     }
 
     [Trait("Category", "Acceptance")]
@@ -53,13 +53,13 @@ public class JobPostingsTests
     public async Task CanViewSucceededJobSitePublication(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
-            .Given().JobSite("jobillico").AcceptsPostings()
-            .And().Posting().PublishedTo("jobillico")
-            .And().JobSite("jobillico").HasResponded()
+            .Given().JobSite("stub-job-site").AcceptsPostings()
+            .And().Posting().PublishedTo("stub-job-site")
+            .And().JobSite("stub-job-site").HasResponded()
             .When().ViewPosting()
             .Then().ShouldSucceed()
                 .And().Posting().HasStatus("Published")
-                    .HasJobSitePublication("jobillico", "Succeeded");
+                    .HasJobSitePublication("stub-job-site", "Succeeded");
     }
 
     [Trait("Category", "Acceptance")]
@@ -67,12 +67,12 @@ public class JobPostingsTests
     public async Task JobSitePublicationFailsWhenTheJobSiteRejectsThePosting(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
-            .Given().JobSite("jobillico").RejectsPostings()
-            .And().Posting().PublishedTo("jobillico")
-            .And().JobSite("jobillico").HasResponded()
+            .Given().JobSite("stub-job-site").RejectsPostings()
+            .And().Posting().PublishedTo("stub-job-site")
+            .And().JobSite("stub-job-site").HasResponded()
             .When().ViewPosting()
             .Then().ShouldSucceed()
-                .And().Posting().HasJobSitePublication("jobillico", "Failed");
+                .And().Posting().HasJobSitePublication("stub-job-site", "Failed");
     }
 
     [Trait("Category", "Acceptance")]
@@ -101,12 +101,12 @@ public class JobPostingsTests
     public async Task CanListJobSitePublicationOutcome(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
-            .Given().JobSite("jobillico").AcceptsPostings()
-            .And().Posting().WithId("opportunity").PublishedTo("jobillico")
-            .And().JobSite("jobillico").HasResponded()
+            .Given().JobSite("stub-job-site").AcceptsPostings()
+            .And().Posting().WithId("opportunity").PublishedTo("stub-job-site")
+            .And().JobSite("stub-job-site").HasResponded()
             .When().ListPostings().AcrossAllPages()
             .Then().ShouldSucceed()
-                .And().PostingPages().HasPostingJobSitePublication("opportunity", "jobillico", "Succeeded");
+                .And().PostingPages().HasPostingJobSitePublication("opportunity", "stub-job-site", "Succeeded");
     }
 
     [Trait("Category", "Acceptance")]
@@ -128,7 +128,7 @@ public class JobPostingsTests
     {
         await _testEnvironment.Scenario(Channel.API)
             .Given().Posting()
-            .When().PublishPosting().ToJobSites("jobillico", "jobillico")
+            .When().PublishPosting().ToJobSites("stub-job-site", "stub-job-site")
             .Then().ShouldFail().FieldErrorMessage("jobSiteIds", "Select distinct, available job sites.");
     }
 

@@ -40,6 +40,7 @@ public class GivenStage
 
     internal async Task Setup()
     {
+        await _app.ExternalSystems.JobSites.Reset();
         foreach (var step in _steps)
         {
             await step.Execute(_app);

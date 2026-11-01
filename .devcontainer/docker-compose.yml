@@ -6,6 +6,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      wiremock-job-site:
+        condition: service_healthy
     volumes:
       - ../:/workspaces/resume-life-simplifier
       # The chat catalog and conversation databases live in separate directories.
@@ -43,6 +45,9 @@ services:
       RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_DEV_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       REAL_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
+      RLS_TEST_JobSites__WireMockUrl: http://wiremock-job-site/
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type: stubbed
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Url: http://wiremock-job-site/
 
 
   postgres:
@@ -64,6 +69,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  wiremock-job-site:
+    image: sheyenrath/wiremock.net
+    ports:
+      - "9095:80"
+    command: --verbose
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - 'exec 3<>/dev/tcp/127.0.0.1/80 && printf "GET /__admin/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && IFS= read -r response <&3 && [[ "$$response" == *"200 OK"* ]]'
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   vscode-user-data:

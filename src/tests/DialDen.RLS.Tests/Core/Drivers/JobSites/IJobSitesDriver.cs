@@ -1,9 +1,9 @@
 namespace DialDen.RLS.Tests.Core.Drivers.JobSites;
 
-/// <summary>Controls how external job sites answer the postings published to them.</summary>
+/// <summary>Controls the WireMock responses for the test job-site provider.</summary>
 public interface IJobSitesDriver
 {
-    void AcceptPostings(string jobSiteId, Func<int, bool> isConcernedPosting);
+    Task ResetAndAcceptByDefault();
 
-    void RejectPostings(string jobSiteId, Func<int, bool> isConcernedPosting);
+    Task SetResponse(string jobSiteId, int postingId, bool accepts);
 }

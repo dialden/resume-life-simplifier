@@ -53,6 +53,23 @@ prefixed with `RLS_WORKER_` and command-line arguments. The container supplies
 `STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS` for the Workers hosted
 by the tests.
 
+`RLS_WORKER_JobSites__Type` selects `real` (default, Jobillico) or `stubbed`
+(`stub-job-site`). Stubbed mode also requires `RLS_WORKER_JobSites__Url` pointing
+to the stub service. This works for the normal Worker executable, including
+external deployments, without test-time service replacements. In-process
+stubbed tests read `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type` and
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Url`, supplied by Compose, before
+the Worker's registrations run. No fixture override selects the provider.
+
+## WireMock job-site stub
+
+The `wiremock-job-site` Compose service backs the acceptance-test job-site
+provider. The tests configure mappings through its admin API, and the in-process
+test Worker calls the same service at `http://wiremock-job-site/`. From the
+host, the service is available at `http://localhost:9095/`. The URL can be
+overridden with `RLS_TEST_JobSites__WireMockUrl`. Rebuild or recreate the
+devcontainer after changing Compose services.
+
 ## Launch configuration
 
 Set `API_HTTP_URL`, `API_HTTPS_URL`, `UI_HTTP_URL`, `UI_HTTPS_URL`,

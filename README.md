@@ -125,7 +125,7 @@ The Worker (`DialDen.RLS.Worker.Root`) is a separate process. It consumes the
 job-site publication commands and publishes each posting on its job site through
 a plugin. A plugin implements `IJobSite` from `DialDen.RLS.JobSites.Abstractions`
 (identifier, name, and `Publish`) and is registered in the Worker's composition
-root, the only project referencing plugins. The only plugin is Jobillico
+root, the only production project referencing plugins. The default plugin is Jobillico
 (`DialDen.RLS.JobSites.Jobillico`), which is not implemented for the demo: its
 publications always become `Failed`.
 
@@ -147,6 +147,25 @@ The Worker reads configuration from environment variables prefixed with
 `ConnectionStrings:RLS`. `Messaging:JobSitePublicationQueue` (default
 `rls-job-site-publication`) names the queue, and must match the API's setting.
 Commands queued while the Worker is stopped are processed when it starts.
+
+Like the sandbox's clock provider, the Worker selects its job-site provider from
+configuration:
+
+```sh
+# Default: register real providers (Jobillico remains unimplemented).
+RLS_WORKER_JobSites__Type=real
+
+# Test/demo: register "stub-job-site" / "Stub Job Site" using HTTP.
+RLS_WORKER_JobSites__Type=stubbed
+RLS_WORKER_JobSites__Url=http://wiremock-job-site/
+```
+
+The small `StubJobSite` implementation lives in `DialDen.RLS.Worker.Root`,
+alongside its configuration, rather than in a separate plugin project or the tests.
+It sends `POST /publish/stub-job-site?postingId=<id>`; a successful HTTP status
+means accepted, while a non-success status fails publication. Unsupported types
+or an invalid/missing HTTP URL prevent startup. Stubbed mode is opt-in and should
+only be enabled in test/demo environments.
 
 Apply all Flyway migrations, including
 [V3](src/system/Database/migrations/V3__Add_posting_deliveries.sql),
@@ -305,11 +324,28 @@ before the API, with its own queue (`rls-job-site-publication-stubbed` or
 `-real`) so the environments never consume each other's commands. The Worker
 reads `<ENVIRONMENT>_RLS_WORKER_` variables, such as
 `STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS`. The stubbed environment
-replaces the Worker's job sites with a stub that scenarios control with
-`Given().JobSite("jobillico").AcceptsPostings()` or `.RejectsPostings()`, and
-`Given().JobSite("jobillico").HasResponded()` waits until the job site has
-answered the scenario's postings. These scenarios need in-process hosting; they
-do not pass with external hosting yet, including in the commit pipeline.
+reads `STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Type=stubbed` and
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_JobSites__Url` from the environment to select the provider registered
+as `stub-job-site` (display name **Stub Job Site**). Scenarios configure its
+response with `Given().JobSite("stub-job-site").AcceptsPostings()` or
+`.RejectsPostings()`, and `Given().JobSite("stub-job-site").HasResponded()`
+waits until the site has answered the scenario's postings. Each scenario resets
+the WireMock mappings and request journal; unmatched publication requests
+default to an accepted response. The WireMock admin URL is configured with
+`RLS_TEST_JobSites__WireMockUrl` and defaults to `http://wiremock-job-site/` in
+the dev container.
+
+An externally deployed Worker uses the same executable with
+`RLS_WORKER_JobSites__Type=stubbed` and `RLS_WORKER_JobSites__Url` set to its
+reachable WireMock URL. Tests configure the admin URL separately with
+`RLS_TEST_JobSites__WireMockUrl`; both URLs must reach the same WireMock server
+but may differ across networks. No test-only Worker composition is needed.
+The commit pipeline still needs to start the Worker and WireMock containers.
+
+`ExternalSystemsDsl` exposes constructor-injected external-system DSLs, following
+the sandbox pattern. The fixtures supply real or WireMock drivers; real job sites
+are left untouched during setup, and attempts to configure their responses fail
+explicitly. Job-site setup stays in `JobSitesDsl`, not in the DSL container.
 
 #### Run Playwright tests with the browser inspector
 The tracked runsettings file is

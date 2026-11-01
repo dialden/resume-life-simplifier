@@ -30,9 +30,11 @@ public class GivenPosting : BaseGiven
         {
             var result = await app.RLS.CreatePosting().WithTitle(_title).Execute();
             var alias = _count == 1 ? _idAlias : $"{_idAlias}-{index}";
-            result.ShouldSucceed().SaveIdAs(alias);
+            var postingId = result.ShouldSucceed().SaveIdAs(alias).Id
+                ?? throw new InvalidOperationException("The created posting did not include an ID.");
             if (_publishedJobSites is not null)
             {
+                await app.ExternalSystems.JobSites.ConfigureForPosting(postingId, _publishedJobSites);
                 var published = await app.RLS.PublishPosting().WithId(alias).ToJobSites(_publishedJobSites).Execute();
                 published.ShouldSucceed();
             }

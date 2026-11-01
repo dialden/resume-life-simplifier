@@ -6,6 +6,7 @@ using DialDen.RLS.Tests.Core.Drivers.RLS;
 using DialDen.RLS.Tests.Core.Drivers.RLS.API;
 using DialDen.RLS.Tests.Core.Drivers.RLS.UI;
 using DialDen.RLS.Tests.Core.Dsl;
+using DialDen.RLS.Tests.Core.Dsl.External.JobSites;
 using DialDen.RLS.Tests.Core.Dsl.UseCases;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,8 +41,7 @@ public abstract class TestEnvironment
             };
             _workerHost = new InProcessWorkerHost(
                 ConfigurationEnvironmentVariablesPrefix,
-                settings,
-                services => ConfigureWorkerServices(services, _scope.ServiceProvider));
+                settings);
             _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix, settings);
             _uiHost = new InProcessUIHttpHost(() => _apiHost.Url);
         }
@@ -100,15 +100,6 @@ public abstract class TestEnvironment
     /// </summary>
     /// <param name="serviceProvider">The service provider to configure.</param>
     protected virtual void ConfigureTests(IServiceProvider serviceProvider)
-    {
-    }
-
-    /// <summary>
-    /// Override to replace the services of the in-process worker, such as its external systems.
-    /// </summary>
-    /// <param name="services">The worker services to configure.</param>
-    /// <param name="testServices">The tests' services, to share stubs with the worker.</param>
-    protected virtual void ConfigureWorkerServices(IServiceCollection services, IServiceProvider testServices)
     {
     }
 
@@ -216,6 +207,7 @@ public abstract class TestEnvironment
         services.AddTransient<HealthEndpoint>();
         services.AddScoped<GoToRLS>();
         services.AddScoped<UseCaseContext>();
+        services.AddScoped<JobSitesDsl>();
         ConfigureTestServices(services);
     }
 }

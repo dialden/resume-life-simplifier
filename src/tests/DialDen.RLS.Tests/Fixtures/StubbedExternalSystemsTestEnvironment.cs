@@ -1,9 +1,7 @@
-using DialDen.RLS.JobSites;
 using DialDen.RLS.Tests.Core.Drivers.JobSites;
-using DialDen.RLS.Tests.Core.Drivers.JobSites.Stub;
-using DialDen.RLS.Tests.Core.Dsl.JobSites;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using RestEase;
+using WireMock.Client;
 
 namespace DialDen.RLS.Tests.Fixtures;
 
@@ -16,15 +14,19 @@ public class StubbedExternalSystemsTestEnvironment : TestEnvironment
 
     protected override void ConfigureTestServices(IServiceCollection services)
     {
-        services.AddSingleton<JobSitesStub>();
-        services.AddTransient<IJobSitesDriver, JobSitesStubDriver>();
-        services.AddScoped<JobSitesDsl>();
+        var wireMockUrl = GetTestsConfiguration()["JobSites:WireMockUrl"] ?? "http://wiremock-job-site/";
+        if (!Uri.TryCreate(wireMockUrl, UriKind.Absolute, out var wireMockUri))
+        {
+            throw new InvalidOperationException($"JobSites:WireMockUrl is not a valid absolute URL: '{wireMockUrl}'.");
+        }
+
+        services.AddHttpClient("WireMockJobSiteAdmin", client => client.BaseAddress = wireMockUri);
+        services.AddTransient<IWireMockAdminApi>(provider =>
+        {
+            var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("WireMockJobSiteAdmin");
+            return new RestClient(client).For<IWireMockAdminApi>();
+        });
+        services.AddTransient<IJobSitesDriver, WireMockJobSitesDriver>();
     }
 
-    protected override void ConfigureWorkerServices(IServiceCollection services, IServiceProvider testServices)
-    {
-        var stub = testServices.GetRequiredService<JobSitesStub>();
-        services.RemoveAll<IJobSite>();
-        services.AddSingleton<IJobSite>(new StubJobSite("jobillico", "Jobillico", stub));
-    }
 }

@@ -1,6 +1,5 @@
 using DialDen.RLS.DependencyInjection;
 using DialDen.RLS.Infrastructure.DependencyInjection;
-using DialDen.RLS.JobSites.Jobillico.DependencyInjection;
 using DialDen.RLS.Worker.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,19 +12,21 @@ public static class WorkerHost
 {
     public const string EnvironmentVariablesPrefix = "RLS_WORKER_";
 
-    public static HostApplicationBuilder CreateBuilder(string[] args)
+    public static HostApplicationBuilder CreateBuilder(
+        string[] args, Action<ConfigurationManager>? configureConfiguration = null)
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.Configuration.Sources.Clear();
         builder.Configuration
             .AddEnvironmentVariables(prefix: EnvironmentVariablesPrefix)
             .AddCommandLine(args);
+        configureConfiguration?.Invoke(builder.Configuration);
 
         builder.Services
             .AddRLSCore()
             .AddRLSInfrastructure(builder.Configuration, bus => bus.AddRLSConsumers())
             .AddRLSWorker()
-            .AddJobillico();
+            .AddConfiguredJobSites(builder.Configuration);
 
         return builder;
     }
