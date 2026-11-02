@@ -1,0 +1,121 @@
+name: Release stage
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Full commit SHA of images published by the Commit stage
+        required: true
+        type: string
+      target_environment:
+        description: Target environment (dev, acc, prod, etc.)
+        required: true
+        default: dev
+        type: string
+      maintenance_confirmed:
+        description: API is unavailable to callers and Worker instances have stopped
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+
+concurrency:
+  group: release-stage
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Deploy release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: ${{ inputs.target_environment }}
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_ENVIRONMENT: ${{ inputs.target_environment }}
+      MAINTENANCE_CONFIRMED: ${{ inputs.maintenance_confirmed }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_RELEASE_SERVICE_ACCOUNT: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
+
+    steps:
+      - name: Validate release inputs and prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_VERSION" =~ ^[a-f0-9]{40}$ ]] || {
+            echo "::error::Version must be a full lowercase Git commit SHA."
+            exit 1
+          }
+          [[ "$RELEASE_ENVIRONMENT" =~ ^[a-z]([a-z0-9-]{0,18}[a-z0-9])?$ ]] || {
+            echo "::error::Invalid target environment."
+            exit 1
+          }
+          [[ "$MAINTENANCE_CONFIRMED" == "true" ]] || {
+            echo "::error::Stop API access and Worker instances before releasing."
+            exit 1
+          }
+          [[ -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" && -n "$GCP_RELEASE_SERVICE_ACCOUNT" ]] || {
+            echo "::error::Configure the Google Workload Identity provider and release service account variables."
+            exit 1
+          }
+
+      - name: Checkout release pipeline
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release commit is on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$RELEASE_VERSION^{commit}"
+          git merge-base --is-ancestor "$RELEASE_VERSION" HEAD
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate to Google Cloud without a key
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
+          project_id: resume-life-simplifier
+          create_credentials_file: true
+          export_environment_variables: false
+
+      - name: Locate credentials in mounted checkout
+        shell: bash
+        env:
+          CREDENTIALS_FILE: ${{ steps.google-auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          echo "GCP_CREDENTIALS_BASENAME=$(basename "$CREDENTIALS_FILE")" >> "$GITHUB_ENV"
+
+      - name: Run release pipeline in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ghcr.io/dialden/resume-life-simplifier/devcontainer
+          push: never
+          env: |
+            RELEASE_VERSION
+            RELEASE_ENVIRONMENT
+            GCP_CREDENTIALS_BASENAME
+          runCmd: |
+            set -euo pipefail
+            export CLOUDSDK_CONFIG
+            CLOUDSDK_CONFIG="$(mktemp -d /tmp/rls-release-gcloud.XXXXXX)"
+            export GOOGLE_APPLICATION_CREDENTIALS="$WORKSPACE_ROOT/$GCP_CREDENTIALS_BASENAME"
+            trap 'gcloud auth revoke --all --quiet' EXIT
+            gcloud auth login --cred-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
+            ./ops/pipelines/stages/release/invoke.cs \
+              --version "$RELEASE_VERSION" \
+              --target-environment "$RELEASE_ENVIRONMENT"

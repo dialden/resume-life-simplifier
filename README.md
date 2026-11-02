@@ -426,8 +426,362 @@ The [commit-stage entry script](ops/pipelines/stages/commit/invoke.cs) expresses
 the workflow as named steps, with the `CommitStage` class defined below them
 in the same script. A single `#:project` directive references the
 [shared library](ops/pipelines/shared/DialDen.RLS.Pipelines.csproj), which contains
-only reusable process execution and pipeline configuration types. The commit
+reusable process execution, logging, workspace/configuration loading, image-version
+validation, and Google Cloud authentication checks. The commit
 script itself has no project file.
+
+### Release pipeline
+
+Run the [release-stage script](ops/pipelines/stages/release/invoke.cs) from the
+authenticated dev container:
+
+```sh
+ops/pipelines/stages/release/invoke.cs --version <image-tag> --target-environment dev
+```
+
+The stage currently verifies Google Cloud authentication and the configured
+project number, then enables the Artifact Registry and Secret Manager APIs in
+that project. It creates the project-wide `ghcr-read-token` secret if missing,
+with replication in the configured region. It ensures Artifact Registry's
+Google-managed service identity exists and grants it Secret Accessor on that
+secret only, allowing the future remote repository to read the GitHub token.
+No token value is added; existing values and other IAM bindings are preserved.
+These steps are safe to repeat.
+Google may take time to propagate a newly created service identity. If the
+permission grant reports that the service account does not exist, wait briefly
+and rerun the release; the script stops rather than ignoring the failed grant.
+It creates the project-wide `ghcr` Docker remote repository in the configured
+region, using `https://ghcr.io` as its upstream and the username from
+`googleCloud.registry`. The repository references the newest enabled token
+version without reading its value. Reruns verify the existing repository's type
+and upstream and update its credentials reference when the token is rotated.
+An existing incompatible repository causes the release to fail rather than
+replace it. Cloud SQL instance setup follows image verification; no application
+deployments are created yet.
+The stage reads the API, UI and Worker manifests through the remote repository
+to verify access to the requested image version. This populates the registry
+cache and fails if any image is missing or inaccessible. Immutable image
+references are recorded in the run's `.artifacts/release/<environment>/.../images.json`.
+The caller needs permission to enable services (`serviceusage.services.enable`)
+and to list and create secrets (`secretmanager.secrets.list` and
+`secretmanager.secrets.create`), generate service identities
+(`serviceusage.services.generateServiceIdentity`), and read and update the
+secret's IAM policy (`secretmanager.secrets.getIamPolicy` and
+`secretmanager.secrets.setIamPolicy`).
+Repository setup also requires listing, creating and updating Artifact Registry
+repositories and listing secret-version metadata.
+
+#### Demo database configuration
+
+The `googleCloud.database` section of
+[config.json](ops/pipelines/config.json) is validated before any cloud operations.
+It selects PostgreSQL 16, Enterprise edition, `db-f1-micro`, 10 GB HDD storage,
+and single-zone availability. Storage auto-increase, automated backups and
+point-in-time recovery are disabled to minimize demo costs; deletion protection
+is enabled. This has no high availability or automated data recovery and is not
+a production configuration. The settings currently apply to every environment;
+the environment name alone does not select a different database profile.
+After verifying the images, the release enables the Cloud SQL Admin API and
+creates `rls-<environment>` if missing. This starts billable Cloud SQL capacity.
+It waits for creation and checks the instance state and configured settings.
+Existing instances with mismatched settings cause an explicit failure; the
+script does not resize or replace them. The instance has a public IP with no
+authorized networks and requires encrypted connections; subsequent migration
+and runtime steps will use Cloud SQL Auth Proxy or the managed connector.
+The discovered connection name is saved to the run's `database.json`.
+The caller needs permission to enable the API and list, create and inspect
+Cloud SQL instances. The release then creates the `rls` application database if
+missing and verifies UTF8 encoding without modifying existing data. The caller
+also needs permission to list, create and inspect Cloud SQL databases.
+The release then creates `rls-<environment>-db-migrator-password` and
+`rls-<environment>-db-app-password` in Secret Manager, each with a separate
+cryptographically generated 256-bit password. Values travel through stdin,
+not command arguments, logs or artifact files. Existing enabled versions are
+reused without reading the passwords or adding versions. If a password secret
+has versions but none enabled, the release fails instead of generating a
+replacement that could break an existing database login. Releases against the
+same environment must not run concurrently. This step also requires listing
+secret versions and adding a version for initial setup.
+The release creates the built-in `rls_migrator` user with its stored password.
+Cloud SQL's default elevated built-in-user privileges are reserved for this
+migration account, never for application runtime. Password data is read into
+memory and passed to `gcloud` as JSON through `/dev/stdin`, not through arguments
+or a temporary file. This requires the Linux dev container, secret-version
+access, and Cloud SQL user list/create permissions. Existing migration users
+are left unchanged; an out-of-band password change is not automatically repaired.
+User existence is checked through the administration API; actual database login
+is verified by starting Cloud SQL Auth Proxy on a free loopback port and checking
+`current_user` with `psql` against the `rls` database. The password is passed to
+the client as an environment variable and is not included in its logged arguments.
+The proxy is stopped when the check completes or fails.
+The release creates `rls_app` directly in PostgreSQL rather than using the Cloud
+SQL built-in user API, which would automatically grant `cloudsqlsuperuser`.
+Its password must have the generated hexadecimal format, is passed only through
+SQL stdin, and is never placed in arguments, logs, or files. The release verifies
+that it can log in and has no elevated role attributes or memberships. Runtime
+data-access permissions are granted only after migrations.
+
+#### Release migrations
+
+Before any cloud operations, the release exports
+`src/system/Database/migrations` from the Git commit identified by `--version`,
+using `git archive`. The version must also resolve to a locally available Git
+commit or tag; CI image versions are commit SHAs. Fetch a missing commit before
+releasing it. The working checkout and uncommitted SQL edits are not used or
+changed. Exported SQL is kept under the run's `release-source` directory and the
+resolved commit is recorded in `migration-commit.txt`. Missing commits or SQL
+files stop the release.
+
+After provisioning and verifying both database logins, the release runs Flyway
+`migrate` as `rls_migrator` through Cloud SQL Auth Proxy, using only the exported
+SQL. An explicit `flyway-release.toml` in that export enables migration-name and
+checksum validation, disables clean and automatic baselining, and rejects
+out-of-order migrations. Inherited `FLYWAY_*` and `PG*` settings are removed from
+the migration process before injecting the release password in its environment.
+The checkout's development Flyway configuration is not used. Failed migrations
+stop the release, and the proxy is stopped on success or failure. Reruns validate
+the schema history and apply only pending migrations; no repair or clean is
+performed automatically.
+
+Keep the API and Worker stopped during migrations (a maintenance window). The
+release rejects an existing Worker pool unless its configured instance count
+is zero, before database operations. Verify the old instances have actually
+stopped; this check alone does not drain them. API shutdown remains manual.
+
+After migrations, the release grants `rls_app` database connection access, usage
+of `public`, `messaging` and `transport`, table SELECT/INSERT/UPDATE/DELETE,
+sequence USAGE/SELECT, and execution of transport functions. MassTransit creates
+queue/topic topology through those functions using table writes, not schema
+creation. Matching default privileges cover future tables and sequences created
+by `rls_migrator` in these schemas, and future transport functions. New schemas
+or objects created by another role require an explicit permission update.
+Flyway's `public.flyway_schema_history` is excluded from runtime access.
+Grants are transactional and repeatable; the release verifies effective
+permissions using the real `rls_app` login and fails for missing privileges,
+schema/database creation rights, table ownership, elevated table privileges or
+Flyway-history access. No ownership, schema creation or elevated roles are
+granted. Passwords remain in child-process environments, never logged arguments.
+
+#### Runtime database connection
+
+The release then stores the API/Worker Npgsql connection string in
+`rls-<environment>-db-connection`, using the `rls_app` password and the Cloud SQL
+Unix socket directory `/cloudsql/<instance-connection-name>` on port 5432.
+Client SSL is disabled for this local socket; the managed Cloud SQL connector
+provides encrypted transport to the instance. Pooling is enabled with a minimum
+of zero and maximum of ten connections **per pool**, not a database-wide limit.
+Application instance counts and MassTransit/EF pools must be budgeted together
+before deployment to the small demo instance.
+
+The value is built in memory and uploaded via stdin, never written to artifacts
+or included in logged arguments. An unchanged value reuses the latest version;
+a changed value adds a version without deleting older versions. An inaccessible
+or disabled latest version fails explicitly instead of being replaced silently.
+This does not rotate database passwords. Both Cloud Run services and worker
+pools support the Cloud SQL attachment needed to expose this socket.
+For Unix-socket connections, Infrastructure configures MassTransit's transport
+host identity as `localhost` while preserving the original Npgsql connection
+string. This avoids MassTransit's host parser interpreting the colons in the
+socket directory as TCP host/port separators. The transport still connects
+through the Unix socket, not TCP. Normal TCP configuration is unchanged.
+
+#### Runtime identities
+
+The release enables the IAM API and creates or reuses three keyless service
+accounts: `rls-<environment>-api`, `rls-<environment>-wrk` and
+`rls-<environment>-ui`. The shortened `wrk` suffix keeps IDs within Google's
+30-character limit even with a 20-character environment name. Disabled accounts
+cause an explicit failure rather than being re-enabled.
+
+API and Worker receive `roles/cloudsql.client` at project scope (connection
+access to this project's Cloud SQL instances, not PostgreSQL data privileges),
+and `roles/secretmanager.secretAccessor` only on their environment's
+`rls-<environment>-db-connection` secret. The UI receives neither grant.
+No runtime identity receives access to database password secrets or the GHCR
+token through this script. Existing unrelated IAM bindings are not removed;
+review inherited or manually granted permissions separately.
+Bindings are repeatable and account emails are saved in
+`runtime-identities.json`, without credentials. IAM changes may take time to
+propagate; if Google rejects a newly created principal, rerun the release.
+No service-account keys or impersonation grants are created. The release caller
+needs service-account list/create/inspect permissions, project IAM policy
+read/write, and IAM policy read/write on the connection secret. Later deployment
+also requires the caller to have `iam.serviceAccounts.actAs` on these accounts;
+the script does not grant that privilege to itself.
+
+#### Worker job-site configuration
+
+The `googleCloud.jobillico` section of [config.json](ops/pipelines/config.json)
+contains the HTTPS endpoint, recruiter/location IDs and production-mode flag.
+These settings are validated before cloud operations and currently apply to
+every target environment, including `dev`; the environment name does not select
+Jobillico sandbox mode. With `useProduction: true`, a deployed Worker can publish
+real postings.
+
+Supply credentials separately in `rls-<environment>-jobillico-username` and
+`rls-<environment>-jobillico-password` through Secret Manager. The release
+requires an enabled version of both secrets and grants access only to the
+Worker service account, not API or UI. It neither creates credentials nor reads
+their values. Selected numeric version references (not values) are recorded in
+`worker-job-site-secrets.json` for subsequent deployment. The caller needs
+secret-version list and secret IAM policy read/write permissions for these
+secrets.
+
+#### Worker deployment
+
+The release deploys `rls-<environment>-worker` with the resolved image digest,
+Worker service account, managed Cloud SQL Unix-socket attachment, production
+settings from `googleCloud.jobillico`, and numeric versions of its three secrets.
+There is one application container, with 1 CPU and 512 MiB memory, and no proxy
+sidecar. A Worker image containing the Unix-socket transport-host fix is required;
+the previously published image does not support this connection.
+
+The generated `worker-definition.json` contains settings and secret references,
+not credential values. The definition is applied with zero instances, then
+scaled to one; `worker.json` captures the resulting resource. Running a Worker
+pool incurs continuous charges.
+Cloud Run deployment success is not proof of application readiness: check the
+revision's logs for successful bus startup and absence of startup failures.
+Before another release, scale the Worker to zero and verify shutdown; automated
+maintenance-window orchestration is not implemented yet.
+
+#### API deployment
+
+After the Worker, the release deploys `rls-<environment>-api` to Cloud Run using
+its immutable image digest, dedicated API service account, managed Cloud SQL
+Unix socket and a numeric version of the runtime connection secret. Its
+publication queue matches the Worker. There are no Jobillico credentials or
+proxy sidecars in the API container.
+
+The demo API is publicly accessible without authentication, including its
+write operations. It runs in Production with 1 CPU, 512 MiB memory, request
+concurrency 10, and zero to one instances to limit demo costs and connection
+usage. Cloud Run terminates HTTPS; the container listens on port 8080.
+The deployment uses an HTTP `/health` startup probe before routing traffic to
+the latest revision, then verifies `Healthy` through the public HTTPS URL.
+This endpoint checks application health, not an end-to-end publication.
+Deployment or health failures stop the script; no automatic rollback occurs.
+
+The returned URL is discovered from Cloud Run rather than predicted and saved
+to `api-url.txt`; `api.json` records resource metadata and secret references,
+not values. Browser CORS origins will be wired when the UI is deployed; none
+are opened broadly in this step. The caller needs Cloud Run deployment and
+service IAM policy permissions plus `iam.serviceAccounts.actAs` for the API
+account. Keep API and Worker stopped before future schema migrations.
+
+#### UI deployment and API CORS
+
+Finally the release deploys `rls-<environment>-ui` with its immutable image digest
+and dedicated UI identity. The public nginx container listens on port 80, uses
+1 CPU and 512 MiB memory (the gen2 minimum), and scales from zero to one instances. It receives
+`API_BASE_URL` from the API deployment result; its existing startup script
+generates browser configuration without rebuilding the image. No secrets or
+Cloud SQL attachment are provided to the UI.
+
+The UI URL is discovered from Cloud Run and added as the API's
+`RLS_API_Cors__AllowedOrigins__0` through a new API revision, preserving other
+API settings. The release routes traffic to the latest revisions, checks the
+UI's `/appsettings.json` API address and an API CORS preflight from that exact
+origin, and saves `ui.json` and `ui-url.txt`. It does not enable wildcard origins.
+Use the recorded UI URL; other Cloud Run URL aliases are not automatically
+allowed. CORS is a browser policy, not authentication: the API remains public.
+
+#### GitHub Actions release workflow
+
+[Release stage](.github/workflows/release-stage.yml) is manually dispatched from
+`main`. It invokes the existing release pipeline
+`ops/pipelines/stages/release/invoke.cs` inside the dev container; deployment
+logic is not duplicated in the workflow. Inputs are the full published image
+commit SHA, target environment, and confirmation that maintenance is in effect.
+The checkout stays on the workflow commit; full Git history supplies the
+selected release's migrations. Only commits reachable from that checkout's
+`main` history are accepted. Images must already have been published by the
+Commit stage. Releases are serialized across all environments because registry
+and IAM setup also modifies shared project resources. Running releases are not
+cancelled by a newer dispatch.
+
+Before using the workflow, configure keyless Google authentication:
+
+1. Enable the IAM, IAM Credentials, Security Token Service and Service Usage APIs
+   in `resume-life-simplifier`. Create a dedicated release service account
+   without downloading a service-account key.
+2. Create a Workload Identity pool and OIDC provider with issuer
+   `https://token.actions.githubusercontent.com`. Map `google.subject` to
+   `assertion.sub`, `attribute.repository` to `assertion.repository`, and
+   `attribute.ref` to `assertion.ref`. Restrict the provider's attribute condition
+   to `assertion.repository == 'dialden/resume-life-simplifier' &&
+   assertion.ref == 'refs/heads/main'`. Do not trust all GitHub repositories.
+3. Grant `roles/iam.workloadIdentityUser` on the release service account to
+   `principalSet://iam.googleapis.com/projects/790265296353/locations/global/workloadIdentityPools/POOL_ID/attribute.repository/dialden/resume-life-simplifier`.
+   Replace `POOL_ID` with the created pool ID.
+4. Give that account the deployment capabilities described in the release
+   sections above: API enablement, Artifact Registry setup/read and service
+   identity creation, Cloud SQL provisioning, Secret Manager setup/value access
+   and IAM, runtime-account creation, project IAM policy updates, Cloud Run
+   deployment/public-service IAM, and `iam.serviceAccounts.actAs` for the runtime
+   identities. This provisioning pipeline needs elevated deployment permissions;
+   do not grant them to runtime accounts or use an Owner role as a shortcut.
+5. Create GitHub Environments matching target names (for example `dev`), restrict
+   their deployment branches to `main`, and configure reviewers as appropriate.
+   Set these environment or repository **variables**:
+   - `GCP_WORKLOAD_IDENTITY_PROVIDER`:
+     `projects/790265296353/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID`
+   - `GCP_RELEASE_SERVICE_ACCOUNT`: the dedicated release service account email.
+   These are identifiers, not credentials. Jobillico and database credentials
+   stay in Secret Manager, not GitHub secrets.
+
+The configured `dev` deployment identity is
+`github-release@resume-life-simplifier.iam.gserviceaccount.com`. It has the
+project custom role `projects/resume-life-simplifier/roles/rlsReleaseProvisioner`
+for the pipeline's provisioning operations, without explicit resource-deletion
+or service-account-key permissions, and `roles/iam.serviceAccountUser` on the
+three `rls-dev-api`, `rls-dev-wrk` and `rls-dev-ui` runtime accounts individually.
+Other environments require explicit `actAs` grants on their runtime accounts.
+This is a privileged project provisioner, not an environment-isolated identity:
+project IAM policy updates and secret IAM/value access can confer broader access.
+Its grants must not be interpreted as a security boundary against privilege
+escalation. Federation and an actual release still need verification from a
+GitHub Actions run; checking IAM bindings alone does not establish that.
+
+The Google auth action creates a short-lived federation configuration in the
+checkout before the release step starts the dev container. It is ignored by Git and cleaned up
+by the action. The container maps its path into the mounted checkout and uses it
+for both gcloud and Cloud SQL Auth Proxy ADC. gcloud uses a fresh temporary
+configuration rather than the developer's persistent login volume; an exit trap
+revokes its local login. The hosted runner and its temporary files are discarded
+after the job. No interactive developer authentication script is called.
+
+**Maintenance remains manual.** Before confirming the workflow input, make the
+API unavailable to callers, allow in-flight requests to finish, scale the Worker
+pool to zero, and verify its instances have stopped. Cloud Run services cannot
+be stopped simply by setting their minimum instances to zero, and CORS is not
+an access-control mechanism. The pipeline checks the Worker's configured count
+but does not independently verify API isolation or drain completion. Do not
+confirm maintenance unless it has actually been established. A failed release
+may leave applications stopped or partially deployed; inspect the run before
+restoring service. This workflow does not implement automatic shutdown or
+rollback. The workflow can only be fully validated after the Google trust and
+GitHub environment settings are configured.
+
+#### Supply the registry token
+
+Create a GitHub personal access token (classic) with `read:packages`, using an
+account that can read all three GHCR packages. Authorize it for organization SSO
+if required. Store it in the existing secret with the
+[token setup script](ops/dev/set-registry-token.cs). In a Bash terminal:
+
+```sh
+read -r -s -p 'GHCR read token: ' token; printf '\n'
+printf '%s' "$token" | ops/dev/set-registry-token.cs
+unset token
+```
+
+Do not enable shell tracing (`set -x`), paste the token into command arguments,
+or commit it to a file. The script reads stdin and forwards it directly to
+`gcloud` stdin without logging the value. CI can pipe a masked secret into the
+same script. Each invocation adds a version, including when the value is
+unchanged; run it only for initial setup or rotation. The caller needs
+`secretmanager.versions.add`. No token is uploaded by the release script.
 
 `ExternalSystemsDsl` exposes constructor-injected external-system DSLs, following
 the sandbox pattern. The fixtures supply real or WireMock drivers; real job sites

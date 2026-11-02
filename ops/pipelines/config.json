@@ -11,5 +11,33 @@
     "api": "ghcr.io/dialden/resume-life-simplifier/api",
     "ui": "ghcr.io/dialden/resume-life-simplifier/ui",
     "worker": "ghcr.io/dialden/resume-life-simplifier/worker"
+  },
+  "googleCloud": {
+    "projectId": "resume-life-simplifier",
+    "projectNumber": "790265296353",
+    "region": "northamerica-northeast1",
+    "registry": {
+      "repository": "ghcr",
+      "username": "CurlyFire",
+      "tokenSecret": "ghcr-read-token"
+    },
+    "jobillico": {
+      "endpoint": "https://www.jobillico.com/api/push",
+      "recruiterId": "107976",
+      "locationId": "841188",
+      "useProduction": true
+    },
+    "database": {
+      "version": "POSTGRES_16",
+      "edition": "ENTERPRISE",
+      "tier": "db-f1-micro",
+      "storageType": "HDD",
+      "storageSizeGb": 10,
+      "availabilityType": "ZONAL",
+      "storageAutoIncrease": false,
+      "backupsEnabled": false,
+      "pointInTimeRecoveryEnabled": false,
+      "deletionProtection": true
+    }
   }
 }

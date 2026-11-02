@@ -29,21 +29,54 @@ var token = (await Run("gh", ["auth", "token"], captureOutput: true)).Trim();
 await Run("docker", ["login", registry, "--username", user, "--password-stdin"], standardInput: token);
 Console.WriteLine($"Authenticated to {registry} as {user}.");
 
+var googleCloud = config.RootElement.GetProperty("googleCloud");
+var projectId = googleCloud.GetProperty("projectId").GetString()!;
+var projectNumber = googleCloud.GetProperty("projectNumber").GetString()!;
+
+// Set before login so the Application Default Credentials use this project for quota.
+await Run("gcloud", ["config", "set", "project", projectId]);
+if (!await HasGoogleCloudCredentials())
+{
+    Console.WriteLine("Google Cloud CLI is not authenticated. Launching authentication...");
+    // --update-adc also signs in the Application Default Credentials used by tools such as Cloud SQL Auth Proxy.
+    await Run("gcloud", ["auth", "login", "--no-launch-browser", "--update-adc"]);
+}
+
+var actualProjectNumber = (await Run("gcloud",
+    ["projects", "describe", projectId, "--format=value(projectNumber)"], captureOutput: true)).Trim();
+if (actualProjectNumber != projectNumber)
+{
+    throw new InvalidOperationException(
+        $"Google Cloud project '{projectId}' has number '{actualProjectNumber}', expected '{projectNumber}'.");
+}
+var account = (await Run("gcloud", ["config", "get", "account"], captureOutput: true)).Trim();
+Console.WriteLine($"Authenticated to Google Cloud project {projectId} as {account}.");
+
 async Task<bool> HasRegistryScope()
 {
-    var (exitCode, output) = await Execute("gh", ["auth", "status"], captureOutput: true);
-    return exitCode == 0 && output.Contains($"'{RegistryScope}'", StringComparison.Ordinal);
+    var (exitCode, output, error) = await Execute("gh", ["auth", "status"], captureOutput: true);
+    return exitCode == 0 && (output + error).Contains($"'{RegistryScope}'", StringComparison.Ordinal);
 }
 
+async Task<bool> HasGoogleCloudCredentials()
+{
+    var (cliExitCode, _, _) = await Execute("gcloud", ["auth", "print-access-token", "--quiet"], captureOutput: true);
+    var (adcExitCode, _, _) = await Execute("gcloud",
+        ["auth", "application-default", "print-access-token", "--quiet"], captureOutput: true);
+    return cliExitCode == 0 && adcExitCode == 0;
+}
+
+// Captured results contain standard output only, so CLI notices on standard error cannot corrupt them.
 async Task<string> Run(string command, string[] arguments, bool captureOutput = false, string? standardInput = null)
 {
-    var (exitCode, output) = await Execute(command, arguments, captureOutput, standardInput);
+    var (exitCode, output, error) = await Execute(command, arguments, captureOutput, standardInput);
     return exitCode == 0
         ? output
-        : throw new InvalidOperationException($"{command} {arguments[0]} failed with exit code {exitCode}.");
+        : throw new InvalidOperationException(
+            $"{command} {arguments[0]} failed with exit code {exitCode}. {error}".TrimEnd());
 }
 
-async Task<(int ExitCode, string Output)> Execute(string command, string[] arguments,
+async Task<(int ExitCode, string Output, string Error)> Execute(string command, string[] arguments,
     bool captureOutput = false, string? standardInput = null)
 {
     var startInfo = new ProcessStartInfo(command)
@@ -68,5 +101,5 @@ async Task<(int ExitCode, string Output)> Execute(string command, string[] argum
     var outputTask = captureOutput ? process.StandardOutput.ReadToEndAsync() : Task.FromResult("");
     var errorTask = captureOutput ? process.StandardError.ReadToEndAsync() : Task.FromResult("");
     await process.WaitForExitAsync();
-    return (process.ExitCode, await outputTask + await errorTask);
+    return (process.ExitCode, await outputTask, await errorTask);
 }
