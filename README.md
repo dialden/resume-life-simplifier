@@ -688,6 +688,17 @@ allowed. CORS is a browser policy, not authentication: the API remains public.
 
 #### GitHub Actions release workflow
 
+To test authentication without deploying, dispatch **Release stage** from `main`
+with `authentication_only` enabled (the default) and select the target
+environment. Leave the version empty and maintenance confirmation unchecked.
+The same dev-container login checks the expected release service account and
+project number, lists Cloud Run services, and obtains an ADC access token with
+its output discarded. It does not invoke the release pipeline, run migrations,
+or stop/deploy applications. These checks verify authentication and selected
+read permissions, not every deployment permission. Disable
+`authentication_only` to perform a release; the version and maintenance
+confirmation then become mandatory.
+
 [Release stage](.github/workflows/release-stage.yml) is manually dispatched from
 `main`. It invokes the existing release pipeline
 `ops/pipelines/stages/release/invoke.cs` inside the dev container; deployment
