@@ -28,7 +28,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    environment: ${{ inputs.target_environment }}
+    environment:
+      name: ${{ inputs.target_environment }}
+      url: ${{ steps.deployment.outputs.ui_url }}
     env:
       RELEASE_VERSION: ${{ inputs.version }}
       RELEASE_ENVIRONMENT: ${{ inputs.target_environment }}
@@ -106,6 +108,19 @@ jobs:
             export GOOGLE_APPLICATION_CREDENTIALS="$WORKSPACE_ROOT/$GCP_CREDENTIALS_BASENAME"
             trap 'gcloud auth revoke --all --quiet' EXIT
             gcloud auth login --cred-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
+            export RELEASE_UI_URL_FILE="$WORKSPACE_ROOT/.artifacts/release-ui-url.txt"
             ./ops/pipelines/stages/release/invoke.cs \
               --version "$RELEASE_VERSION" \
               --target-environment "$RELEASE_ENVIRONMENT"
+
+      - name: Set environment deployment URL
+        id: deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          ui_url="$(cat .artifacts/release-ui-url.txt)"
+          [[ "$ui_url" =~ ^https://[a-zA-Z0-9.-]+/?$ ]] || {
+            echo "::error::Release did not produce a valid UI deployment URL."
+            exit 1
+          }
+          printf 'ui_url=%s\n' "$ui_url" >> "$GITHUB_OUTPUT"

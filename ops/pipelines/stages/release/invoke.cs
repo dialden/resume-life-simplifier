@@ -252,9 +252,14 @@ public sealed class ReleaseStage
             ?? throw new InvalidOperationException("Resolve the UI image before deploying.");
         var deployedApiUrl = apiUrl
             ?? throw new InvalidOperationException("Deploy the API and discover its URL before deploying the UI.");
-        await cloudRunClient.DeployUi($"rls-{environment}-ui", image,
+        var uiUrl = await cloudRunClient.DeployUi($"rls-{environment}-ui", image,
             $"rls-{environment}-ui@{googleCloud.ProjectId}.iam.gserviceaccount.com",
             $"rls-{environment}-api", deployedApiUrl, artifacts);
+        var outputFile = Environment.GetEnvironmentVariable("RELEASE_UI_URL_FILE");
+        if (!string.IsNullOrWhiteSpace(outputFile))
+        {
+            await File.WriteAllTextAsync(outputFile, uiUrl + "\n");
+        }
     }
 
     public void ReportCompletion() =>

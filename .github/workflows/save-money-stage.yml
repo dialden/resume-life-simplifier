@@ -9,7 +9,7 @@ on:
         default: dev
         type: string
       confirm_delete:
-        description: Type the target environment again to confirm permanent database data loss
+        description: Type the target environment again to confirm permanent data loss and GitHub Environment deletion
         required: true
         type: string
 
@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Validate deletion confirmation and prerequisites
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.SAVE_MONEY_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           [[ "$TARGET_ENVIRONMENT" =~ ^[a-z]([a-z0-9-]{0,18}[a-z0-9])?$ ]] || {
@@ -45,11 +47,15 @@ jobs:
             exit 1
           }
           [[ "$CONFIRM_DELETE" == "$TARGET_ENVIRONMENT" ]] || {
-            echo "::error::Type the target environment again to confirm permanent database data loss."
+            echo "::error::Type the target environment again to confirm permanent data loss and GitHub Environment deletion."
             exit 1
           }
           [[ -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" && -n "$GCP_RELEASE_SERVICE_ACCOUNT" ]] || {
             echo "::error::Configure the Google Workload Identity provider and release service account variables."
+            exit 1
+          }
+          [[ -n "$GH_TOKEN" ]] || {
+            echo "::error::Configure the SAVE_MONEY_GITHUB_TOKEN repository secret with Environments write permission."
             exit 1
           }
 
@@ -83,6 +89,9 @@ jobs:
 
       - name: Run save-money pipeline in dev container
         uses: devcontainers/ci@v0.3
+        env:
+          GH_TOKEN: ${{ secrets.SAVE_MONEY_GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         with:
           cacheFrom: ghcr.io/dialden/resume-life-simplifier/devcontainer
           push: never
@@ -90,6 +99,8 @@ jobs:
             TARGET_ENVIRONMENT
             CONFIRM_DELETE
             GCP_CREDENTIALS_BASENAME
+            GH_TOKEN
+            GH_REPO
           runCmd: |
             set -euo pipefail
             export CLOUDSDK_CONFIG

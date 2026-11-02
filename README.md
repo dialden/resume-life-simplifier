@@ -702,6 +702,13 @@ Commit stage. Releases are serialized across all environments because registry
 and IAM setup also modifies shared project resources. Running releases are not
 cancelled by a newer dispatch.
 
+After successful UI deployment and verification, the workflow publishes the UI
+URL as the GitHub Environment's deployment link (**View deployment**).
+The release script writes the URL to `RELEASE_UI_URL_FILE` when that optional
+environment variable is set. The workflow uses a file in the mounted checkout
+to transfer it from the dev container to a runner step output; local releases
+remain unchanged when the variable is unset.
+
 Before using the workflow, configure keyless Google authentication:
 
 1. Enable the IAM, IAM Credentials, Security Token Service and Service Usage APIs
@@ -771,7 +778,8 @@ releases. It shares the release concurrency group so deletion and deployment
 cannot overlap.
 
 Select the target environment and type its name again in `confirm_delete`.
-**This permanently destroys the environment's database and all data.** The
+**This permanently destroys the environment's database, all data and its GitHub
+Environment configuration (including variables, secrets and protection rules).** The
 pipeline deletes exactly `rls-<environment>-ui`, `rls-<environment>-api`,
 `rls-<environment>-worker`, then the Cloud SQL instance `rls-<environment>`.
 It disables instance deletion protection and requests no final backup.
@@ -779,12 +787,31 @@ It verifies that these resources are absent; already absent resources are
 reported and skipped, but permission and deletion failures stop the run.
 Rerun after correcting a partial failure.
 
-Secrets, runtime identities, GitHub authentication, shared Artifact Registry
+After verifying that all four cloud resources are absent, the pipeline deletes
+the matching GitHub Environment and verifies its absence. An already absent
+GitHub Environment is reported and skipped. GitHub inventory access is checked
+before any cloud deletions; authentication, permission and API failures stop
+the run rather than being treated as an absent environment. A cloud cleanup
+failure leaves the GitHub Environment intact.
+
+Configure a repository Actions secret named `SAVE_MONEY_GITHUB_TOKEN` with a
+fine-grained personal access token limited to this repository and the
+**Environments: write** repository permission. The workflow's default
+`GITHUB_TOKEN` is not sufficient for this operation. The cleanup step passes
+the token to the dev container as `GH_TOKEN`, and sets `GH_REPO` to the workflow
+repository. Do not put this token in the environment that will be deleted.
+Keep `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_RELEASE_SERVICE_ACCOUNT` as
+repository variables so subsequent runs still have them after deletion.
+
+Cloud Secret Manager secrets, runtime identities, Google federation, shared Artifact Registry
 and other environments are preserved. This removes the demo's running compute
 and database storage, not every possible charge: retained backups, registry
 storage, secrets and logs may still incur costs. Existing retained backups are
 not deleted. A later release recreates the environment with an empty database
 and reapplies migrations; it does not restore deleted data.
+GitHub Actions can recreate an environment referenced by a later workflow,
+but it does not restore deleted environment variables, secrets or protection
+rules. Reconfigure those before releasing again when they are required.
 
 The configured release custom role includes the cleanup permissions below.
 When setting up a new role, an administrator must explicitly grant them
@@ -802,7 +829,10 @@ capabilities project-wide, not just for the
 environment selected in GitHub; keep Environment access and reviewers restricted.
 No live deletion is performed merely by adding this workflow.
 
-To invoke the same pipeline locally from the authenticated dev container:
+To invoke the same pipeline locally from the authenticated dev container,
+also authenticate `gh` with a token with the permission above (`gh auth login`,
+or supply `GH_TOKEN` securely). GitHub API calls target the checkout's repository
+unless overridden by `GH_REPO`:
 
 ```sh
 dotnet run --file ops/pipelines/stages/save-money/invoke.cs -- \
