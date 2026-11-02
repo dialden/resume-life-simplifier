@@ -4,9 +4,12 @@ using DialDen.RLS.Infrastructure.Publishing;
 using DialDen.RLS.Messaging.Contracts;
 using DialDen.RLS.Postings;
 using MassTransit;
+using MassTransit.SqlTransport.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace DialDen.RLS.Infrastructure.DependencyInjection;
 
@@ -75,7 +78,17 @@ public static class InfrastructureServiceCollectionExtensions
                 });
                 addConsumers(bus);
             }
-            bus.UsingPostgres((context, transport) => transport.ConfigureEndpoints(context));
+            bus.UsingPostgres((context, transport) =>
+            {
+                var options = context.GetRequiredService<IOptions<SqlTransportOptions>>().Value;
+                var connection = new NpgsqlConnectionStringBuilder(options.ConnectionString);
+                if (connection.Host?.StartsWith("/", StringComparison.Ordinal) == true)
+                {
+                    // MassTransit needs a URI-safe identity, separate from Npgsql's Unix-socket path.
+                    transport.Host(new PostgresSqlHostSettings(options) { Host = "localhost" });
+                }
+                transport.ConfigureEndpoints(context);
+            });
         });
         services.Configure<MassTransitHostOptions>(options =>
         {
