@@ -33,7 +33,7 @@ if (environment is null || !Regex.IsMatch(environment, @"\A[a-z](?:[a-z0-9-]{0,1
 if (confirmation != environment)
 {
     throw new ArgumentException("Supply --confirm-delete with the exact target environment. " +
-        "This permanently deletes its database, all data and its GitHub Environment configuration.");
+        "This permanently deletes its database and all data.");
 }
 
 var root = PipelineWorkspace.ResolveRoot();
@@ -46,10 +46,9 @@ Directory.CreateDirectory(artifacts);
 var runner = new ProcessRunner(root, artifacts);
 var prefix = $"rls-{environment}";
 Write($"Permanently removing {prefix} UI, API, Worker and database from " +
-    $"{config.ProjectId} ({config.Region}) and GitHub Environment '{environment}'. Artifacts: {artifacts}");
+    $"{config.ProjectId} ({config.Region}). Artifacts: {artifacts}");
 
 // Read every resource inventory before deleting anything; failed reads must not mean "absent".
-var githubEnvironments = await ReadGitHubEnvironments();
 var services = await ReadNames(["run", "services"]);
 var workers = await ReadNames(["beta", "run", "worker-pools"]);
 using var instances = await ReadInstances();
@@ -92,30 +91,8 @@ if (remainingServices.Contains($"{prefix}-ui") || remainingServices.Contains($"{
 {
     throw new InvalidOperationException("Environment resources remain after deletion. Inspect the run and retry.");
 }
-
-if (githubEnvironments.Contains(environment))
-{
-    await runner.Run("gh", ["api", "--method", "DELETE", $"repos/{{owner}}/{{repo}}/environments/{environment}"]);
-}
-else
-{
-    Write($"GitHub Environment '{environment}' is already absent.");
-}
-if ((await ReadGitHubEnvironments()).Contains(environment))
-{
-    throw new InvalidOperationException($"GitHub Environment '{environment}' remains after deletion. Inspect the run and retry.");
-}
-Write($"Save money completed for '{environment}'. UI, API, Worker, database and GitHub Environment are absent. " +
-    "Cloud secrets, runtime identities and shared registry are unchanged.");
-
-async Task<HashSet<string>> ReadGitHubEnvironments()
-{
-    var names = await runner.Run("gh",
-        ["api", "repos/{owner}/{repo}/environments", "--paginate", "--jq", ".environments[].name"],
-        captureOutput: true);
-    return names.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-}
+Write($"Save money completed for '{environment}'. UI, API, Worker and database are absent. " +
+    "Secrets, identities and shared registry are unchanged.");
 
 async Task<HashSet<string>> ReadNames(string[] command)
 {
