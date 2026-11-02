@@ -16,6 +16,9 @@ services:
       # Keep the existing transcript volume; the parent also preserves the session index.
       - copilot-user-data:/home/vscode/.copilot
       - copilot-session-state:/home/vscode/.copilot/session-state
+      # CLI logins survive rebuilds; the GitHub workflow logs out when its command ends.
+      - gh-config:/home/vscode/.config/gh
+      - gcloud-config:/home/vscode/.config/gcloud
     command:
       - /bin/sh
       - -c
@@ -101,4 +104,6 @@ volumes:
   vscode-agent-session-data:
   copilot-user-data:
   copilot-session-state:
+  gh-config:
+  gcloud-config:
   postgres-data:

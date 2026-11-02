@@ -30,7 +30,7 @@ stage.ReportCompletion(pushImages);
 
 public sealed class CommitStage
 {
-    private const string ConfigFile = "ops/pipelines/config.json";
+    private const string ConfigFile = PipelineWorkspace.ConfigFile;
     private readonly string[] uiImageFiles = ["nginx.conf", "configure-ui.sh"];
     private readonly string root;
     private readonly AppConfig app;
@@ -47,7 +47,7 @@ public sealed class CommitStage
 
     public CommitStage(string version)
     {
-        root = ResolveWorkspaceRoot();
+        root = PipelineWorkspace.ResolveRoot();
         var config = ReadConfig();
         app = config.App;
         apiImage = $"{config.Images.Api}:{version}";
@@ -343,29 +343,12 @@ public sealed class CommitStage
                     throw new ArgumentException($"Unknown, duplicate, or incomplete argument: {arguments[index]}");
             }
         }
-        if (version is null || !Regex.IsMatch(version, @"\A\w[\w.-]{0,127}\z", RegexOptions.ECMAScript))
-        {
-            throw new ArgumentException("Supply --version as a valid Docker tag.");
-        }
-        return (version, push);
-    }
-
-    private static string ResolveWorkspaceRoot()
-    {
-        var workspaceRoot = Environment.GetEnvironmentVariable("WORKSPACE_ROOT");
-        if (string.IsNullOrWhiteSpace(workspaceRoot) || !Path.IsPathFullyQualified(workspaceRoot))
-        {
-            throw new InvalidOperationException("Set WORKSPACE_ROOT to the absolute path of the repository root.");
-        }
-        RequireFile(Path.Combine(workspaceRoot, ConfigFile));
-        return workspaceRoot;
+        return (ImageVersion.Validate(version), push);
     }
 
     private PipelineConfig ReadConfig()
     {
-        var config = JsonSerializer.Deserialize<PipelineConfig>(
-            File.ReadAllText(Path.Combine(root, ConfigFile)), new JsonSerializerOptions(JsonSerializerDefaults.Web))
-            ?? throw new InvalidOperationException($"{ConfigFile} is empty.");
+        var config = PipelineWorkspace.ReadConfig(root);
         RequireFile(Path.Combine(root, config.App.Solution));
         var images = new[] { config.Images.Api, config.Images.Ui, config.Images.Worker };
         foreach (var image in images)
@@ -405,5 +388,5 @@ public sealed class CommitStage
     }
 
     private static void Log(string message) =>
-        Console.WriteLine($"[{DateTimeOffset.UtcNow:HH:mm:ss'Z'}] {message}");
+        PipelineLog.Write(message);
 }

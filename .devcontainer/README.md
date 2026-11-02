@@ -19,6 +19,34 @@ If setup fails, resolve the reported error and rerun from the repository root:
 The ready message is printed only after all setup steps succeed. Rebuild the
 container to apply changes to its lifecycle configuration.
 
+## CLI logins
+
+The image includes Cloud SQL Auth Proxy 2.27.0, installed as `cloud-sql-proxy`
+with its published SHA-256 checksum verified during the build. It uses
+Application Default Credentials to establish authenticated connections to
+Cloud SQL; it does not replace the database user's password. Installation does
+not start the proxy or change local PostgreSQL connections.
+PostgreSQL client 16 is also installed for secure SQL provisioning through the
+proxy; it uses stdin and environment variables rather than command-line
+passwords.
+
+GitHub CLI and Google Cloud CLI logins are stored in the `gh-config` and
+`gcloud-config` named volumes, so they survive container rebuilds. Docker
+registry logins are kept by the Dev Containers credential helper on your
+machine. To remove the saved CLI logins, delete those volumes or run
+`gh auth logout` and `gcloud auth revoke --all`.
+
+Run `ops/dev/authenticate.cs` from the repository root to sign in. It
+logs in to GHCR through the GitHub CLI, then selects the Google Cloud project
+from [config.json](../ops/pipelines/config.json). If needed, it signs in the
+Google Cloud CLI and its Application Default Credentials together: open the
+printed link, then paste the verification code into the terminal. Finally, it
+checks that the project number matches the configuration.
+
+The [run-in-authenticated-devcontainer](../.github/actions/run-in-authenticated-devcontainer/action.yml)
+action logs out of GitHub, GHCR and Google Cloud when its command ends, even on
+failure, so workflow credentials are not left in these volumes.
+
 `RLS_DEV_DATABASE` and `RLS_TEST_DATABASE` in [.env](./.env) name the development
 and test databases. Compose passes them to both the dev container's migration
 script and PostgreSQL's initialization script. The `.sql` initialization script

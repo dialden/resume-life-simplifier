@@ -28,6 +28,7 @@ mono_crash.*
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
+!ops/pipelines/stages/release/
 [Rr]eleases/
 x64/
 x86/
@@ -494,3 +495,5 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+# Short-lived Google GitHub Actions federation credentials.
+gha-creds-*.json

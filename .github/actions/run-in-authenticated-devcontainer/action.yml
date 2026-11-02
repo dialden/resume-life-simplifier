@@ -19,6 +19,15 @@ runs:
         runCmd: |
           set -euo pipefail
 
+          # The dev container keeps CLI logins in named volumes, so remove this run's logins
+          # when the command ends, including on failure.
+          scrub_logins() {
+            gh auth logout --hostname github.com >/dev/null 2>&1 || true
+            docker logout ghcr.io >/dev/null 2>&1 || true
+            gcloud auth revoke --all >/dev/null 2>&1 || true
+          }
+          trap scrub_logins EXIT
+
           # Login to github
           echo ${{ inputs.gh_token }} | gh auth login --with-token
 
