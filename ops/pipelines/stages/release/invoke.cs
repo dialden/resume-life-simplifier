@@ -14,7 +14,7 @@ var stage = new ReleaseStage(version, environment);
 
 await stage.ExportMigrations();
 await stage.VerifyGoogleCloudAuthentication();
-await stage.VerifyWorkerDeploymentPrerequisites();
+await stage.EnableDeploymentApis();
 await stage.EnableRegistryApis();
 await stage.EnsureRegistryTokenSecret();
 await stage.GrantRegistryTokenAccess();
@@ -214,11 +214,8 @@ public sealed class ReleaseStage
             }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    public async Task VerifyWorkerDeploymentPrerequisites()
-    {
-        await googleCloudClient.EnableApis("run.googleapis.com", "cloudresourcemanager.googleapis.com");
-        await cloudRunClient.RequireWorkerStopped($"rls-{environment}-worker");
-    }
+    public Task EnableDeploymentApis() =>
+        googleCloudClient.EnableApis("run.googleapis.com", "cloudresourcemanager.googleapis.com");
 
     public async Task DeployWorker()
     {

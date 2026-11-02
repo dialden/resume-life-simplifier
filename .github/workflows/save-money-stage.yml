@@ -1,0 +1,102 @@
+name: Save money stage
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Environment to permanently remove (dev, acc, prod, etc.)
+        required: true
+        default: dev
+        type: string
+      confirm_delete:
+        description: Type the target environment again to confirm permanent database data loss
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+
+concurrency:
+  group: release-stage
+  cancel-in-progress: false
+
+jobs:
+  save-money:
+    name: Remove environment resources
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: ${{ inputs.target_environment }}
+    env:
+      TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+      CONFIRM_DELETE: ${{ inputs.confirm_delete }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_RELEASE_SERVICE_ACCOUNT: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
+
+    steps:
+      - name: Validate deletion confirmation and prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_ENVIRONMENT" =~ ^[a-z]([a-z0-9-]{0,18}[a-z0-9])?$ ]] || {
+            echo "::error::Invalid target environment."
+            exit 1
+          }
+          [[ "$CONFIRM_DELETE" == "$TARGET_ENVIRONMENT" ]] || {
+            echo "::error::Type the target environment again to confirm permanent database data loss."
+            exit 1
+          }
+          [[ -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" && -n "$GCP_RELEASE_SERVICE_ACCOUNT" ]] || {
+            echo "::error::Configure the Google Workload Identity provider and release service account variables."
+            exit 1
+          }
+
+      - name: Checkout cleanup pipeline
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate to Google Cloud without a key
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
+          project_id: resume-life-simplifier
+          create_credentials_file: true
+          export_environment_variables: false
+
+      - name: Locate credentials in mounted checkout
+        shell: bash
+        env:
+          CREDENTIALS_FILE: ${{ steps.google-auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          echo "GCP_CREDENTIALS_BASENAME=$(basename "$CREDENTIALS_FILE")" >> "$GITHUB_ENV"
+
+      - name: Run save-money pipeline in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ghcr.io/dialden/resume-life-simplifier/devcontainer
+          push: never
+          env: |
+            TARGET_ENVIRONMENT
+            CONFIRM_DELETE
+            GCP_CREDENTIALS_BASENAME
+          runCmd: |
+            set -euo pipefail
+            export CLOUDSDK_CONFIG
+            CLOUDSDK_CONFIG="$(mktemp -d /tmp/rls-save-money-gcloud.XXXXXX)"
+            export GOOGLE_APPLICATION_CREDENTIALS="$WORKSPACE_ROOT/$GCP_CREDENTIALS_BASENAME"
+            trap 'gcloud auth revoke --all --quiet' EXIT
+            gcloud auth login --cred-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
+            dotnet run --file ops/pipelines/stages/save-money/invoke.cs -- \
+              --target-environment "$TARGET_ENVIRONMENT" \
+              --confirm-delete "$CONFIRM_DELETE"

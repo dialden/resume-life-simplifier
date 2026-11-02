@@ -3,25 +3,15 @@ name: Release stage
 on:
   workflow_dispatch:
     inputs:
-      authentication_only:
-        description: Test Google authentication without running the release pipeline
-        required: true
-        default: true
-        type: boolean
       version:
-        description: Full published image commit SHA (required for deployment only)
-        required: false
+        description: Full published image commit SHA
+        required: true
         type: string
       target_environment:
         description: Target environment (dev, acc, prod, etc.)
         required: true
         default: dev
         type: string
-      maintenance_confirmed:
-        description: API is unavailable to callers and Worker instances have stopped
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -34,7 +24,7 @@ concurrency:
 
 jobs:
   release:
-    name: Validate authentication or deploy release
+    name: Deploy release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -42,8 +32,6 @@ jobs:
     env:
       RELEASE_VERSION: ${{ inputs.version }}
       RELEASE_ENVIRONMENT: ${{ inputs.target_environment }}
-      MAINTENANCE_CONFIRMED: ${{ inputs.maintenance_confirmed }}
-      AUTHENTICATION_ONLY: ${{ inputs.authentication_only }}
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_RELEASE_SERVICE_ACCOUNT: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
 
@@ -52,16 +40,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$AUTHENTICATION_ONLY" != "true" ]]; then
-            [[ "$RELEASE_VERSION" =~ ^[a-f0-9]{40}$ ]] || {
-              echo "::error::Version must be a full lowercase Git commit SHA."
-              exit 1
-            }
-            [[ "$MAINTENANCE_CONFIRMED" == "true" ]] || {
-              echo "::error::Stop API access and Worker instances before releasing."
-              exit 1
-            }
-          fi
+          [[ "$RELEASE_VERSION" =~ ^[a-f0-9]{40}$ ]] || {
+            echo "::error::Version must be a full lowercase Git commit SHA."
+            exit 1
+          }
           [[ "$RELEASE_ENVIRONMENT" =~ ^[a-z]([a-z0-9-]{0,18}[a-z0-9])?$ ]] || {
             echo "::error::Invalid target environment."
             exit 1
@@ -77,7 +59,6 @@ jobs:
           fetch-depth: 0
 
       - name: Verify release commit is on main
-        if: ${{ !inputs.authentication_only }}
         shell: bash
         run: |
           set -euo pipefail
@@ -109,7 +90,7 @@ jobs:
           set -euo pipefail
           echo "GCP_CREDENTIALS_BASENAME=$(basename "$CREDENTIALS_FILE")" >> "$GITHUB_ENV"
 
-      - name: Validate authentication or run release pipeline in dev container
+      - name: Run release pipeline in dev container
         uses: devcontainers/ci@v0.3
         with:
           cacheFrom: ghcr.io/dialden/resume-life-simplifier/devcontainer
@@ -118,8 +99,6 @@ jobs:
             RELEASE_VERSION
             RELEASE_ENVIRONMENT
             GCP_CREDENTIALS_BASENAME
-            GCP_RELEASE_SERVICE_ACCOUNT
-            AUTHENTICATION_ONLY
           runCmd: |
             set -euo pipefail
             export CLOUDSDK_CONFIG
@@ -127,26 +106,6 @@ jobs:
             export GOOGLE_APPLICATION_CREDENTIALS="$WORKSPACE_ROOT/$GCP_CREDENTIALS_BASENAME"
             trap 'gcloud auth revoke --all --quiet' EXIT
             gcloud auth login --cred-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
-            if [[ "$AUTHENTICATION_ONLY" == "true" ]]; then
-              account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
-              [[ "$account" == "$GCP_RELEASE_SERVICE_ACCOUNT" ]] || {
-                echo "Unexpected active Google account." >&2
-                exit 1
-              }
-              project_number="$(gcloud projects describe resume-life-simplifier --format='value(projectNumber)')"
-              [[ "$project_number" == "790265296353" ]] || {
-                echo "Unexpected Google project number." >&2
-                exit 1
-              }
-              gcloud run services list \
-                --project=resume-life-simplifier \
-                --region=northamerica-northeast1 \
-                --format='table(metadata.name)'
-              gcloud auth application-default print-access-token \
-                --project=resume-life-simplifier --quiet >/dev/null
-              echo "Google CLI and ADC authentication checks passed. Release pipeline was not run."
-              exit 0
-            fi
             ./ops/pipelines/stages/release/invoke.cs \
               --version "$RELEASE_VERSION" \
               --target-environment "$RELEASE_ENVIRONMENT"

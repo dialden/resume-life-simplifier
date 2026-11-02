@@ -543,10 +543,10 @@ stop the release, and the proxy is stopped on success or failure. Reruns validat
 the schema history and apply only pending migrations; no repair or clean is
 performed automatically.
 
-Keep the API and Worker stopped during migrations (a maintenance window). The
-release rejects an existing Worker pool unless its configured instance count
-is zero, before database operations. Verify the old instances have actually
-stopped; this check alone does not drain them. API shutdown remains manual.
+Demo releases may apply migrations while the API and Worker are running. There
+is no maintenance confirmation or stopped-Worker prerequisite. Incompatible
+schema changes can cause request failures or interrupt processing; prefer
+backward-compatible migrations or manually stop applications when needed.
 
 After migrations, the release grants `rls_app` database connection access, usage
 of `public`, `messaging` and `transport`, table SELECT/INSERT/UPDATE/DELETE,
@@ -642,8 +642,9 @@ scaled to one; `worker.json` captures the resulting resource. Running a Worker
 pool incurs continuous charges.
 Cloud Run deployment success is not proof of application readiness: check the
 revision's logs for successful bus startup and absence of startup failures.
-Before another release, scale the Worker to zero and verify shutdown; automated
-maintenance-window orchestration is not implemented yet.
+The deployment still applies its zero-instance definition before scaling the
+new revision to one; processing may pause during replacement. This does not
+stop the old Worker before the earlier database migrations.
 
 #### API deployment
 
@@ -667,7 +668,7 @@ to `api-url.txt`; `api.json` records resource metadata and secret references,
 not values. Browser CORS origins will be wired when the UI is deployed; none
 are opened broadly in this step. The caller needs Cloud Run deployment and
 service IAM policy permissions plus `iam.serviceAccounts.actAs` for the API
-account. Keep API and Worker stopped before future schema migrations.
+account.
 
 #### UI deployment and API CORS
 
@@ -688,22 +689,12 @@ allowed. CORS is a browser policy, not authentication: the API remains public.
 
 #### GitHub Actions release workflow
 
-To test authentication without deploying, dispatch **Release stage** from `main`
-with `authentication_only` enabled (the default) and select the target
-environment. Leave the version empty and maintenance confirmation unchecked.
-The same dev-container login checks the expected release service account and
-project number, lists Cloud Run services, and obtains an ADC access token with
-its output discarded. It does not invoke the release pipeline, run migrations,
-or stop/deploy applications. These checks verify authentication and selected
-read permissions, not every deployment permission. Disable
-`authentication_only` to perform a release; the version and maintenance
-confirmation then become mandatory.
-
 [Release stage](.github/workflows/release-stage.yml) is manually dispatched from
 `main`. It invokes the existing release pipeline
 `ops/pipelines/stages/release/invoke.cs` inside the dev container; deployment
 logic is not duplicated in the workflow. Inputs are the full published image
-commit SHA, target environment, and confirmation that maintenance is in effect.
+commit SHA and target environment. Each dispatch runs a deployment; there is no
+authentication-only mode.
 The checkout stays on the workflow commit; full Git history supplies the
 selected release's migrations. Only commits reachable from that checkout's
 `main` history are accepted. Images must already have been published by the
@@ -762,17 +753,59 @@ configuration rather than the developer's persistent login volume; an exit trap
 revokes its local login. The hosted runner and its temporary files are discarded
 after the job. No interactive developer authentication script is called.
 
-**Maintenance remains manual.** Before confirming the workflow input, make the
-API unavailable to callers, allow in-flight requests to finish, scale the Worker
-pool to zero, and verify its instances have stopped. Cloud Run services cannot
-be stopped simply by setting their minimum instances to zero, and CORS is not
-an access-control mechanism. The pipeline checks the Worker's configured count
-but does not independently verify API isolation or drain completion. Do not
-confirm maintenance unless it has actually been established. A failed release
-may leave applications stopped or partially deployed; inspect the run before
-restoring service. This workflow does not implement automatic shutdown or
-rollback. The workflow can only be fully validated after the Google trust and
-GitHub environment settings are configured.
+**Demo releases do not require a maintenance window.** The workflow does not
+require shutdown confirmation, and the pipeline does not check that the Worker
+is stopped. Authentication, input validation and deployment health checks remain
+enabled. Live migrations and revision replacement may cause temporary errors;
+this is not a zero-downtime deployment guarantee. A failed release may leave
+applications stopped or partially deployed; inspect the run before restoring
+service. This workflow does not implement automatic rollback.
+
+#### Save money: remove an environment
+
+[Save money stage](.github/workflows/save-money-stage.yml) is a manual, main-only workflow
+that runs the [cleanup pipeline](ops/pipelines/stages/save-money/invoke.cs) inside
+the dev container using the same Google federation and GitHub Environment as
+releases. It shares the release concurrency group so deletion and deployment
+cannot overlap.
+
+Select the target environment and type its name again in `confirm_delete`.
+**This permanently destroys the environment's database and all data.** The
+pipeline deletes exactly `rls-<environment>-ui`, `rls-<environment>-api`,
+`rls-<environment>-worker`, then the Cloud SQL instance `rls-<environment>`.
+It disables instance deletion protection and requests no final backup.
+It verifies that these resources are absent; already absent resources are
+reported and skipped, but permission and deletion failures stop the run.
+Rerun after correcting a partial failure.
+
+Secrets, runtime identities, GitHub authentication, shared Artifact Registry
+and other environments are preserved. This removes the demo's running compute
+and database storage, not every possible charge: retained backups, registry
+storage, secrets and logs may still incur costs. Existing retained backups are
+not deleted. A later release recreates the environment with an empty database
+and reapplies migrations; it does not restore deleted data.
+
+The existing release custom role does not currently include deletion
+permissions. Before using this workflow, an administrator must explicitly
+extend it (this is not performed automatically):
+
+```sh
+gcloud iam roles update rlsReleaseProvisioner \
+  --project=resume-life-simplifier \
+  --add-permissions=run.services.delete,run.workerpools.delete,cloudsql.instances.delete
+```
+
+The identity also needs the existing resource list/get and Cloud SQL update
+permissions. This grants deletion capabilities project-wide, not just for the
+environment selected in GitHub; keep Environment access and reviewers restricted.
+No live deletion is performed merely by adding this workflow.
+
+To invoke the same pipeline locally from the authenticated dev container:
+
+```sh
+dotnet run --file ops/pipelines/stages/save-money/invoke.cs -- \
+  --target-environment dev --confirm-delete dev
+```
 
 #### Supply the registry token
 

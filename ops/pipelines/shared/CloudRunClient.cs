@@ -110,22 +110,6 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
         return url;
     }
 
-    public async Task RequireWorkerStopped(string name)
-    {
-        using var pools = JsonDocument.Parse(await processRunner.Run("gcloud",
-            ["beta", "run", "worker-pools", "list", $"--project={config.ProjectId}",
-                $"--region={config.Region}", "--format=json", "--quiet"], captureOutput: true));
-        if (pools.RootElement.EnumerateArray().Any(pool =>
-            pool.GetProperty("metadata").GetProperty("name").GetString() == name &&
-            (!pool.GetProperty("metadata").GetProperty("annotations")
-                .TryGetProperty("run.googleapis.com/manualInstanceCount", out var count) || count.GetString() != "0")))
-        {
-            throw new InvalidOperationException(
-                $"Worker pool '{name}' is not scaled to zero. Release stopped before migrations. " +
-                "Scale it to zero and verify its instances have stopped before starting a maintenance-window release.");
-        }
-    }
-
     public async Task<string> DeployWorker(string name, string image, string connectionName,
         string serviceAccount, JobillicoConfig jobSite, string connectionSecret,
         string usernameSecret, string passwordSecret, string artifactsDirectory)
