@@ -735,8 +735,9 @@ Before using the workflow, configure keyless Google authentication:
 The configured `dev` deployment identity is
 `github-release@resume-life-simplifier.iam.gserviceaccount.com`. It has the
 project custom role `projects/resume-life-simplifier/roles/rlsReleaseProvisioner`
-for the pipeline's provisioning operations, without explicit resource-deletion
-or service-account-key permissions, and `roles/iam.serviceAccountUser` on the
+for provisioning and environment cleanup, including Cloud Run service/Worker
+deletion and Cloud SQL update/deletion, without service-account-key permissions,
+and `roles/iam.serviceAccountUser` on the
 three `rls-dev-api`, `rls-dev-wrk` and `rls-dev-ui` runtime accounts individually.
 Other environments require explicit `actAs` grants on their runtime accounts.
 This is a privileged project provisioner, not an environment-isolated identity:
@@ -785,18 +786,19 @@ storage, secrets and logs may still incur costs. Existing retained backups are
 not deleted. A later release recreates the environment with an empty database
 and reapplies migrations; it does not restore deleted data.
 
-The existing release custom role does not currently include deletion
-permissions. Before using this workflow, an administrator must explicitly
-extend it (this is not performed automatically):
+The configured release custom role includes the cleanup permissions below.
+When setting up a new role, an administrator must explicitly grant them
+(the workflow does not modify its own permissions):
 
 ```sh
 gcloud iam roles update rlsReleaseProvisioner \
   --project=resume-life-simplifier \
-  --add-permissions=run.services.delete,run.workerpools.delete,cloudsql.instances.delete
+  --add-permissions=run.services.delete,run.workerpools.delete,cloudsql.instances.delete,cloudsql.instances.update
 ```
 
-The identity also needs the existing resource list/get and Cloud SQL update
-permissions. This grants deletion capabilities project-wide, not just for the
+The identity also needs resource list/get permissions. Cloud SQL update is
+required to disable instance deletion protection. This grants deletion
+capabilities project-wide, not just for the
 environment selected in GitHub; keep Environment access and reviewers restricted.
 No live deletion is performed merely by adding this workflow.
 
