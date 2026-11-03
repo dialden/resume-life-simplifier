@@ -331,7 +331,7 @@ Mono-Repo
 - [Docker desktop](https://www.docker.com/products/docker-desktop/)
 - [Visual Studio Code](https://code.visualstudio.com/)
     - [Dev containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-- [VcXsrv - Open-Source X Server for Windows](https://vcxsrv.com/)
+- [VcXsrv - Open-Source X Server for Windows](https://github.com/marchaesen/vcxsrv/releases)
 
 ### Linux
 - Docker
