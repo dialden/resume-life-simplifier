@@ -88,11 +88,13 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
     {
         _observations.Add(async verification =>
         {
-            if (verification is not ViewPostingVerification viewed)
+            var id = verification switch
             {
-                throw new InvalidOperationException("Live publication updates can only be observed while viewing a posting.");
-            }
-            await _stage.App.RLS.ViewPosting().WithId(viewed.Id).WhileViewingUntilJobSitePublication(
+                ViewPostingVerification viewed => viewed.Id,
+                PublishPostingVerification published => published.Id,
+                _ => throw new InvalidOperationException("Live publication updates require viewing or publishing a posting.")
+            };
+            await _stage.App.RLS.ViewPosting().WithId(id).WhileViewingUntilJobSitePublication(
                 jobSiteId, expectedStatus, TimeSpan.FromSeconds(30));
         });
         return this;

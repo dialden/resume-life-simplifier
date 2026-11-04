@@ -27,11 +27,14 @@ public static class InfrastructureServiceCollectionExtensions
     /// <summary>
     /// Registers the infrastructure of a process consuming commands. It also delivers the outbox commands.
     /// Each consumed command is processed at most once, in the same transaction as the changes it makes.
+    /// Set useConsumerOutbox to false for processes that only consume transient, nontransactional
+    /// notifications; those processes do not deliver the database outbox either.
     /// </summary>
     public static IServiceCollection AddRLSInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
-        Action<IBusRegistrationConfigurator>? addConsumers)
+        Action<IBusRegistrationConfigurator>? addConsumers,
+        bool useConsumerOutbox = true)
     {
         services.AddDbContext<RLSContext>((serviceProvider, options) =>
         {
@@ -60,7 +63,7 @@ public static class InfrastructureServiceCollectionExtensions
                 outbox.UsePostgres();
                 outbox.UseBusOutbox(busOutbox =>
                 {
-                    if (addConsumers is null)
+                    if (addConsumers is null || !useConsumerOutbox)
                     {
                         busOutbox.DisableDeliveryService();
                     }
@@ -69,13 +72,16 @@ public static class InfrastructureServiceCollectionExtensions
             });
             if (addConsumers is not null)
             {
-                bus.AddConfigureEndpointsCallback((context, _, endpoint) =>
+                if (useConsumerOutbox)
                 {
-                    // Retries our own transient failures, then moves the command to the error queue.
-                    endpoint.UseMessageRetry(retry => retry.Intervals(
-                        TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5)));
-                    endpoint.UseEntityFrameworkOutbox<RLSContext>(context);
-                });
+                    bus.AddConfigureEndpointsCallback((context, _, endpoint) =>
+                    {
+                        // Retries our own transient failures, then moves the command to the error queue.
+                        endpoint.UseMessageRetry(retry => retry.Intervals(
+                            TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5)));
+                        endpoint.UseEntityFrameworkOutbox<RLSContext>(context);
+                    });
+                }
                 addConsumers(bus);
             }
             bus.UsingPostgres((context, transport) =>

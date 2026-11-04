@@ -1,4 +1,5 @@
 using DialDen.RLS.Abstractions.Postings;
+using DialDen.RLS.API.Notifications;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -18,7 +19,8 @@ public static class RLSEndpoints
                 new Link("list-job-sites", "/job-sites", "GET"),
                 new Link("publish-posting", "/postings/{id}", "PATCH"),
                 new Link("view-posting", "/postings/{id}", "GET"),
-                new Link("posting-events", "/postings/{id}/events", "GET")
+                new Link("posting-events", "/postings/{id}/events", "GET"),
+                new Link("notifications", "/api/notifications/stream", "GET")
             ])))
             .WithName("EntryPoint")
             .WithSummary("API entry point returning links to the available actions.")
@@ -137,6 +139,7 @@ public static class RLSEndpoints
             .ProducesValidationProblem();
 
         app.MapPostingEvents();
+        app.MapNotifications();
 
         return app;
     }

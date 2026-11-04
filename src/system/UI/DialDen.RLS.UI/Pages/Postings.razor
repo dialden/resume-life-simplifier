@@ -1,7 +1,12 @@
 @page "/postings"
 @using DialDen.RLS.Abstractions.Postings
 @using System.Globalization
+@using DialDen.RLS.UI.Notifications
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
 @inject HttpClient Api
+@inject NotificationStreamClient Notifications
+@inject ILogger<Postings> Logger
 
 <PageTitle>Job postings | Resume Life Simplifier</PageTitle>
 
@@ -30,6 +35,10 @@ else if (_page is null)
 }
 else
 {
+    @if (_liveUpdatesUnavailable)
+    {
+        <MudAlert Severity="Severity.Warning" role="alert" data-testid="live-updates-warning">Live updates are currently unavailable.</MudAlert>
+    }
     <section class="surface-panel" aria-labelledby="postings-heading">
         <div class="panel-header">
             <div class="panel-title">
@@ -187,6 +196,11 @@ else
     private ListPostingsResponse? _page;
     private string? _error;
     private int _loadVersion;
+    private readonly SemaphoreSlim _refreshGate = new(1, 1);
+    private CancellationTokenSource? _viewCancellation;
+    private Task? _observation;
+    private bool _disposed;
+    private bool _liveUpdatesUnavailable;
     private int? _selectedPostingId;
     private bool _isPublishing;
     private bool _showPublishDialog;
@@ -244,8 +258,17 @@ else
     protected override async Task OnParametersSetAsync()
     {
         var version = ++_loadVersion;
+        await StopObserving();
+        if (_disposed || version != _loadVersion)
+        {
+            return;
+        }
+        var cancellation = new CancellationTokenSource();
+        _viewCancellation = cancellation;
+        var token = cancellation.Token;
         _page = null;
         _error = null;
+        _liveUpdatesUnavailable = false;
         _selectedPostingId = null;
         _showPublishDialog = false;
         _selectedJobSiteIds.Clear();
@@ -259,7 +282,7 @@ else
 
         try
         {
-            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
                 ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
             if (version != _loadVersion)
             {
@@ -280,20 +303,35 @@ else
                 _error = "The RLS API does not currently offer job-site destinations.";
                 return;
             }
-            var sites = await Api.GetFromJsonAsync<JobSite[]>(sitesLink.Href)
+            var sites = await Api.GetFromJsonAsync<JobSite[]>(sitesLink.Href, token)
                 ?? throw new System.Text.Json.JsonException("The API returned no job-site destinations.");
 
             var separator = listLink.Href.Contains('?') ? '&' : '?';
             var href = $"{listLink.Href}{separator}pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}";
             var page = await Api.GetFromJsonAsync<ListPostingsResponse>(
                     href,
-                    ApiJsonSerializerOptions.Default)
+                    ApiJsonSerializerOptions.Default, token)
                 ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
-            if (version == _loadVersion)
+            if (version == _loadVersion && !token.IsCancellationRequested)
             {
                 _page = page;
                 _jobSites = sites;
+                var notificationsLink = entryPoint.Links.SingleOrDefault(
+                    link => link is { Rel: "notifications", Method: "GET" });
+                if (notificationsLink is null)
+                {
+                    Logger.LogWarning("The API does not advertise a notification stream.");
+                    _liveUpdatesUnavailable = true;
+                }
+                else
+                {
+                    _observation = Observe(notificationsLink.Href, href, version, token);
+                }
             }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Navigation cancels this page's requests.
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
@@ -306,6 +344,20 @@ else
 
     private async Task PublishSelected()
     {
+        await _refreshGate.WaitAsync();
+        try
+        {
+            await PublishSelectedCore();
+        }
+        finally
+        {
+            _refreshGate.Release();
+        }
+    }
+
+    private async Task PublishSelectedCore()
+    {
+        var version = _loadVersion;
         if (_isPublishing || !CanPublishSelected || _selectedPostingId is not { } postingId || _page is null)
         {
             return;
@@ -344,6 +396,10 @@ else
             var published = await response.Content.ReadFromJsonAsync<PublishPostingResponse>(
                     ApiJsonSerializerOptions.Default)
                 ?? throw new System.Text.Json.JsonException("The API returned no published posting.");
+            if (_disposed || version != _loadVersion || _page is null)
+            {
+                return;
+            }
             _page = _page with
             {
                 Items = _page.Items.Select(posting => posting.Id == published.Id
@@ -362,5 +418,87 @@ else
         {
             _isPublishing = false;
         }
+    }
+
+    private async Task Observe(string streamHref, string pageHref, int version, CancellationToken token)
+    {
+        try
+        {
+            await foreach (var signal in Notifications.ReadAsync(streamHref, token))
+            {
+                // Serialize refreshes with publishing so an older GET cannot overwrite its result.
+                await _refreshGate.WaitAsync(token);
+                try
+                {
+                    var refreshed = await Api.GetFromJsonAsync<ListPostingsResponse>(
+                        pageHref, ApiJsonSerializerOptions.Default, token)
+                        ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
+                    await InvokeAsync(() =>
+                    {
+                        if (!token.IsCancellationRequested && version == _loadVersion)
+                        {
+                            _page = refreshed;
+                            StateHasChanged();
+                        }
+                    });
+                }
+                finally
+                {
+                    _refreshGate.Release();
+                }
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Navigation or disposal ends the observation.
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException
+            or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "Live postings updates stopped.");
+            await InvokeAsync(() =>
+            {
+                if (!token.IsCancellationRequested && version == _loadVersion)
+                {
+                    _liveUpdatesUnavailable = true;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
+    private async Task StopObserving()
+    {
+        var cancellation = _viewCancellation;
+        var observation = _observation;
+        _viewCancellation = null;
+        _observation = null;
+        if (cancellation is null)
+        {
+            return;
+        }
+        cancellation.Cancel();
+        try
+        {
+            if (observation is not null)
+            {
+                await observation;
+            }
+        }
+        finally
+        {
+            cancellation.Dispose();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        ++_loadVersion;
+        await StopObserving();
     }
 }

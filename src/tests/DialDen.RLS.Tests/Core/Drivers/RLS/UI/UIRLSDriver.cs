@@ -53,7 +53,12 @@ public class UIRLSDriver : IRLSDriver
         var postingPage = _uiClient.DisplayedPostingPage(id);
         if (postingPage.IsFailure)
         {
-            return Result<ViewPostingResponse, SystemError>.Failure(postingPage.Error);
+            var list = _uiClient.DisplayedPostingsPage();
+            if (list.IsFailure)
+            {
+                return Result<ViewPostingResponse, SystemError>.Failure(list.Error);
+            }
+            return await list.Value.ObservePosting(id, isExpected, timeout);
         }
         return await postingPage.Value.ObservePosting(isExpected, timeout);
     }

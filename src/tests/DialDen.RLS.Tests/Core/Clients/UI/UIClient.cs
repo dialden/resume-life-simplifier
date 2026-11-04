@@ -44,4 +44,13 @@ public class UIClient : IDisposable
     {
         _browser?.CloseAsync().GetAwaiter().GetResult();
     }
+
+    public Result<PostingsPage, SystemError> DisplayedPostingsPage()
+    {
+        if (_page is not null && new Uri(_page.Url).AbsolutePath == "/postings")
+        {
+            return Result<PostingsPage, SystemError>.Success(new PostingsPage(_page));
+        }
+        return Result<PostingsPage, SystemError>.Failure(SystemError.Of("The postings list is not displayed."));
+    }
 }

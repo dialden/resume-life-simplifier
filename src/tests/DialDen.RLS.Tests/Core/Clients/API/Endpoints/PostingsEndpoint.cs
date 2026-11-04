@@ -69,7 +69,7 @@ public class PostingsEndpoint
         Result<ViewPostingResponse, SystemError>? latest = null;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"/postings/{id}/events");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/api/notifications/stream");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
             using var response = await _httpClient.SendAsync(
                 request, HttpCompletionOption.ResponseHeadersRead, observing.Token);
@@ -87,7 +87,7 @@ public class PostingsEndpoint
             await using var stream = await response.Content.ReadAsStreamAsync(observing.Token);
             await foreach (var item in SseParser.Create(stream).EnumerateAsync(observing.Token))
             {
-                if (item.EventType is not ("ready" or "posting-changed"))
+                if (item.EventType is not ("ready" or "notifications-changed"))
                 {
                     continue;
                 }

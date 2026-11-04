@@ -112,6 +112,30 @@ publish response is therefore always `Pending`. The UI shows these outcomes in
 the list and posting details. Postings without external destinations have an
 empty `jobSitePublications` collection.
 
+The demo API also exposes `GET /api/notifications/stream` (entry-point relation
+`notifications`) as `text/event-stream`. It sends `ready` on connection,
+`notifications-changed` when the API-local `SseConnectionManager.Broadcast()` is
+called, and heartbeat comments while idle. Clients should reread current data
+through REST on either event. Each connection owns a bounded subscription that is
+removed on disconnect. This stream is unauthenticated and local to one API
+process. After processing a job-site publication, the Worker publishes
+`PostingChanged` through its consumer outbox, committing the notification with the
+publication outcome before delivery. Each API process consumes `PostingChanged`
+on its own uniquely named temporary MassTransit queue and broadcasts a local
+refresh hint. A shared queue would deliver each event to only one API process.
+These transient notification consumers do not use the database consumer outbox;
+the Worker's transactional consumers remain unchanged.
+The UI's `NotificationStreamClient` reads one connection using
+browser response streaming and .NET's SSE parser, exposing `Ready` and `Changed`
+signals. It is registered through `AddRLSUI()` and uses the UI's configured API
+`HttpClient`. Both the posting-details and postings-list pages follow the advertised
+notification link and reread their REST resource on either signal without
+navigating or clearing the displayed data. The list refreshes only its current
+page, preserving selection and dialog state; refreshes are serialized with publishing.
+Leaving either page cancels its subscription. Stream or refresh
+failures retain the last posting and display a localized warning; reload to
+resume updates. Automatic reconnection is not wired yet.
+
 Publication saves a MassTransit command for each selected site in the EF Core
 transactional outbox, in the same transaction as the posting and job-site
 publication records. The API does not wait for transport delivery. The Worker
@@ -222,7 +246,7 @@ Confirming publication to Jobillico can create a live job.**
 The plugin defaults to sandbox unless production is explicitly selected; the
 Jobillico sandbox is reported unavailable. Start API + Worker + UI, create a
 posting with an English description, select Jobillico when publishing, and
-refresh the posting details to observe the outcome.
+leave the posting details open to observe the outcome automatically.
 
 HTTP success alone is not acceptance: any XML `error` element fails publication.
 Success requires one `results/job` with a positive `ijob`. HTTP errors, malformed
@@ -317,9 +341,10 @@ table, sequence, and function creation permissions. The runtime account needs
 access to the messaging/transport tables and sequences and permission to execute
 transport functions.
 
-The API only writes commands to the outbox. The Worker runs the outbox delivery
-service and the consumers. Dispatch is at-least-once; the Worker's inbox and the
-publication's `Pending` status ignore repeated commands.
+The API writes commands to the outbox and consumes transient refresh
+notifications. The Worker runs the outbox delivery service and the business
+consumers. Dispatch is at-least-once; the Worker's inbox and the publication's
+`Pending` status ignore repeated commands.
 
 ## Repository Strategy
 Mono-Repo

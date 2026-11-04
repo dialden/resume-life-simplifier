@@ -10,6 +10,8 @@
       <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="MassTransit" Version="8.5.12" />
     <ProjectReference Include="../../Core/DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
+    <ProjectReference Include="../../Messaging/DialDen.RLS.Messaging.Contracts/DialDen.RLS.Messaging.Contracts.csproj" />
   </ItemGroup>
 </Project>
