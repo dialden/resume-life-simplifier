@@ -123,6 +123,45 @@ public class JobPostingsTests
     }
 
     [Trait("Category", "Acceptance")]
+    [Theory]
+    [InlineData(true, "Succeeded")]
+    [InlineData(false, "Failed")]
+    public async Task PublishedPostingUpdatesWithoutLeavingTheList(bool accepts, string outcome)
+    {
+        var given = _testEnvironment.Scenario(Channel.UI)
+            .Given().Posting().WithCount(10).WithId("earlier")
+            .And().JobSite("stub-job-site");
+        if (accepts)
+        {
+            given.AcceptsPostings();
+        }
+        else
+        {
+            given.RejectsPostings();
+        }
+        await given.RespondsSlowly()
+            .And().Posting()
+            .When().PublishPosting().ToJobSites("stub-job-site")
+            .Then().ShouldSucceed()
+                .And().Posting().HasJobSitePublication("stub-job-site", "Pending")
+                    .UpdatesToJobSitePublication("stub-job-site", outcome);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ViewedPostingUpdatesWhenJobSitePublicationCompletes(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().JobSite("stub-job-site").AcceptsPostings().RespondsSlowly()
+            .And().Posting().PublishedTo("stub-job-site")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting()
+                    .HasJobSitePublication("stub-job-site", "Pending")
+                    .UpdatesToJobSitePublication("stub-job-site", "Succeeded");
+    }
+
+    [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
     public async Task CanViewSucceededJobSitePublication(Channel channel)
     {
@@ -132,6 +171,28 @@ public class JobPostingsTests
             .Then().ShouldSucceed()
                 .And().Posting().HasStatus("Published")
                     .HasJobSitePublication("stub-job-site", "Succeeded");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task CanObserveAnAlreadyCompletedPublication()
+    {
+        await _testEnvironment.Scenario(Channel.API)
+            .Given().Posting().PublishedOnJobSite("stub-job-site")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().UpdatesToJobSitePublication("stub-job-site", "Succeeded");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task LiveUpdatesRemainAvailableAcrossNavigation()
+    {
+        await _testEnvironment.Scenario(Channel.UI)
+            .Given().Posting().PublishedOnJobSite("stub-job-site")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().UpdatesToJobSitePublication("stub-job-site", "Succeeded");
     }
 
     [Trait("Category", "Acceptance")]

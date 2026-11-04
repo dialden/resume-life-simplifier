@@ -11,6 +11,28 @@ public class PostingPage : BasePage
     {
     }
 
+    /// <summary>Reads the displayed posting repeatedly, without reloading or navigating.</summary>
+    public async Task<Result<ViewPostingResponse, SystemError>> ObservePosting(
+        Func<ViewPostingResponse, bool> isExpected, TimeSpan timeout)
+    {
+        var url = _page.Url;
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        while (true)
+        {
+            var posting = await ReadPosting();
+            if (_page.Url != url)
+            {
+                return Result<ViewPostingResponse, SystemError>.Failure(
+                    SystemError.Of($"The page navigated from {url} to {_page.Url} while being observed."));
+            }
+            if (posting.IsFailure || isExpected(posting.Value) || DateTimeOffset.UtcNow >= deadline)
+            {
+                return posting;
+            }
+            await _page.WaitForTimeoutAsync(250);
+        }
+    }
+
     public async Task<Result<ViewPostingResponse, SystemError>> ReadPosting()
     {
         var details = _page.GetByRole(AriaRole.Region, new() { Name = "Posting details", Exact = true });

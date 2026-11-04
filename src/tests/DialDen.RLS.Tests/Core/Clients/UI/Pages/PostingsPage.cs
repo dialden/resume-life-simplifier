@@ -187,6 +187,38 @@ public class PostingsPage : BasePage
         return Result<PostingPageResponse, SystemError>.Success(new(items, total, currentPage, pageSize));
     }
 
+    public async Task<Result<ViewPostingResponse, SystemError>> ObservePosting(
+        int id, Func<ViewPostingResponse, bool> isExpected, TimeSpan timeout)
+    {
+        var url = _page.Url;
+        var pagination = _page.GetByTestId("posting-pagination");
+        var pageNumber = int.Parse(await pagination.GetAttributeAsync("data-page-number")
+            ?? throw new InvalidOperationException("The page number was not displayed."), CultureInfo.InvariantCulture);
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        while (true)
+        {
+            if (_page.Url != url ||
+                await pagination.GetAttributeAsync("data-page-number") != pageNumber.ToString(CultureInfo.InvariantCulture))
+            {
+                return Result<ViewPostingResponse, SystemError>.Failure(SystemError.Of("The displayed postings page changed."));
+            }
+            var row = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true })
+                .GetByRole(AriaRole.Link).Filter(new() { Has = _page.GetByTestId($"posting-status-{id}") });
+            var posting = new ViewPostingResponse(
+                id,
+                await row.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync(),
+                Enum.Parse<PostingStatus>(await row.GetByTestId($"posting-status-{id}").InnerTextAsync()))
+            {
+                JobSitePublications = await ReadJobSitePublications(row)
+            };
+            if (isExpected(posting) || DateTimeOffset.UtcNow >= deadline)
+            {
+                return Result<ViewPostingResponse, SystemError>.Success(posting);
+            }
+            await Task.Delay(250);
+        }
+    }
+
     public async Task<ILocator> FindPostingLink(int id)
     {
         var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });

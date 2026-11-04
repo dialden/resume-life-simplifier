@@ -30,6 +30,10 @@ public class APIRLSDriver : IRLSDriver
         return await _apiClient.Postings.View(id);
     }
 
+    public Task<Result<ViewPostingResponse, SystemError>> ObserveViewedPosting(
+        int id, Func<ViewPostingResponse, bool> isExpected, TimeSpan timeout) =>
+        _apiClient.Postings.Observe(id, isExpected, timeout);
+
     public Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber)
         => _apiClient.Postings.List(pageNumber);
 }

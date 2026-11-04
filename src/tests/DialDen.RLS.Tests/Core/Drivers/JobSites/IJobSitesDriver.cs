@@ -5,5 +5,5 @@ public interface IJobSitesDriver
 {
     Task ResetAndAcceptByDefault();
 
-    Task SetResponse(string jobSiteId, int postingId, bool accepts);
+    Task SetResponse(string jobSiteId, int postingId, bool accepts, TimeSpan delay);
 }

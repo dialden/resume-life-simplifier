@@ -4,9 +4,13 @@ namespace DialDen.RLS.Tests.Core.Dsl.External.JobSites;
 
 public class JobSitesDsl
 {
+    // Long enough for the customer to open the posting while its publication is still pending.
+    private static readonly TimeSpan SlowResponseDelay = TimeSpan.FromSeconds(5);
+
     private readonly IJobSitesDriver _driver;
     private readonly UseCaseContext _context;
     private readonly Dictionary<string, bool> _responses = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _slowJobSites = new(StringComparer.Ordinal);
 
     public JobSitesDsl(IJobSitesDriver driver, UseCaseContext context)
     {
@@ -19,6 +23,8 @@ public class JobSitesDsl
     public void AcceptPostings(string jobSiteId) => _responses[jobSiteId] = true;
 
     public void RejectPostings(string jobSiteId) => _responses[jobSiteId] = false;
+
+    public void RespondSlowly(string jobSiteId) => _slowJobSites.Add(jobSiteId);
 
     public Task ConfigureForPosting(string postingAlias, IReadOnlyList<string> jobSiteIds)
     {
@@ -34,9 +40,12 @@ public class JobSitesDsl
     {
         foreach (var jobSiteId in jobSiteIds)
         {
-            if (_responses.TryGetValue(jobSiteId, out var accepts))
+            var slow = _slowJobSites.Contains(jobSiteId);
+            var configured = _responses.TryGetValue(jobSiteId, out var accepts);
+            if (configured || slow)
             {
-                await _driver.SetResponse(jobSiteId, postingId, accepts);
+                await _driver.SetResponse(
+                    jobSiteId, postingId, accepts || !configured, slow ? SlowResponseDelay : TimeSpan.Zero);
             }
         }
     }
