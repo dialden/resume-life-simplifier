@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Layout_SkipToContent" xml:space="preserve"><value>Passer au contenu</value></data>
+  <data name="Layout_Workspace" xml:space="preserve"><value>Espace de travail</value></data>
+  <data name="Layout_BrandHome" xml:space="preserve"><value>Accueil de Resume Life Simplifier</value></data>
+  <data name="Layout_WorkspaceCaption" xml:space="preserve"><value>ESPACE DE TRAVAIL</value></data>
+  <data name="Layout_MainNavigation" xml:space="preserve"><value>Navigation principale</value></data>
+  <data name="Layout_SidebarNoteLine1" xml:space="preserve"><value>Un peu plus d'ordre.</value></data>
+  <data name="Layout_SidebarNoteLine2" xml:space="preserve"><value>Un pas de plus vers la suite.</value></data>
+  <data name="Layout_TopbarTitle" xml:space="preserve"><value>Votre espace carrière</value></data>
+  <data name="Layout_PersonalWorkspace" xml:space="preserve"><value>Espace personnel</value></data>
+  <data name="Layout_Footer" xml:space="preserve"><value>Faites de la place à votre prochaine opportunité.</value></data>
+  <data name="Language_Label" xml:space="preserve"><value>Langue</value></data>
+
+  <data name="Nav_Overview" xml:space="preserve"><value>Aperçu</value></data>
+  <data name="Nav_JobPostings" xml:space="preserve"><value>Offres d'emploi</value></data>
+  <data name="Nav_ViewPostings" xml:space="preserve"><value>Voir les offres</value></data>
+  <data name="Nav_Home" xml:space="preserve"><value>Accueil</value></data>
+
+  <data name="Common_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Common_Title" xml:space="preserve"><value>Titre</value></data>
+  <data name="Common_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Common_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Common_PostingPublications" xml:space="preserve"><value>Publications sur les sites d'emploi</value></data>
+
+  <data name="PostingStatus_Draft" xml:space="preserve"><value>Brouillon</value></data>
+  <data name="PostingStatus_Published" xml:space="preserve"><value>Publiée</value></data>
+  <data name="PublicationStatus_Pending" xml:space="preserve"><value>En attente</value></data>
+  <data name="PublicationStatus_Succeeded" xml:space="preserve"><value>Réussie</value></data>
+  <data name="PublicationStatus_Failed" xml:space="preserve"><value>Échouée</value></data>
+
+  <data name="Api_NoEntryPoint" xml:space="preserve"><value>L'API n'a retourné aucun point d'entrée.</value></data>
+  <data name="Api_NoPosting" xml:space="preserve"><value>L'API n'a retourné aucune offre.</value></data>
+  <data name="Api_NoCreatedPosting" xml:space="preserve"><value>L'API n'a retourné aucune offre créée.</value></data>
+  <data name="Api_NoPostingsPage" xml:space="preserve"><value>L'API n'a retourné aucune page d'offres.</value></data>
+  <data name="Api_NoJobSites" xml:space="preserve"><value>L'API n'a retourné aucun site d'emploi.</value></data>
+  <data name="Api_NoPublishedPosting" xml:space="preserve"><value>L'API n'a retourné aucune offre publiée.</value></data>
+
+  <data name="Home_Loading" xml:space="preserve"><value>Chargement de votre espace...</value></data>
+  <data name="Home_Eyebrow" xml:space="preserve"><value>VOTRE PROCHAIN CHAPITRE</value></data>
+  <data name="Home_Description" xml:space="preserve"><value>Un espace clair pour organiser vos occasions d'emploi.</value></data>
+  <data name="Home_HeroLabel" xml:space="preserve"><value>MOINS DE DÉSORDRE. PLUS DE CLARTÉ.</value></data>
+  <data name="Home_WelcomeTitleLine1" xml:space="preserve"><value>Votre prochaine opportunité</value></data>
+  <data name="Home_WelcomeTitleLine2" xml:space="preserve"><value>commence par un peu d'ordre.</value></data>
+  <data name="Home_WelcomeText" xml:space="preserve"><value>Gardez vos offres d'emploi au même endroit, retrouvez les détails dont vous avez besoin et concentrez-vous sur la suite.</value></data>
+  <data name="Home_AvailableActions" xml:space="preserve"><value>Actions disponibles</value></data>
+  <data name="Home_FeaturesTitle" xml:space="preserve"><value>Une façon plus simple de rester organisé</value></data>
+  <data name="Home_FeaturesSubtitle" xml:space="preserve"><value>Un seul espace. Une vue plus claire.</value></data>
+  <data name="Home_Step1Title" xml:space="preserve"><value>Saisir une opportunité</value></data>
+  <data name="Home_Step1Text" xml:space="preserve"><value>Créez une offre avec un titre reconnaissable pour la retrouver facilement.</value></data>
+  <data name="Home_Step2Title" xml:space="preserve"><value>Tout garder au même endroit</value></data>
+  <data name="Home_Step2Text" xml:space="preserve"><value>Regroupez vos offres au même endroit plutôt que de perdre le fil de vos opportunités.</value></data>
+  <data name="Home_Step3Title" xml:space="preserve"><value>Revenir aux détails</value></data>
+  <data name="Home_Step3Text" xml:space="preserve"><value>Ouvrez une offre pour consulter ses informations quand vous en avez besoin.</value></data>
+  <data name="Home_LoadFailed" xml:space="preserve"><value>Impossible de joindre l'API RLS : {0}</value></data>
+
+  <data name="NotFound_Title" xml:space="preserve"><value>Page introuvable</value></data>
+  <data name="NotFound_Text" xml:space="preserve"><value>Désolé, le contenu que vous cherchez n'existe pas.</value></data>
+  <data name="NotFound_Back" xml:space="preserve"><value>Retour à l'aperçu</value></data>
+
+  <data name="CreatePosting_Title" xml:space="preserve"><value>Créer une offre</value></data>
+  <data name="CreatePosting_Eyebrow" xml:space="preserve"><value>FAITES DE LA PLACE POUR LA SUITE</value></data>
+  <data name="CreatePosting_Description" xml:space="preserve"><value>Ajoutez une nouvelle opportunité à votre espace.</value></data>
+  <data name="CreatePosting_Preparing" xml:space="preserve"><value>Préparation de votre offre...</value></data>
+  <data name="CreatePosting_InformationTitle" xml:space="preserve"><value>Informations sur l'offre</value></data>
+  <data name="CreatePosting_InformationText" xml:space="preserve"><value>Commencez par le poste qui vous intéresse.</value></data>
+  <data name="CreatePosting_TitleHelp" xml:space="preserve"><value>Utilisez un titre que vous reconnaîtrez, par exemple Développeur logiciel.</value></data>
+  <data name="CreatePosting_DescriptionHelp" xml:space="preserve"><value>Décrivez le poste et les responsabilités.</value></data>
+  <data name="CreatePosting_Creating" xml:space="preserve"><value>Création...</value></data>
+  <data name="CreatePosting_HelpTitle" xml:space="preserve"><value>Un bon point de départ</value></data>
+  <data name="CreatePosting_HelpText1" xml:space="preserve"><value>Un titre clair permet de mieux reconnaître une opportunité lorsque vous revenez à vos offres.</value></data>
+  <data name="CreatePosting_HelpText2" xml:space="preserve"><value>Une fois créée, votre offre apparaîtra dans votre liste. Ouvrez-la à tout moment pour voir ses détails.</value></data>
+  <data name="CreatePosting_NotOffered" xml:space="preserve"><value>L'API RLS n'offre pas la création d'offres pour le moment.</value></data>
+  <data name="CreatePosting_LoadFailed" xml:space="preserve"><value>Impossible de charger la création d'offres : {0}</value></data>
+  <data name="CreatePosting_CreateFailed" xml:space="preserve"><value>Impossible de créer l'offre : {0}</value></data>
+
+  <data name="PostingDetails_Title" xml:space="preserve"><value>Détails de l'offre</value></data>
+  <data name="PostingDetails_Breadcrumb" xml:space="preserve"><value>Détails</value></data>
+  <data name="PostingDetails_Eyebrow" xml:space="preserve"><value>VOTRE BIBLIOTHÈQUE D'OPPORTUNITÉS</value></data>
+  <data name="PostingDetails_Description" xml:space="preserve"><value>Un regard plus attentif sur votre opportunité.</value></data>
+  <data name="PostingDetails_Loading" xml:space="preserve"><value>Chargement des détails de l'offre...</value></data>
+  <data name="PostingDetails_PostingEyebrow" xml:space="preserve"><value>OFFRE D'EMPLOI</value></data>
+  <data name="PostingDetails_PostingId" xml:space="preserve"><value>ID de l'offre</value></data>
+  <data name="PostingDetails_NoJobSites" xml:space="preserve"><value>Aucun site d'emploi externe sélectionné.</value></data>
+  <data name="PostingDetails_AsynchronousNotice" xml:space="preserve"><value>Les publications externes sont traitées de façon asynchrone. Actualisez pour voir leurs derniers résultats.</value></data>
+  <data name="PostingDetails_Footer" xml:space="preserve"><value>Fait partie de votre bibliothèque personnelle d'opportunités</value></data>
+  <data name="PostingDetails_NotOffered" xml:space="preserve"><value>L'API RLS n'offre pas les détails d'une offre pour le moment.</value></data>
+  <data name="PostingDetails_NotFound" xml:space="preserve"><value>Offre introuvable.</value></data>
+  <data name="PostingDetails_LoadFailed" xml:space="preserve"><value>Impossible de charger l'offre : {0}</value></data>
+
+  <data name="Postings_Eyebrow" xml:space="preserve"><value>OPPORTUNITÉS, BIEN ORGANISÉES</value></data>
+  <data name="Postings_Description" xml:space="preserve"><value>Toutes vos opportunités, au même endroit.</value></data>
+  <data name="Postings_Loading" xml:space="preserve"><value>Chargement de vos offres...</value></data>
+  <data name="Postings_AllPostings" xml:space="preserve"><value>Toutes les offres</value></data>
+  <data name="Postings_Library" xml:space="preserve"><value>Votre bibliothèque d'opportunités</value></data>
+  <data name="Postings_PublishSelected" xml:space="preserve"><value>Publier la sélection</value></data>
+  <data name="Postings_SelectDraftHelp" xml:space="preserve"><value>Sélectionnez ci-dessous une offre en brouillon à publier.</value></data>
+  <data name="Postings_NoneYet" xml:space="preserve"><value>Aucune offre pour le moment.</value></data>
+  <data name="Postings_NoneYetLine1" xml:space="preserve"><value>Votre prochaine opportunité a sa place ici.</value></data>
+  <data name="Postings_NoneYetLine2" xml:space="preserve"><value>Choisissez Créer une offre pour commencer votre collection.</value></data>
+  <data name="Postings_NoneOnPage" xml:space="preserve"><value>Aucune offre sur cette page.</value></data>
+  <data name="Postings_BeyondEnd" xml:space="preserve"><value>Cette page dépasse la fin de votre bibliothèque d'opportunités.</value></data>
+  <data name="Postings_BackToFirstPage" xml:space="preserve"><value>Retour à la première page</value></data>
+  <data name="Postings_SelectColumn" xml:space="preserve"><value>SÉLECTIONNER UNE OFFRE</value></data>
+  <data name="Postings_StatusColumn" xml:space="preserve"><value>STATUT</value></data>
+  <data name="Postings_ListLabel" xml:space="preserve"><value>Offres</value></data>
+  <data name="Postings_SelectPosting" xml:space="preserve"><value>Sélectionner l'offre {0}, ID {1}</value></data>
+  <data name="Postings_ViewPosting" xml:space="preserve"><value>Voir l'offre {0}, ID {1}</value></data>
+  <data name="Postings_Reference" xml:space="preserve"><value>Offre n° {0}</value></data>
+  <data name="Postings_ViewDetails" xml:space="preserve"><value>Voir les détails</value></data>
+  <data name="Postings_ShowingOne" xml:space="preserve"><value>Affichage de {0}-{1} sur {2} offre</value></data>
+  <data name="Postings_ShowingMany" xml:space="preserve"><value>Affichage de {0}-{1} sur {2} offres</value></data>
+  <data name="Postings_PagesLabel" xml:space="preserve"><value>Pages des offres</value></data>
+  <data name="Postings_Previous" xml:space="preserve"><value>Précédent</value></data>
+  <data name="Postings_PreviousPage" xml:space="preserve"><value>Page précédente</value></data>
+  <data name="Postings_Next" xml:space="preserve"><value>Suivant</value></data>
+  <data name="Postings_NextPage" xml:space="preserve"><value>Page suivante</value></data>
+  <data name="Postings_PageIndicator" xml:space="preserve"><value>Page {0} sur {1}</value></data>
+  <data name="Postings_InvalidPage" xml:space="preserve"><value>Le numéro de page doit être un nombre entier positif. Utilisez Offres d'emploi pour revenir à la première page.</value></data>
+  <data name="Postings_ListNotOffered" xml:space="preserve"><value>L'API RLS n'offre pas de liste d'offres pour le moment.</value></data>
+  <data name="Postings_JobSitesNotOffered" xml:space="preserve"><value>L'API RLS n'offre pas de destinations de sites d'emploi pour le moment.</value></data>
+  <data name="Postings_LoadFailed" xml:space="preserve"><value>Impossible de charger les offres : {0}</value></data>
+
+  <data name="Publish_Title" xml:space="preserve"><value>Publier l'offre</value></data>
+  <data name="Publish_Channels" xml:space="preserve"><value>Canaux de publication</value></data>
+  <data name="Publish_ChannelsHelp" xml:space="preserve"><value>Votre offre sera publiée dans RLS. Sélectionnez les sites d'emploi externes à inclure.</value></data>
+  <data name="Publish_To" xml:space="preserve"><value>Publier sur {0}</value></data>
+  <data name="Publish_LeaveUnchecked" xml:space="preserve"><value>Laissez tous les sites décochés pour publier uniquement dans RLS.</value></data>
+  <data name="Publish_Notice" xml:space="preserve"><value>La confirmation demande la publication sur les sites d'emploi externes sélectionnés. Les fournisseurs de production peuvent créer de véritables offres d'emploi en ligne.</value></data>
+  <data name="Publish_Publishing" xml:space="preserve"><value>Publication...</value></data>
+  <data name="Publish_Confirm" xml:space="preserve"><value>Confirmer la publication</value></data>
+  <data name="Publish_NotOffered" xml:space="preserve"><value>L'API RLS n'offre pas la publication d'offres pour le moment.</value></data>
+  <data name="Publish_NotFound" xml:space="preserve"><value>L'offre sélectionnée est introuvable.</value></data>
+  <data name="Publish_Conflict" xml:space="preserve"><value>Cette offre ne peut pas être publiée à nouveau.</value></data>
+  <data name="Publish_HttpError" xml:space="preserve"><value>Impossible de publier l'offre : l'API a retourné HTTP {0}.</value></data>
+  <data name="Publish_Failed" xml:space="preserve"><value>Impossible de publier l'offre : {0}</value></data>
+</root>

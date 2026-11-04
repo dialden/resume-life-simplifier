@@ -1,4 +1,5 @@
 using DialDen.RLS.API;
+using DialDen.RLS.API.DependencyInjection;
 using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.DependencyInjection;
 using DialDen.RLS.Infrastructure.DependencyInjection;
@@ -20,6 +21,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<JobSitePublicationStatus>());
 });
 builder.Services
+    .AddRLSAPI()
     .AddRLSCore()
     .AddRLSInfrastructure(builder.Configuration);
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
@@ -47,6 +49,7 @@ else
     app.UseHttpsRedirection();
 }
 app.UseCors();
+app.UseRLSLocalization();
 app.MapRLSEndpoints();
 app.MapHealthChecks("/health");
 app.Run();

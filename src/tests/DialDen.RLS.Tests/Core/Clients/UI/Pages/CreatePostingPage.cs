@@ -11,9 +11,9 @@ public class CreatePostingPage : BasePage
 
     public async Task<Result<VoidValue, SystemError>> FillTitle(string title)
     {
-        var titleField = _page.GetByLabel("Title", new() { Exact = true });
+        var titleField = _page.Locator("#posting-title-input");
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
+        var errorBanner = _page.Locator("#blazor-error-ui");
         await titleField.Or(alert).Or(errorBanner).First.WaitForAsync();
 
         if (await alert.IsVisibleAsync())
@@ -32,16 +32,16 @@ public class CreatePostingPage : BasePage
     }
 
     public Task FillDescription(string description) =>
-        _page.GetByLabel("Description", new() { Exact = true }).FillAsync(description);
+        _page.Locator("#posting-description-input").FillAsync(description);
 
     public async Task<Result<CreatePostingResponse, SystemError>> ClickCreatePosting()
     {
         var response = await _page.RunAndWaitForResponseAsync(
-            () => _page.GetByRole(AriaRole.Button, new() { Name = "Create posting", Exact = true }).ClickAsync(),
+            () => _page.GetByTestId("create-posting-submit").ClickAsync(),
             response => response.Request.Method == "POST" && new Uri(response.Url).AbsolutePath == "/postings");
 
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
+        var errorBanner = _page.Locator("#blazor-error-ui");
         var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
         await postings.Or(alert).Or(errorBanner).First.WaitForAsync();
 

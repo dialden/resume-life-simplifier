@@ -3,14 +3,14 @@
 @inject HttpClient Api
 @inject NavigationManager Navigation
 
-<PageTitle>Create posting | Resume Life Simplifier</PageTitle>
+<PageTitle>@L["CreatePosting_Title"] | Resume Life Simplifier</PageTitle>
 
-<div class="breadcrumb"><a href="/postings">View postings</a><span aria-hidden="true">/</span><span>Create posting</span></div>
+<div class="breadcrumb"><a href="/postings">@L["Nav_ViewPostings"]</a><span aria-hidden="true">/</span><span>@L["CreatePosting_Title"]</span></div>
 <div class="page-heading">
     <div>
-        <p class="eyebrow">MAKE ROOM FOR WHAT'S NEXT</p>
-        <h1>Create posting</h1>
-        <p class="page-description">Add a new opportunity to your workspace.</p>
+        <p class="eyebrow">@L["CreatePosting_Eyebrow"]</p>
+        <h1>@L["CreatePosting_Title"]</h1>
+        <p class="page-description">@L["CreatePosting_Description"]</p>
     </div>
 </div>
 
@@ -22,7 +22,7 @@ else if (_createLink is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
-        <p>Preparing your posting...</p>
+        <p>@L["CreatePosting_Preparing"]</p>
     </div>
 }
 else
@@ -31,18 +31,18 @@ else
         <section class="surface-panel" aria-labelledby="posting-information">
             <div class="panel-header">
                 <div>
-                    <h2 id="posting-information">Posting information</h2>
-                    <p class="panel-description">Start with the role you're interested in.</p>
+                    <h2 id="posting-information">@L["CreatePosting_InformationTitle"]</h2>
+                    <p class="panel-description">@L["CreatePosting_InformationText"]</p>
                 </div>
                 <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Color="Color.Primary" />
             </div>
             <form @onsubmit="Submit" @onsubmit:preventDefault>
                 <div class="form-body">
-                    <MudTextField T="string" Label="Title" InputId="posting-title-input"
-                                  Variant="Variant.Outlined" HelperText="Use a title you'll recognize, such as Software Engineer."
+                    <MudTextField T="string" Label="@L["Common_Title"]" InputId="posting-title-input"
+                                  Variant="Variant.Outlined" HelperText="@L["CreatePosting_TitleHelp"]"
                                   @bind-Value="_title" Disabled="_isCreating" />
-                    <MudTextField T="string" Label="Description" InputId="posting-description-input"
-                                  Variant="Variant.Outlined" Lines="6" HelperText="Describe the role and responsibilities."
+                    <MudTextField T="string" Label="@L["Common_Description"]" InputId="posting-description-input"
+                                  Variant="Variant.Outlined" Lines="6" HelperText="@L["CreatePosting_DescriptionHelp"]"
                                   @bind-Value="_description" Disabled="_isCreating" />
                     @if (_creationError is not null)
                     {
@@ -50,20 +50,20 @@ else
                     }
                 </div>
                 <div class="form-actions">
-                    <MudButton Href="/postings" Variant="Variant.Text" Disabled="_isCreating">Cancel</MudButton>
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                    <MudButton Href="/postings" Variant="Variant.Text" Disabled="_isCreating">@L["Common_Cancel"]</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" data-testid="create-posting-submit"
                                Color="Color.Primary" Disabled="_isCreating" StartIcon="@Icons.Material.Outlined.Add">
-                        @(_isCreating ? "Creating..." : "Create posting")
+                        @(_isCreating ? L["CreatePosting_Creating"] : L["CreatePosting_Title"])
                     </MudButton>
                 </div>
             </form>
         </section>
         <aside class="help-panel" aria-labelledby="help-title">
             <span class="feature-icon"><MudIcon Icon="@Icons.Material.Outlined.Lightbulb" /></span>
-            <h2 id="help-title">A good place to start</h2>
-            <p>A clear title makes an opportunity easier to recognize when you return to your postings.</p>
+            <h2 id="help-title">@L["CreatePosting_HelpTitle"]</h2>
+            <p>@L["CreatePosting_HelpText1"]</p>
             <div class="help-divider"></div>
-            <p>Once created, your posting will appear in your list. Open it any time to see its details.</p>
+            <p>@L["CreatePosting_HelpText2"]</p>
         </aside>
     </div>
 }
@@ -81,17 +81,17 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new System.Text.Json.JsonException(L["Api_NoEntryPoint"].Value);
             _createLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "create-posting", Method: "POST" });
             if (_createLink is null)
             {
-                _loadError = "The RLS API does not currently offer posting creation.";
+                _loadError = L["CreatePosting_NotOffered"].Value;
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _loadError = $"Could not load posting creation: {ex.Message}";
+            _loadError = L["CreatePosting_LoadFailed", ex.Message].Value;
         }
     }
 
@@ -121,12 +121,12 @@ else
             response.EnsureSuccessStatusCode();
             _ = await response.Content.ReadFromJsonAsync<CreatePostingResponse>(
                 ApiJsonSerializerOptions.Default)
-                ?? throw new System.Text.Json.JsonException("The API returned no created posting.");
+                ?? throw new System.Text.Json.JsonException(L["Api_NoCreatedPosting"].Value);
             Navigation.NavigateTo("/postings");
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _creationError = $"Could not create the posting: {ex.Message}";
+            _creationError = L["CreatePosting_CreateFailed", ex.Message].Value;
         }
         finally
         {

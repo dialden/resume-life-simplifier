@@ -15,7 +15,7 @@ public class PostingPage : BasePage
     {
         var details = _page.GetByRole(AriaRole.Region, new() { Name = "Posting details", Exact = true });
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
+        var errorBanner = _page.Locator("#blazor-error-ui");
         await details.Or(alert).Or(errorBanner).First.WaitForAsync();
 
         if (await alert.IsVisibleAsync())

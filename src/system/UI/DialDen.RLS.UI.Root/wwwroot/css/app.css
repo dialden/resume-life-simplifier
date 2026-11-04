@@ -58,6 +58,10 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 .workspace-main { margin-left: 248px; min-height: 100dvh; display: flex; flex-direction: column; min-width: 0; }
 .workspace-topbar { min-height: 80px; padding: 20px 44px; background: #fff; border-bottom: 1px solid var(--workspace-border); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .topbar-title { font-size: 0.85rem; color: var(--workspace-muted); }
+.language-switcher { display: inline-flex; margin-left: auto; margin-right: 16px; border: 1px solid var(--workspace-border); border-radius: 8px; overflow: hidden; }
+.language-option { padding: 4px 12px; background: #fff; border: 0; font-size: 0.75rem; font-weight: 600; color: var(--workspace-muted); cursor: pointer; }
+.language-option.is-active { background: #0f766e; color: #fff; }
+.language-option:focus-visible { outline: 2px solid #0f766e; outline-offset: -2px; }
 .workspace-label { display: flex; align-items: center; gap: 9px; font-size: 0.75rem; color: var(--workspace-muted); }
 .workspace-dot { width: 7px; height: 7px; background: var(--workspace-teal); border-radius: 50%; }
 .workspace-content { width: 100%; max-width: 1360px; margin: 0 auto; padding: 42px 44px 60px; flex: 1; }

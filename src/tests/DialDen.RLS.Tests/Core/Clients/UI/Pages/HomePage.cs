@@ -17,7 +17,7 @@ public class HomePage : BasePage
     {
         var heading = _page.GetByRole(AriaRole.Heading);
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
+        var errorBanner = _page.Locator("#blazor-error-ui");
         // The page ends up in exactly one of three states; wait for whichever comes first
         await heading.Or(alert).Or(errorBanner).First.WaitForAsync();
 
@@ -31,6 +31,9 @@ public class HomePage : BasePage
         }
         return null;
     }
+
+    public Task<string> ReadTitle() =>
+        _page.GetByRole(AriaRole.Heading, new() { Level = 1 }).InnerTextAsync();
 
     public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
@@ -62,7 +65,7 @@ public class HomePage : BasePage
             return Result<PostingsPage, SystemError>.Failure(SystemError.Of(error));
         }
 
-        var postingsLink = _page.GetByRole(AriaRole.Link, new() { Name = "View postings", Exact = true });
+        var postingsLink = _page.GetByTestId("view-postings-link");
         if (!await postingsLink.IsVisibleAsync())
         {
             return Result<PostingsPage, SystemError>.Failure(

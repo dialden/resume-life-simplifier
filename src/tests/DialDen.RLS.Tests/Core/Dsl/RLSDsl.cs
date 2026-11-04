@@ -21,4 +21,8 @@ public class RLSDsl
     public ViewPosting ViewPosting() => _useCaseFactory.Create<ViewPosting>();
 
     public ListPostings ListPostings() => _useCaseFactory.Create<ListPostings>();
+
+    public ChooseLanguage ChooseLanguage() => _useCaseFactory.Create<ChooseLanguage>();
+
+    public ViewOverview ViewOverview() => _useCaseFactory.Create<ViewOverview>();
 }

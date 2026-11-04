@@ -9,4 +9,6 @@ public interface IRLSDriver
     Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds);
     Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id);
     Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber);
+    Task<Result<VoidValue, SystemError>> ChooseLanguage(Language language);
+    Task<Result<OverviewResponse, SystemError>> ViewOverview();
 }

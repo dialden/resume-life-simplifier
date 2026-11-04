@@ -1,9 +1,11 @@
 using DialDen.RLS.Abstractions.Postings;
+using DialDen.RLS.API.Resources;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Localization;
 
 namespace DialDen.RLS.API;
 
@@ -32,6 +34,7 @@ public static class RLSEndpoints
         app.MapPost("/postings", async Task<Results<Created<CreatePostingResponse>, ValidationProblem>> (
                 CreatePostingRequest request,
                 [FromServices] ICreatePosting createPosting,
+                [FromServices] IStringLocalizer<ApiMessages> messages,
                 CancellationToken cancellationToken) =>
             {
                 try
@@ -39,11 +42,11 @@ public static class RLSEndpoints
                     var posting = await createPosting.Create(request, cancellationToken);
                     return TypedResults.Created($"/postings/{posting.Id}", posting);
                 }
-                catch (InvalidPostingDescriptionException exception)
+                catch (InvalidPostingDescriptionException)
                 {
                     return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                     {
-                        ["description"] = [exception.Message]
+                        ["description"] = [messages["PostingDescriptionRequired"]]
                     });
                 }
             })
@@ -55,6 +58,7 @@ public static class RLSEndpoints
 
         app.MapGet("/postings", async Task<Results<Ok<ListPostingsResponse>, ValidationProblem>> (
                 [FromServices] IListPostings listPostings,
+                [FromServices] IStringLocalizer<ApiMessages> messages,
                 CancellationToken cancellationToken,
                 int pageNumber = 1) =>
             {
@@ -62,7 +66,7 @@ public static class RLSEndpoints
                 {
                     return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                     {
-                        ["pageNumber"] = ["Page number must be greater than zero."]
+                        ["pageNumber"] = [messages["PageNumberMustBePositive"]]
                     });
                 }
 
@@ -96,13 +100,14 @@ public static class RLSEndpoints
                 int id,
                 UpdatePostingRequest request,
                 [FromServices] IPublishPosting publishPosting,
+                [FromServices] IStringLocalizer<ApiMessages> messages,
                 CancellationToken cancellationToken) =>
             {
                 if (request.Status is not PostingStatus.Published)
                 {
                     return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                     {
-                        ["status"] = ["Only publishing a posting is currently supported."]
+                        ["status"] = [messages["OnlyPublishingSupported"]]
                     });
                 }
 
@@ -114,16 +119,16 @@ public static class RLSEndpoints
                         ? TypedResults.NotFound()
                         : TypedResults.Ok(posting);
                 }
-                catch (PostingAlreadyPublishedException exception)
+                catch (PostingAlreadyPublishedException)
                 {
                     return TypedResults.Problem(
-                        statusCode: StatusCodes.Status409Conflict, detail: exception.Message);
+                        statusCode: StatusCodes.Status409Conflict, detail: messages["PostingAlreadyPublished"]);
                 }
-                catch (InvalidJobSitesException exception)
+                catch (InvalidJobSitesException)
                 {
                     return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                     {
-                        ["jobSiteIds"] = [exception.Message]
+                        ["jobSiteIds"] = [messages["JobSitesInvalid"]]
                     });
                 }
             })

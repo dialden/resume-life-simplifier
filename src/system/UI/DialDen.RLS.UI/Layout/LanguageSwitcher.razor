@@ -1,0 +1,37 @@
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<div class="language-switcher" role="group" aria-label="@L["Language_Label"]">
+    @foreach (var language in RLSLanguages.All)
+    {
+        var selected = language.Code == _current;
+        <button type="button"
+                class="language-option@(selected ? " is-active" : "")"
+                lang="@language.Code"
+                aria-label="@language.Name"
+                aria-pressed="@(selected ? "true" : "false")"
+                @onclick="() => ChooseAsync(language.Code)">
+            @language.Code.ToUpperInvariant()
+        </button>
+    }
+</div>
+
+@code {
+    private string _current = RLSLanguages.French;
+
+    protected override void OnInitialized()
+    {
+        _current = RLSLanguages.Resolve(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+    }
+
+    private async Task ChooseAsync(string code)
+    {
+        if (code == _current)
+        {
+            return;
+        }
+
+        await JS.InvokeVoidAsync("localStorage.setItem", RLSLanguages.StorageKey, code);
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+}

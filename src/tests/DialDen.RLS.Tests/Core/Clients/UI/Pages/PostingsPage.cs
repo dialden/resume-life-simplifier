@@ -14,7 +14,7 @@ public class PostingsPage : BasePage
 
     public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
-        await _page.GetByRole(AriaRole.Link, new() { Name = "Create posting", Exact = true }).ClickAsync();
+        await _page.GetByTestId("create-posting-link").ClickAsync();
         await _page.WaitForURLAsync("**/postings/create");
         var createPostingPage = new CreatePostingPage(_page);
         var fillTitleResult = await createPostingPage.FillTitle(title);
@@ -33,7 +33,7 @@ public class PostingsPage : BasePage
         var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
         var empty = _page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No postings yet." });
         var alert = _page.GetByRole(AriaRole.Alert);
-        var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
+        var errorBanner = _page.Locator("#blazor-error-ui");
         await postings.Or(empty).Or(alert).Or(errorBanner).First.WaitForAsync();
 
         if (await alert.IsVisibleAsync())

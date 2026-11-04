@@ -32,4 +32,14 @@ public class APIRLSDriver : IRLSDriver
 
     public Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber)
         => _apiClient.Postings.List(pageNumber);
+
+    public Task<Result<VoidValue, SystemError>> ChooseLanguage(Language language)
+    {
+        _apiClient.AcceptLanguage(language == Language.French ? "fr" : "en");
+        return Task.FromResult(Result.Success<SystemError>());
+    }
+
+    public Task<Result<OverviewResponse, SystemError>> ViewOverview()
+        => Task.FromResult(Result<OverviewResponse, SystemError>.Failure(
+            SystemError.Of("The API has no overview to view.")));
 }

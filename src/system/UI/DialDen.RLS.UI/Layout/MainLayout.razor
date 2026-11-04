@@ -6,46 +6,47 @@
 <MudSnackbarProvider />
 
 <div class="workspace-shell">
-    <a class="skip-link" href="#main-content">Skip to content</a>
-    <aside class="workspace-sidebar" aria-label="Workspace">
-        <a class="brand" href="/" aria-label="Resume Life Simplifier home">
+    <a class="skip-link" href="#main-content">@L["Layout_SkipToContent"]</a>
+    <aside class="workspace-sidebar" aria-label="@L["Layout_Workspace"]">
+        <a class="brand" href="/" aria-label="@L["Layout_BrandHome"]">
             <span class="brand-mark" aria-hidden="true">
                 <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
             </span>
             <span class="brand-name">Resume Life<span>Simplifier</span></span>
         </a>
 
-        <div class="nav-caption">WORKSPACE</div>
-        <nav class="workspace-nav" aria-label="Main navigation">
-            <NavLink href="/" Match="NavLinkMatch.All" class="workspace-nav-link">
+        <div class="nav-caption">@L["Layout_WorkspaceCaption"]</div>
+        <nav class="workspace-nav" aria-label="@L["Layout_MainNavigation"]">
+            <NavLink href="/" Match="NavLinkMatch.All" class="workspace-nav-link" data-testid="overview-link">
                 <MudIcon Icon="@Icons.Material.Outlined.SpaceDashboard" />
-                <span>Overview</span>
+                <span>@L["Nav_Overview"]</span>
             </NavLink>
             <NavLink href="/postings" class="workspace-nav-link">
                 <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
-                <span>Job postings</span>
+                <span>@L["Nav_JobPostings"]</span>
             </NavLink>
         </nav>
 
         <div class="sidebar-note">
             <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" />
-            <p>A little more organized.<br />A step closer to what's next.</p>
+            <p>@L["Layout_SidebarNoteLine1"]<br />@L["Layout_SidebarNoteLine2"]</p>
         </div>
         <div class="sidebar-footer">Resume Life Simplifier</div>
     </aside>
 
     <div class="workspace-main">
         <header class="workspace-topbar">
-            <span class="topbar-title">Your career workspace</span>
+            <span class="topbar-title">@L["Layout_TopbarTitle"]</span>
+            <LanguageSwitcher />
             <span class="workspace-label">
                 <span class="workspace-dot" aria-hidden="true"></span>
-                Personal workspace
+                @L["Layout_PersonalWorkspace"]
             </span>
         </header>
         <main id="main-content" class="workspace-content" tabindex="-1">
             @Body
         </main>
-        <footer class="workspace-footer">Make room for your next opportunity.</footer>
+        <footer class="workspace-footer">@L["Layout_Footer"]</footer>
     </div>
 </div>
 

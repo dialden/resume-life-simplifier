@@ -61,4 +61,21 @@ public class UIRLSDriver : IRLSDriver
         }
         return await _postingsPage.ReadPage(pageNumber);
     }
+
+    public async Task<Result<VoidValue, SystemError>> ChooseLanguage(Language language)
+    {
+        var homePage = await _uiClient.OpenHomePage();
+        await homePage.ChooseLanguage(language);
+        return Result.Success<SystemError>();
+    }
+
+    public async Task<Result<OverviewResponse, SystemError>> ViewOverview()
+    {
+        var homePage = await _uiClient.OpenHomePage();
+        var error = await homePage.GetError();
+        return error == null
+            ? Result<OverviewResponse, SystemError>.Success(new OverviewResponse(await homePage.ReadTitle()))
+            : Result<OverviewResponse, SystemError>.Failure(
+                SystemError.Of($"The RLS UI displayed an error: {error}"));
+    }
 }

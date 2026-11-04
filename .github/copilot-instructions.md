@@ -47,6 +47,25 @@
 - Some layers are still scaffolding. Follow these intended boundaries when
   implementing features; missing wiring is not permission to bypass them.
 
+## Localization
+
+- Always provide both French and English for any text shown to the user: UI
+  text and API messages (validation errors, conflicts, and other responses a
+  customer can see). Never hard-code user-visible strings.
+- UI text goes in the shared
+  [SharedResource](../src/system/UI/DialDen.RLS.UI/Resources/) resx files
+  (`SharedResource.resx` English, `SharedResource.fr.resx` French) and is read
+  through `IStringLocalizer<SharedResource>` (`L["Key"]`). API messages go in
+  the API's `ApiMessages.resx` / `ApiMessages.fr.resx` and are read through
+  `IStringLocalizer<ApiMessages>`.
+- Add every new key to both the English and French files in the same change.
+- French is the default language; English is chosen explicitly through the UI
+  language switcher or the `Accept-Language` header.
+- Core exception messages are English diagnostics and are not shown to users;
+  the API adapter maps them to localized messages.
+- Cover new user-visible text with acceptance tests through the existing DSL,
+  using language-agnostic locators (test ids, input ids) where possible.
+
 ## Test-first development
 
 - Start each behavior change with an acceptance test that describes the customer

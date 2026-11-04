@@ -1,3 +1,4 @@
+using DialDen.RLS.Tests.Core.Drivers.RLS;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Microsoft.Playwright;
 
@@ -14,9 +15,23 @@ public abstract class BasePage
 
     public async Task<HomePage> GoToHomePage()
     {
-        await _page.GetByRole(AriaRole.Link, new() { Name = "Overview", Exact = true }).ClickAsync();
+        await _page.GetByTestId("overview-link").ClickAsync();
         await _page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/");
         return new HomePage(_page);
+    }
+
+    public async Task ChooseLanguage(Language language)
+    {
+        var (name, tag) = language == Language.French ? ("Français", "fr") : ("English", "en");
+        var button = _page.GetByRole(AriaRole.Button, new() { Name = name, Exact = true });
+        if (await button.GetAttributeAsync("aria-pressed") == "true")
+        {
+            return;
+        }
+
+        await button.ClickAsync();
+        // The workspace reloads in the chosen language.
+        await _page.Locator($"html[lang='{tag}']").WaitForAsync(new() { State = WaitForSelectorState.Attached });
     }
 
     protected static async Task<IReadOnlyList<JobSitePublicationResponse>> ReadJobSitePublications(ILocator container)
