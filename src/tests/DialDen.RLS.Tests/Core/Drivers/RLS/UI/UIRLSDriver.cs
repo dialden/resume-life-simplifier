@@ -47,6 +47,17 @@ public class UIRLSDriver : IRLSDriver
         return await homePage.ViewPosting(id);
     }
 
+    public async Task<Result<ViewPostingResponse, SystemError>> ObserveViewedPosting(
+        int id, Func<ViewPostingResponse, bool> isExpected, TimeSpan timeout)
+    {
+        var postingPage = _uiClient.DisplayedPostingPage(id);
+        if (postingPage.IsFailure)
+        {
+            return Result<ViewPostingResponse, SystemError>.Failure(postingPage.Error);
+        }
+        return await postingPage.Value.ObservePosting(isExpected, timeout);
+    }
+
     public async Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber)
     {
         if (_postingsPage is null)

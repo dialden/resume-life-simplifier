@@ -32,6 +32,14 @@ public class UIClient : IDisposable
         return await new HomePage(_page).GoToHomePage();
     }
 
+    public Result<PostingPage, SystemError> DisplayedPostingPage(int id)
+    {
+        var path = _page is null ? null : new Uri(_page.Url).AbsolutePath;
+        return path == $"/postings/{id}"
+            ? Result<PostingPage, SystemError>.Success(new PostingPage(_page!))
+            : Result<PostingPage, SystemError>.Failure(SystemError.Of($"Posting {id} is not displayed."));
+    }
+
     public void Dispose()
     {
         _browser?.CloseAsync().GetAwaiter().GetResult();

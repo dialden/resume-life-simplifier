@@ -15,10 +15,12 @@ public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnly
         }
     }
 
-    public Task SetResponse(string jobSiteId, int postingId, bool accepts) =>
-        PostMapping(jobSiteId, postingId.ToString(System.Globalization.CultureInfo.InvariantCulture), accepts);
+    public Task SetResponse(string jobSiteId, int postingId, bool accepts, TimeSpan delay) =>
+        PostMapping(jobSiteId, postingId.ToString(System.Globalization.CultureInfo.InvariantCulture), accepts,
+            delay: delay);
 
-    private Task PostMapping(string jobSiteId, string postingId, bool accepts, string matcher = "ExactMatcher") =>
+    private Task PostMapping(
+        string jobSiteId, string postingId, bool accepts, string matcher = "ExactMatcher", TimeSpan delay = default) =>
         adminApi.PostMappingAsync(new MappingModel
         {
             Request = new RequestModel
@@ -34,6 +36,10 @@ public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnly
                     }
                 ]
             },
-            Response = new ResponseModel { StatusCode = accepts ? 204 : 422 }
+            Response = new ResponseModel
+            {
+                StatusCode = accepts ? 204 : 422,
+                Delay = delay > TimeSpan.Zero ? (int)delay.TotalMilliseconds : null
+            }
         });
 }

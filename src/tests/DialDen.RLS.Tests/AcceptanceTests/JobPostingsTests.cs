@@ -124,6 +124,20 @@ public class JobPostingsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task ViewedPostingUpdatesWhenJobSitePublicationCompletes(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().JobSite("stub-job-site").AcceptsPostings().RespondsSlowly()
+            .And().Posting().PublishedTo("stub-job-site")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting()
+                    .HasJobSitePublication("stub-job-site", "Pending")
+                    .UpdatesToJobSitePublication("stub-job-site", "Succeeded");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task CanViewSucceededJobSitePublication(Channel channel)
     {
         await _testEnvironment.Scenario(channel)

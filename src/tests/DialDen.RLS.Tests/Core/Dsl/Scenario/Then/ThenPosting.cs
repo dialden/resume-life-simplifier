@@ -83,6 +83,21 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
         return this;
     }
 
+    public ThenPosting<TSuccessResponse, TSuccessVerification> UpdatesToJobSitePublication(
+        string jobSiteId, string expectedStatus)
+    {
+        _observations.Add(async verification =>
+        {
+            if (verification is not ViewPostingVerification viewed)
+            {
+                throw new InvalidOperationException("Live publication updates can only be observed while viewing a posting.");
+            }
+            await _stage.App.RLS.ViewPosting().WithId(viewed.Id).WhileViewingUntilJobSitePublication(
+                jobSiteId, expectedStatus, TimeSpan.FromSeconds(30));
+        });
+        return this;
+    }
+
     public ThenPosting<TSuccessResponse, TSuccessVerification> HasJobSitePublication(string jobSiteId, string expectedStatus)
     {
         _verifications.Add(v =>

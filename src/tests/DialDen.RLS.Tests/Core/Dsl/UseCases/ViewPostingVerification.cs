@@ -10,6 +10,8 @@ public class ViewPostingVerification : ResponseVerification<ViewPostingResponse>
     {
     }
 
+    public int Id => Response.Id;
+
     public ViewPostingVerification HasId(int expectedId)
     {
         Response.Id.ShouldBe(expectedId);

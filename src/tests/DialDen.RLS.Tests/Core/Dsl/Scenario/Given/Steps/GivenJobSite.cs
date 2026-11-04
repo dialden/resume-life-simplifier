@@ -21,6 +21,16 @@ public class GivenJobSite : BaseGiven
         return this;
     }
 
+    public GivenJobSite RespondsSlowly()
+    {
+        _actions.Add(app =>
+        {
+            app.ExternalSystems.JobSites.RespondSlowly(_jobSiteId);
+            return Task.CompletedTask;
+        });
+        return this;
+    }
+
     public GivenJobSite RejectsPostings()
     {
         _actions.Add(app =>

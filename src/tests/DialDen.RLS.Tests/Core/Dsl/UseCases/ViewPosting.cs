@@ -58,6 +58,25 @@ public class ViewPosting : RLSUseCase<ViewPostingResponse, ViewPostingVerificati
         }
     }
 
+    /// <summary>
+    /// Keeps observing the posting being viewed, without viewing it again, until its publication on the
+    /// job site shows the expected status.
+    /// </summary>
+    public async Task WhileViewingUntilJobSitePublication(string jobSiteId, string expectedStatus, TimeSpan timeout)
+    {
+        var id = ResolveId();
+        var result = await Driver.ObserveViewedPosting(
+            id,
+            posting => posting.JobSitePublications.Any(
+                publication => publication.JobSiteId == jobSiteId && publication.Status == expectedStatus),
+            timeout);
+        if (result.IsFailure)
+        {
+            throw new InvalidOperationException($"Could not observe posting {id}: {result.Error}");
+        }
+        new ViewPostingVerification(result.Value, Context).HasJobSitePublication(jobSiteId, expectedStatus);
+    }
+
     public override async Task<RLSUseCaseResult<ViewPostingResponse, ViewPostingVerification>> Execute()
     {
         var result = await Driver.ViewPosting(ResolveId());
