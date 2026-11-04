@@ -19,8 +19,7 @@ public static class RLSEndpoints
                 new Link("list-job-sites", "/job-sites", "GET"),
                 new Link("publish-posting", "/postings/{id}", "PATCH"),
                 new Link("view-posting", "/postings/{id}", "GET"),
-                new Link("posting-events", "/postings/{id}/events", "GET"),
-                new Link("notifications", "/api/notifications/stream", "GET")
+                new Link("notifications", "/notifications/stream", "GET")
             ])))
             .WithName("EntryPoint")
             .WithSummary("API entry point returning links to the available actions.")
@@ -138,7 +137,6 @@ public static class RLSEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesValidationProblem();
 
-        app.MapPostingEvents();
         app.MapNotifications();
 
         return app;

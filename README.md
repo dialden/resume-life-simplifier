@@ -112,7 +112,7 @@ publish response is therefore always `Pending`. The UI shows these outcomes in
 the list and posting details. Postings without external destinations have an
 empty `jobSitePublications` collection.
 
-The demo API also exposes `GET /api/notifications/stream` (entry-point relation
+The demo API also exposes `GET /notifications/stream` (entry-point relation
 `notifications`) as `text/event-stream`. It sends `ready` on connection,
 `notifications-changed` when the API-local `SseConnectionManager.Broadcast()` is
 called, and heartbeat comments while idle. Clients should reread current data
@@ -128,11 +128,17 @@ the Worker's transactional consumers remain unchanged.
 The UI's `NotificationStreamClient` reads one connection using
 browser response streaming and .NET's SSE parser, exposing `Ready` and `Changed`
 signals. It is registered through `AddRLSUI()` and uses the UI's configured API
-`HttpClient`. Both the posting-details and postings-list pages follow the advertised
-notification link and reread their REST resource on either signal without
+`HttpClient`. The layout starts a scoped `NotificationService`, which follows the
+advertised notification link and owns one SSE connection per browser tab across
+navigation. Pages receive signals through disposable, bounded subscriptions;
+slow or failing page refreshes do not block other subscribers. New subscribers
+receive the latest signal so they can refresh even if the stream is already ready,
+or display a warning if it has failed. Both the posting-details and postings-list
+pages reread their REST resource on ready or changed signals without
 navigating or clearing the displayed data. The list refreshes only its current
 page, preserving selection and dialog state; refreshes are serialized with publishing.
-Leaving either page cancels its subscription. Stream or refresh
+Leaving either page cancels only its subscription; disposing the layout closes
+the shared connection. Stream or refresh
 failures retain the last posting and display a localized warning; reload to
 resume updates. Automatic reconnection is not wired yet.
 

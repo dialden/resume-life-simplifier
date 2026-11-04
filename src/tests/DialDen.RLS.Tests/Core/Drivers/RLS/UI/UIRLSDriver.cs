@@ -58,9 +58,17 @@ public class UIRLSDriver : IRLSDriver
             {
                 return Result<ViewPostingResponse, SystemError>.Failure(list.Error);
             }
-            return await list.Value.ObservePosting(id, isExpected, timeout);
+            var observed = await list.Value.ObservePosting(id, isExpected, timeout);
+            var connection = _uiClient.CheckSharedLiveUpdates();
+            return observed.IsFailure || connection.IsSuccess
+                ? observed
+                : Result<ViewPostingResponse, SystemError>.Failure(connection.Error);
         }
-        return await postingPage.Value.ObservePosting(isExpected, timeout);
+        var result = await postingPage.Value.ObservePosting(isExpected, timeout);
+        var sharedConnection = _uiClient.CheckSharedLiveUpdates();
+        return result.IsFailure || sharedConnection.IsSuccess
+            ? result
+            : Result<ViewPostingResponse, SystemError>.Failure(sharedConnection.Error);
     }
 
     public async Task<Result<PostingPageResponse, SystemError>> ListPostings(int pageNumber)

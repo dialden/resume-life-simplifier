@@ -13,7 +13,7 @@ public static class NotificationEndpoints
 {
     public static IEndpointRouteBuilder MapNotifications(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/notifications/stream", Stream)
+        app.MapGet("/notifications/stream", Stream)
             .WithName("NotificationStream")
             .WithSummary("Streams refresh hints broadcast by this API instance.")
             .WithDescription("Sends ready on connection and notifications-changed on a local broadcast. Clients reread current data through REST. Comment frames are heartbeats.")

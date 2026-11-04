@@ -69,7 +69,7 @@ public class PostingsEndpoint
         Result<ViewPostingResponse, SystemError>? latest = null;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, "/api/notifications/stream");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/notifications/stream");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
             using var response = await _httpClient.SendAsync(
                 request, HttpCompletionOption.ResponseHeadersRead, observing.Token);

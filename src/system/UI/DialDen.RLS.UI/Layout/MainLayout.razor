@@ -1,5 +1,8 @@
 ﻿@inherits LayoutComponentBase
 
+@implements IAsyncDisposable
+@inject DialDen.RLS.UI.Notifications.NotificationService Notifications
+
 <MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -50,6 +53,42 @@
 </div>
 
 @code {
+    private readonly CancellationTokenSource _notificationsCancellation = new();
+    private Task? _notifications;
+
+    protected override void OnInitialized()
+    {
+        _notifications = ObserveNotifications();
+    }
+
+    private async Task ObserveNotifications()
+    {
+        try
+        {
+            await Notifications.RunAsync(_notificationsCancellation.Token);
+        }
+        catch (Exception exception)
+        {
+            await DispatchExceptionAsync(exception);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _notificationsCancellation.Cancel();
+        try
+        {
+            if (_notifications is not null)
+            {
+                await _notifications;
+            }
+        }
+        finally
+        {
+            _notificationsCancellation.Dispose();
+        }
+    }
+
     private readonly MudTheme _theme = new()
     {
         PaletteLight = new PaletteLight

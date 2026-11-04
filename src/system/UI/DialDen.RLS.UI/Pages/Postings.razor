@@ -5,7 +5,7 @@
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject HttpClient Api
-@inject NotificationStreamClient Notifications
+@inject NotificationService Notifications
 @inject ILogger<Postings> Logger
 
 <PageTitle>Job postings | Resume Life Simplifier</PageTitle>
@@ -316,17 +316,7 @@ else
             {
                 _page = page;
                 _jobSites = sites;
-                var notificationsLink = entryPoint.Links.SingleOrDefault(
-                    link => link is { Rel: "notifications", Method: "GET" });
-                if (notificationsLink is null)
-                {
-                    Logger.LogWarning("The API does not advertise a notification stream.");
-                    _liveUpdatesUnavailable = true;
-                }
-                else
-                {
-                    _observation = Observe(notificationsLink.Href, href, version, token);
-                }
+                _observation = Observe(href, version, token);
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -420,12 +410,25 @@ else
         }
     }
 
-    private async Task Observe(string streamHref, string pageHref, int version, CancellationToken token)
+    private async Task Observe(string pageHref, int version, CancellationToken token)
     {
+        using var subscription = Notifications.Subscribe();
         try
         {
-            await foreach (var signal in Notifications.ReadAsync(streamHref, token))
+            await foreach (var signal in subscription.Signals.ReadAllAsync(token))
             {
+                if (signal == NotificationSignal.Unavailable)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (!token.IsCancellationRequested && version == _loadVersion)
+                        {
+                            _liveUpdatesUnavailable = true;
+                            StateHasChanged();
+                        }
+                    });
+                    continue;
+                }
                 // Serialize refreshes with publishing so an older GET cannot overwrite its result.
                 await _refreshGate.WaitAsync(token);
                 try

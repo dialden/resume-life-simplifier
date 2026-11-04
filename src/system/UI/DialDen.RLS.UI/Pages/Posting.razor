@@ -6,7 +6,7 @@
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject HttpClient Api
-@inject NotificationStreamClient Notifications
+@inject NotificationService Notifications
 @inject ILogger<Posting> Logger
 
 <PageTitle>Posting details | Resume Life Simplifier</PageTitle>
@@ -136,16 +136,7 @@ else
             token.ThrowIfCancellationRequested();
             _posting = posting;
 
-            var notificationsLink = entryPoint.Links.SingleOrDefault(
-                link => link is { Rel: "notifications", Method: "GET" });
-            if (notificationsLink is null)
-            {
-                Logger.LogWarning("The API does not advertise a notification stream.");
-                _liveUpdatesUnavailable = true;
-                return;
-            }
-
-            _observation = Observe(notificationsLink.Href, href, token);
+            _observation = Observe(href, token);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -160,12 +151,25 @@ else
         }
     }
 
-    private async Task Observe(string streamHref, string postingHref, CancellationToken token)
+    private async Task Observe(string postingHref, CancellationToken token)
     {
+        using var subscription = Notifications.Subscribe();
         try
         {
-            await foreach (var signal in Notifications.ReadAsync(streamHref, token))
+            await foreach (var signal in subscription.Signals.ReadAllAsync(token))
             {
+                if (signal == NotificationSignal.Unavailable)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (!token.IsCancellationRequested)
+                        {
+                            _liveUpdatesUnavailable = true;
+                            StateHasChanged();
+                        }
+                    });
+                    continue;
+                }
                 var refreshed = await Api.GetFromJsonAsync<ViewPostingResponse>(
                     postingHref, ApiJsonSerializerOptions.Default, token)
                     ?? throw new System.Text.Json.JsonException("The API returned no posting.");

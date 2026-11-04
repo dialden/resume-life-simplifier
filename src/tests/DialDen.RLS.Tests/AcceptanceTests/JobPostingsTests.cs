@@ -185,6 +185,17 @@ public class JobPostingsTests
     }
 
     [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task LiveUpdatesRemainAvailableAcrossNavigation()
+    {
+        await _testEnvironment.Scenario(Channel.UI)
+            .Given().Posting().PublishedOnJobSite("stub-job-site")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().UpdatesToJobSitePublication("stub-job-site", "Succeeded");
+    }
+
+    [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
     public async Task JobSitePublicationFailsWhenTheJobSiteRejectsThePosting(Channel channel)
     {

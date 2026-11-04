@@ -9,6 +9,7 @@ public static class UIServiceCollectionExtensions
     {
         services.AddLocalization(options => options.ResourcesPath = "Resources");
         services.AddScoped<NotificationStreamClient>();
+        services.AddScoped<NotificationService>();
         return services;
     }
 }
