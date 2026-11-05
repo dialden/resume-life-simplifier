@@ -158,30 +158,35 @@ else
         {
             await foreach (var signal in subscription.Signals.ReadAllAsync(token))
             {
-                if (signal == NotificationSignal.Unavailable)
+                switch (signal)
                 {
-                    await InvokeAsync(() =>
-                    {
-                        if (!token.IsCancellationRequested)
+                    case NotificationSignal.Unavailable:
+                        await InvokeAsync(() =>
                         {
-                            _liveUpdatesUnavailable = true;
-                            StateHasChanged();
-                        }
-                    });
-                    continue;
-                }
-                var refreshed = await Api.GetFromJsonAsync<ViewPostingResponse>(
-                    postingHref, ApiJsonSerializerOptions.Default, token)
-                    ?? throw new System.Text.Json.JsonException("The API returned no posting.");
+                            if (!token.IsCancellationRequested)
+                            {
+                                _liveUpdatesUnavailable = true;
+                                StateHasChanged();
+                            }
+                        });
+                        break;
 
-                await InvokeAsync(() =>
-                {
-                    if (!token.IsCancellationRequested)
-                    {
-                        _posting = refreshed;
-                        StateHasChanged();
-                    }
-                });
+                    case NotificationSignal.Ready:
+                    case NotificationSignal.Changed:
+                        var refreshed = await Api.GetFromJsonAsync<ViewPostingResponse>(
+                            postingHref, ApiJsonSerializerOptions.Default, token)
+                            ?? throw new System.Text.Json.JsonException("The API returned no posting.");
+
+                        await InvokeAsync(() =>
+                        {
+                            if (!token.IsCancellationRequested)
+                            {
+                                _posting = refreshed;
+                                StateHasChanged();
+                            }
+                        });
+                        break;
+                }
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)

@@ -417,37 +417,42 @@ else
         {
             await foreach (var signal in subscription.Signals.ReadAllAsync(token))
             {
-                if (signal == NotificationSignal.Unavailable)
+                switch (signal)
                 {
-                    await InvokeAsync(() =>
-                    {
-                        if (!token.IsCancellationRequested && version == _loadVersion)
+                    case NotificationSignal.Unavailable:
+                        await InvokeAsync(() =>
                         {
-                            _liveUpdatesUnavailable = true;
-                            StateHasChanged();
-                        }
-                    });
-                    continue;
-                }
-                // Serialize refreshes with publishing so an older GET cannot overwrite its result.
-                await _refreshGate.WaitAsync(token);
-                try
-                {
-                    var refreshed = await Api.GetFromJsonAsync<ListPostingsResponse>(
-                        pageHref, ApiJsonSerializerOptions.Default, token)
-                        ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
-                    await InvokeAsync(() =>
-                    {
-                        if (!token.IsCancellationRequested && version == _loadVersion)
+                            if (!token.IsCancellationRequested && version == _loadVersion)
+                            {
+                                _liveUpdatesUnavailable = true;
+                                StateHasChanged();
+                            }
+                        });
+                        break;
+
+                    case NotificationSignal.Ready:
+                    case NotificationSignal.Changed:
+                        // Serialize refreshes with publishing so an older GET cannot overwrite its result.
+                        await _refreshGate.WaitAsync(token);
+                        try
                         {
-                            _page = refreshed;
-                            StateHasChanged();
+                            var refreshed = await Api.GetFromJsonAsync<ListPostingsResponse>(
+                                pageHref, ApiJsonSerializerOptions.Default, token)
+                                ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
+                            await InvokeAsync(() =>
+                            {
+                                if (!token.IsCancellationRequested && version == _loadVersion)
+                                {
+                                    _page = refreshed;
+                                    StateHasChanged();
+                                }
+                            });
                         }
-                    });
-                }
-                finally
-                {
-                    _refreshGate.Release();
+                        finally
+                        {
+                            _refreshGate.Release();
+                        }
+                        break;
                 }
             }
         }
