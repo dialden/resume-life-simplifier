@@ -8,10 +8,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddMudServices();
-
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
-    ?? throw new InvalidOperationException("'ApiBaseUrl' is not configured in wwwroot/appsettings.json.");
-builder.Services.AddRLSUI(new Uri(apiBaseUrl));
+builder.Services.AddRLSUI(builder.Configuration);
 
 var host = builder.Build();
 await host.Services.UseRLSLanguageAsync();
