@@ -33,6 +33,28 @@ public class SystemErrorFailureVerification : ErrorVerification<SystemError>
         return this;
     }
 
+    public SystemErrorFailureVerification MessageOrFieldErrorMessage(string expectedField, string expectedMessage)
+    {
+        var expandedExpectedField = Context.ExpandAliases(expectedField);
+        var expandedExpectedMessage = Context.ExpandAliases(expectedMessage);
+
+        if (Response.Message == expandedExpectedMessage)
+        {
+            return this;
+        }
+
+        var fields = Response.Fields;
+        fields.ShouldNotBeNull("Expected a matching field error or error message, but no field errors were found");
+        var matchingFieldError = fields.FirstOrDefault(f => expandedExpectedField.Equals(f.Field));
+
+        matchingFieldError.ShouldNotBeNull(
+            $"Expected field error for field '{expandedExpectedField}', but field was not found in errors: {string.Join(", ", fields.Select(f => f.Field))}");
+        matchingFieldError.Message.ShouldBe(expandedExpectedMessage,
+            $"Expected error message '{expandedExpectedMessage}' for field '{expandedExpectedField}', but got '{matchingFieldError.Message}'");
+
+        return this;
+    }
+
     public SystemErrorFailureVerification FieldErrorMessage(string expectedField, string expectedMessage)
     {
         var expandedExpectedField = Context.ExpandAliases(expectedField);

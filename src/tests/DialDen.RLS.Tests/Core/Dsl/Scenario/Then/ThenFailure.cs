@@ -26,6 +26,14 @@ public class ThenFailure<TSuccessResponse, TSuccessVerification>
         return this;
     }
 
+    public ThenFailure<TSuccessResponse, TSuccessVerification> MessageOrFieldErrorMessage(
+        string expectedField,
+        string expectedMessage)
+    {
+        _assertions.Add(v => v.MessageOrFieldErrorMessage(expectedField, expectedMessage));
+        return this;
+    }
+
     public ThenFailure<TSuccessResponse, TSuccessVerification> FieldErrorMessageContaining(string expectedField, string expectedMessagePart)
     {
         _assertions.Add(v => v.FieldErrorMessageContaining(expectedField, expectedMessagePart));

@@ -1,9 +1,12 @@
 using DialDen.RLS.API;
-using DialDen.RLS.API.DependencyInjection;
 using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.DependencyInjection;
 using DialDen.RLS.Infrastructure.DependencyInjection;
+using Microsoft.AspNetCore.Localization;
 using System.Text.Json.Serialization;
+
+const string French = "fr";
+const string English = "en";
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.Sources.Clear();
@@ -15,13 +18,13 @@ builder.Configuration
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+builder.Services.AddLocalization();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingStatus>());
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<JobSitePublicationStatus>());
 });
 builder.Services
-    .AddRLSAPI()
     .AddRLSCore()
     .AddRLSInfrastructure(builder.Configuration);
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
@@ -49,7 +52,10 @@ else
     app.UseHttpsRedirection();
 }
 app.UseCors();
-app.UseRLSLocalization();
+app.UseRequestLocalization(options => options
+    .SetDefaultCulture(French)
+    .AddSupportedCultures(French, English)
+    .AddSupportedUICultures(French, English));
 app.MapRLSEndpoints();
 app.MapHealthChecks("/health");
 app.Run();

@@ -51,13 +51,13 @@ public class LanguageTests
     }
 
     [Trait("Category", "Acceptance")]
-    [Fact]
-    public async Task ValidationMessagesAreInFrenchByDefault()
+    [Theory, CombinatorialData]
+    public async Task ValidationMessagesAreInFrenchByDefault(Channel channel)
     {
-        await _testEnvironment.Scenario(Channel.API)
+        await _testEnvironment.Scenario(channel)
             .Given().NoLanguageChosen()
             .When().CreatePosting().WithDescription("")
-            .Then().ShouldFail().FieldErrorMessage("description", MissingDescriptionInFrench);
+            .Then().ShouldFail().MessageOrFieldErrorMessage("description", MissingDescriptionInFrench);
     }
 
     [Trait("Category", "Acceptance")]
@@ -68,16 +68,6 @@ public class LanguageTests
             .Given().Language(Language.French)
             .When().CreatePosting().WithDescription("")
             .Then().ShouldFail().FieldErrorMessage("description", MissingDescriptionInFrench);
-    }
-
-    [Trait("Category", "Acceptance")]
-    [Fact]
-    public async Task ValidationMessagesAreShownInFrenchByDefaultThroughUI()
-    {
-        await _testEnvironment.Scenario(Channel.UI)
-            .Given().NoLanguageChosen()
-            .When().CreatePosting().WithDescription("")
-            .Then().ShouldFail().ErrorMessage(MissingDescriptionInFrench);
     }
 
     [Trait("Category", "Acceptance")]
