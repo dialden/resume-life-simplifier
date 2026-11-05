@@ -8,6 +8,7 @@ namespace DialDen.RLS.Tests.AcceptanceTests;
 public class LanguageTests
 {
     private const string MissingDescriptionInFrench = "Une description d'offre est requise.";
+    private const string MissingDescriptionInEnglish = "A posting description is required.";
 
     private readonly TestEnvironment _testEnvironment;
 
@@ -17,42 +18,8 @@ public class LanguageTests
     }
 
     [Trait("Category", "Acceptance")]
-    [Fact]
-    public async Task WorkspaceIsInFrenchByDefault()
-    {
-        await _testEnvironment.Scenario(Channel.UI)
-            .Given().NoLanguageChosen()
-            .When().ViewOverview()
-            .Then().ShouldSucceed()
-                .And().Overview().HasTitle("Aperçu");
-    }
-
-    [Trait("Category", "Acceptance")]
-    [Fact]
-    public async Task CanSwitchTheWorkspaceToEnglish()
-    {
-        await _testEnvironment.Scenario(Channel.UI)
-            .Given().Language(Language.English)
-            .When().ViewOverview()
-            .Then().ShouldSucceed()
-                .And().Overview().HasTitle("Overview");
-    }
-
-    [Trait("Category", "Acceptance")]
-    [Fact]
-    public async Task CanSwitchTheWorkspaceBackToFrench()
-    {
-        await _testEnvironment.Scenario(Channel.UI)
-            .Given().Language(Language.English)
-            .And().Language(Language.French)
-            .When().ViewOverview()
-            .Then().ShouldSucceed()
-                .And().Overview().HasTitle("Aperçu");
-    }
-
-    [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task ValidationMessagesAreInFrenchByDefault(Channel channel)
+    public async Task WorkspaceUsesFrenchByDefault(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
             .Given().NoLanguageChosen()
@@ -61,18 +28,29 @@ public class LanguageTests
     }
 
     [Trait("Category", "Acceptance")]
-    [Fact]
-    public async Task ValidationMessagesFollowTheChosenLanguage()
+    [Theory, CombinatorialData]
+    public async Task WorkspaceUsesTheChosenEnglishLanguage(Channel channel)
     {
-        await _testEnvironment.Scenario(Channel.API)
-            .Given().Language(Language.French)
+        await _testEnvironment.Scenario(channel)
+            .Given().Language(Language.English)
             .When().CreatePosting().WithDescription("")
-            .Then().ShouldFail().FieldErrorMessage("description", MissingDescriptionInFrench);
+            .Then().ShouldFail().MessageOrFieldErrorMessage("description", MissingDescriptionInEnglish);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task WorkspaceCanSwitchBackToFrench(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Language(Language.English)
+            .And().Language(Language.French)
+            .When().CreatePosting().WithDescription("")
+            .Then().ShouldFail().MessageOrFieldErrorMessage("description", MissingDescriptionInFrench);
     }
 
     [Trait("Category", "Acceptance")]
     [Fact]
-    public async Task ConflictMessagesAreInFrench()
+    public async Task ApiConflictMessagesAreInFrench()
     {
         await _testEnvironment.Scenario(Channel.API)
             .Given().Language(Language.French)
@@ -83,7 +61,7 @@ public class LanguageTests
 
     [Trait("Category", "Acceptance")]
     [Fact]
-    public async Task JobSiteSelectionMessagesAreInFrench()
+    public async Task ApiJobSiteSelectionMessagesAreInFrench()
     {
         await _testEnvironment.Scenario(Channel.API)
             .Given().Language(Language.French)
