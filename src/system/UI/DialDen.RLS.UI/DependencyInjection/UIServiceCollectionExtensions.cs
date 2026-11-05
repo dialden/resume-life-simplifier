@@ -28,9 +28,17 @@ public static class UIServiceCollectionExtensions
         var javaScript = services.GetRequiredService<IJSRuntime>();
         var chosen = await javaScript.InvokeAsync<string?>("localStorage.getItem", RLSLanguages.StorageKey);
         var culture = CultureInfo.GetCultureInfo(RLSLanguages.Resolve(chosen));
+        await SetDocumentLanguageAsync(javaScript, culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
         CultureInfo.CurrentCulture = culture;
         CultureInfo.CurrentUICulture = culture;
+    }
+
+    private static async Task SetDocumentLanguageAsync(IJSRuntime javaScript, CultureInfo culture)
+    {
+        await using var languageModule = await javaScript.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/DialDen.RLS.UI/language.js");
+        await languageModule.InvokeVoidAsync("setDocumentLanguage", culture.TwoLetterISOLanguageName);
     }
 }
