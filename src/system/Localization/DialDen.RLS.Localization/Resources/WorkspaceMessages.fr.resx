@@ -168,4 +168,8 @@
   <data name="Publish_Conflict" xml:space="preserve"><value>Cette offre ne peut pas être publiée à nouveau.</value></data>
   <data name="Publish_HttpError" xml:space="preserve"><value>Impossible de publier l'offre : l'API a retourné HTTP {0}.</value></data>
   <data name="Publish_Failed" xml:space="preserve"><value>Impossible de publier l'offre : {0}</value></data>
+  <data name="PostingDescriptionRequired" xml:space="preserve"><value>Une description d'offre est requise.</value></data>
+  <data name="PageNumberMustBePositive" xml:space="preserve"><value>Le numéro de page doit être supérieur à zéro.</value></data>
+  <data name="OnlyPublishingSupported" xml:space="preserve"><value>Seule la publication d'une offre est actuellement prise en charge.</value></data>
+  <data name="JobSitesInvalid" xml:space="preserve"><value>Sélectionnez des sites d'emploi distincts et disponibles.</value></data>
 </root>

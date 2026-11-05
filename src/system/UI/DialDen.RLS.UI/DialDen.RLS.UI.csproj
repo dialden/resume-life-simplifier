@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../Localization/DialDen.RLS.Localization/DialDen.RLS.Localization.csproj" />
     <ProjectReference Include="../../Core/DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
   </ItemGroup>
 

@@ -7,6 +7,9 @@
     <Project Path="system/Worker/DialDen.RLS.Worker.Root/DialDen.RLS.Worker.Root.csproj" />
     <Project Path="system/Worker/DialDen.RLS.Worker/DialDen.RLS.Worker.csproj" />
   </Folder>
+  <Folder Name="/system/Localization/">
+    <Project Path="system/Localization/DialDen.RLS.Localization/DialDen.RLS.Localization.csproj" />
+  </Folder>
   <Folder Name="/system/Core/">
     <Project Path="system/Core/DialDen.RLS.Abstractions/DialDen.RLS.Abstractions.csproj" />
     <Project Path="system/Core/DialDen.RLS/DialDen.RLS.csproj" />

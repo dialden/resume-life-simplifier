@@ -1,5 +1,5 @@
 using DialDen.RLS.Abstractions.Postings;
-using DialDen.RLS.API.Resources;
+using DialDen.RLS.Localization.Resources;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -34,7 +34,7 @@ public static class RLSEndpoints
         app.MapPost("/postings", async Task<Results<Created<CreatePostingResponse>, ValidationProblem>> (
                 CreatePostingRequest request,
                 [FromServices] ICreatePosting createPosting,
-                [FromServices] IStringLocalizer<ApiMessages> messages,
+                [FromServices] IStringLocalizer<WorkspaceMessages> messages,
                 CancellationToken cancellationToken) =>
             {
                 try
@@ -58,7 +58,7 @@ public static class RLSEndpoints
 
         app.MapGet("/postings", async Task<Results<Ok<ListPostingsResponse>, ValidationProblem>> (
                 [FromServices] IListPostings listPostings,
-                [FromServices] IStringLocalizer<ApiMessages> messages,
+                [FromServices] IStringLocalizer<WorkspaceMessages> messages,
                 CancellationToken cancellationToken,
                 int pageNumber = 1) =>
             {
@@ -100,7 +100,7 @@ public static class RLSEndpoints
                 int id,
                 UpdatePostingRequest request,
                 [FromServices] IPublishPosting publishPosting,
-                [FromServices] IStringLocalizer<ApiMessages> messages,
+                [FromServices] IStringLocalizer<WorkspaceMessages> messages,
                 CancellationToken cancellationToken) =>
             {
                 if (request.Status is not PostingStatus.Published)
@@ -122,7 +122,7 @@ public static class RLSEndpoints
                 catch (PostingAlreadyPublishedException)
                 {
                     return TypedResults.Problem(
-                        statusCode: StatusCodes.Status409Conflict, detail: messages["PostingAlreadyPublished"]);
+                        statusCode: StatusCodes.Status409Conflict, detail: messages["Publish_Conflict"]);
                 }
                 catch (InvalidJobSitesException)
                 {

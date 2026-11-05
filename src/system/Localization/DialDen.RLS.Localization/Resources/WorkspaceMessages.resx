@@ -168,4 +168,8 @@
   <data name="Publish_Conflict" xml:space="preserve"><value>This posting cannot be published again.</value></data>
   <data name="Publish_HttpError" xml:space="preserve"><value>Could not publish the posting: the API returned HTTP {0}.</value></data>
   <data name="Publish_Failed" xml:space="preserve"><value>Could not publish the posting: {0}</value></data>
+  <data name="PostingDescriptionRequired" xml:space="preserve"><value>A posting description is required.</value></data>
+  <data name="PageNumberMustBePositive" xml:space="preserve"><value>Page number must be greater than zero.</value></data>
+  <data name="OnlyPublishingSupported" xml:space="preserve"><value>Only publishing a posting is currently supported.</value></data>
+  <data name="JobSitesInvalid" xml:space="preserve"><value>Select distinct, available job sites.</value></data>
 </root>
