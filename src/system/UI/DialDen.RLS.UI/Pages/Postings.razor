@@ -3,17 +3,17 @@
 @using System.Globalization
 @inject HttpClient Api
 
-<PageTitle>@L["Nav_JobPostings"] | Resume Life Simplifier</PageTitle>
+<PageTitle>@RLSLocalizer["Nav_JobPostings"] | Resume Life Simplifier</PageTitle>
 
-<div class="breadcrumb"><a href="/">@L["Nav_Home"]</a><span aria-hidden="true">/</span><span>@L["Nav_JobPostings"]</span></div>
+<div class="breadcrumb"><a href="/">@RLSLocalizer["Nav_Home"]</a><span aria-hidden="true">/</span><span>@RLSLocalizer["Nav_JobPostings"]</span></div>
 <div class="page-heading">
     <div>
-        <p class="eyebrow">@L["Postings_Eyebrow"]</p>
-        <h1>@L["Nav_JobPostings"]</h1>
-        <p class="page-description">@L["Postings_Description"]</p>
+        <p class="eyebrow">@RLSLocalizer["Postings_Eyebrow"]</p>
+        <h1>@RLSLocalizer["Nav_JobPostings"]</h1>
+        <p class="page-description">@RLSLocalizer["Postings_Description"]</p>
     </div>
     <a class="action-link action-primary" href="/postings/create" data-testid="create-posting-link">
-        <MudIcon Icon="@Icons.Material.Outlined.Add" />@L["CreatePosting_Title"]
+        <MudIcon Icon="@Icons.Material.Outlined.Add" />@RLSLocalizer["CreatePosting_Title"]
     </a>
 </div>
 
@@ -25,7 +25,7 @@ else if (_page is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
-        <p>@L["Postings_Loading"]</p>
+        <p>@RLSLocalizer["Postings_Loading"]</p>
     </div>
 }
 else
@@ -33,19 +33,19 @@ else
     <section class="surface-panel" aria-labelledby="postings-heading">
         <div class="panel-header">
             <div class="panel-title">
-                <h2 id="postings-heading">@L["Postings_AllPostings"]</h2>
+                <h2 id="postings-heading">@RLSLocalizer["Postings_AllPostings"]</h2>
                 <span class="count-badge">@_page.TotalCount</span>
             </div>
-            <span class="panel-caption">@L["Postings_Library"]</span>
+            <span class="panel-caption">@RLSLocalizer["Postings_Library"]</span>
         </div>
         <div class="posting-list-actions">
             <div class="publishing-submit">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            Disabled="@(!CanPublishSelected || _isPublishing)"
                            OnClick="OpenPublishDialog">
-                    @L["Postings_PublishSelected"]
+                    @RLSLocalizer["Postings_PublishSelected"]
                 </MudButton>
-                <p class="publishing-help">@L["Postings_SelectDraftHelp"]</p>
+                <p class="publishing-help">@RLSLocalizer["Postings_SelectDraftHelp"]</p>
             </div>
         </div>
         @if (_page.Items.Count == 0)
@@ -54,54 +54,54 @@ else
                 <span class="empty-icon"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
                 @if (_page.TotalCount == 0)
                 {
-                    <h3>@L["Postings_NoneYet"]</h3>
-                    <p>@L["Postings_NoneYetLine1"]<br />@L["Postings_NoneYetLine2"]</p>
+                    <h3>@RLSLocalizer["Postings_NoneYet"]</h3>
+                    <p>@RLSLocalizer["Postings_NoneYetLine1"]<br />@RLSLocalizer["Postings_NoneYetLine2"]</p>
                 }
                 else
                 {
-                    <h3>@L["Postings_NoneOnPage"]</h3>
-                    <p>@L["Postings_BeyondEnd"]</p>
+                    <h3>@RLSLocalizer["Postings_NoneOnPage"]</h3>
+                    <p>@RLSLocalizer["Postings_BeyondEnd"]</p>
                 }
                 @if (_page.PageNumber > 1)
                 {
-                    <a class="action-link action-primary" href="/postings">@L["Postings_BackToFirstPage"]</a>
+                    <a class="action-link action-primary" href="/postings">@RLSLocalizer["Postings_BackToFirstPage"]</a>
                 }
             </div>
         }
         else
         {
-            <div class="list-columns" aria-hidden="true"><span>@L["Postings_SelectColumn"]</span><span>@L["Postings_StatusColumn"]</span></div>
-            <ul class="posting-list" aria-label="@L["Postings_ListLabel"]">
+            <div class="list-columns" aria-hidden="true"><span>@RLSLocalizer["Postings_SelectColumn"]</span><span>@RLSLocalizer["Postings_StatusColumn"]</span></div>
+            <ul class="posting-list" aria-label="@RLSLocalizer["Postings_ListLabel"]">
                 @foreach (var posting in _page.Items)
                 {
                     <li @key="posting.Id" class="posting-list-item">
                         <label class="posting-selection">
                             <input type="radio" name="selectedPosting" value="@posting.Id"
                                    checked="@(_selectedPostingId == posting.Id)"
-                                   aria-label="@L["Postings_SelectPosting", posting.Title, posting.Id]"
+                                   aria-label="@RLSLocalizer["Postings_SelectPosting", posting.Title, posting.Id]"
                                    @onchange="@(() => _selectedPostingId = posting.Id)" />
                         </label>
                         <a class="posting-row" href="@($"/postings/{posting.Id}")"
-                           aria-label="@L["Postings_ViewPosting", posting.Title, posting.Id]">
+                           aria-label="@RLSLocalizer["Postings_ViewPosting", posting.Title, posting.Id]">
                             <span class="posting-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" /></span>
                             <span class="posting-summary">
                                 <span class="posting-name" role="heading" aria-level="3">@posting.Title</span>
-                                <span class="posting-reference">@L["Postings_Reference", posting.Id]</span>
+                                <span class="posting-reference">@RLSLocalizer["Postings_Reference", posting.Id]</span>
                                 @if (posting.JobSitePublications.Count > 0)
                                 {
-                                    <span role="list" aria-label="@L["Common_PostingPublications"]">
+                                    <span role="list" aria-label="@RLSLocalizer["Common_PostingPublications"]">
                                         @foreach (var publication in posting.JobSitePublications)
                                         {
                                             <span role="listitem" data-job-site-id="@publication.JobSiteId">
                                                 @publication.JobSiteId:
-                                                <span data-testid="job-site-publication-status">@L.Translate("PublicationStatus", publication.Status.ToString())</span>
+                                                <span data-testid="job-site-publication-status">@RLSLocalizer.Translate("PublicationStatus", publication.Status.ToString())</span>
                                             </span>
                                         }
                                     </span>
                                 }
                             </span>
-                            <span class="posting-status" data-testid="posting-status-@posting.Id">@L.Translate("PostingStatus", posting.Status.ToString())</span>
-                            <span class="row-action" aria-hidden="true">@L["Postings_ViewDetails"]<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
+                            <span class="posting-status" data-testid="posting-status-@posting.Id">@RLSLocalizer.Translate("PostingStatus", posting.Status.ToString())</span>
+                            <span class="row-action" aria-hidden="true">@RLSLocalizer["Postings_ViewDetails"]<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
                         </a>
                     </li>
                 }
@@ -109,31 +109,31 @@ else
         }
         <div class="panel-footer pagination-footer" data-testid="posting-pagination"
              data-total-count="@_page.TotalCount" data-page-number="@_page.PageNumber" data-page-size="@_page.PageSize">
-            <span role="status">@L[_page.TotalCount == 1 ? "Postings_ShowingOne" : "Postings_ShowingMany", FirstPosting, LastPosting, _page.TotalCount]</span>
-            <nav class="pagination-controls" aria-label="@L["Postings_PagesLabel"]">
+            <span role="status">@RLSLocalizer[_page.TotalCount == 1 ? "Postings_ShowingOne" : "Postings_ShowingMany", FirstPosting, LastPosting, _page.TotalCount]</span>
+            <nav class="pagination-controls" aria-label="@RLSLocalizer["Postings_PagesLabel"]">
                 @if (_page.PageNumber > 1)
                 {
-                    <a class="pagination-link" href="@PageUrl(_page.PageNumber - 1)" aria-label="@L["Postings_PreviousPage"]">
-                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />@L["Postings_Previous"]
+                    <a class="pagination-link" href="@PageUrl(_page.PageNumber - 1)" aria-label="@RLSLocalizer["Postings_PreviousPage"]">
+                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />@RLSLocalizer["Postings_Previous"]
                     </a>
                 }
                 else
                 {
-                    <button class="pagination-link disabled" type="button" aria-label="@L["Postings_PreviousPage"]" disabled>
-                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />@L["Postings_Previous"]
+                    <button class="pagination-link disabled" type="button" aria-label="@RLSLocalizer["Postings_PreviousPage"]" disabled>
+                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />@RLSLocalizer["Postings_Previous"]
                     </button>
                 }
-                <span class="page-indicator">@L["Postings_PageIndicator", _page.PageNumber, TotalPages]</span>
+                <span class="page-indicator">@RLSLocalizer["Postings_PageIndicator", _page.PageNumber, TotalPages]</span>
                 @if (_page.PageNumber < TotalPages)
                 {
-                    <a class="pagination-link" href="@PageUrl(_page.PageNumber + 1)" aria-label="@L["Postings_NextPage"]">
-                        @L["Postings_Next"]<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
+                    <a class="pagination-link" href="@PageUrl(_page.PageNumber + 1)" aria-label="@RLSLocalizer["Postings_NextPage"]">
+                        @RLSLocalizer["Postings_Next"]<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
                     </a>
                 }
                 else
                 {
-                    <button class="pagination-link disabled" type="button" aria-label="@L["Postings_NextPage"]" disabled>
-                        @L["Postings_Next"]<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
+                    <button class="pagination-link disabled" type="button" aria-label="@RLSLocalizer["Postings_NextPage"]" disabled>
+                        @RLSLocalizer["Postings_Next"]<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
                     </button>
                 }
             </nav>
@@ -143,7 +143,7 @@ else
 
 <MudDialog @bind-Visible="_showPublishDialog" Options="_publishDialogOptions">
     <TitleContent>
-        <h2>@L["Publish_Title"]</h2>
+        <h2>@RLSLocalizer["Publish_Title"]</h2>
     </TitleContent>
     <DialogContent>
         <p class="publishing-posting-title">@_page?.Items.SingleOrDefault(posting => posting.Id == _selectedPostingId)?.Title</p>
@@ -153,29 +153,29 @@ else
         }
         <fieldset class="publishing-channels" disabled="@_isPublishing"
                   aria-describedby="publishing-channels-help">
-            <legend>@L["Publish_Channels"]</legend>
-            <p id="publishing-channels-help" class="publishing-help">@L["Publish_ChannelsHelp"]</p>
+            <legend>@RLSLocalizer["Publish_Channels"]</legend>
+            <p id="publishing-channels-help" class="publishing-help">@RLSLocalizer["Publish_ChannelsHelp"]</p>
             <div class="publishing-options">
                 @foreach (var site in _jobSites)
                 {
                     <label class="publishing-option">
                         <input type="checkbox" data-testid="job-site-@site.Id"
-                               aria-label="@L["Publish_To", site.Name]"
+                               aria-label="@RLSLocalizer["Publish_To", site.Name]"
                                checked="@_selectedJobSiteIds.Contains(site.Id)"
                                @onchange="@(args => SelectJobSite(site.Id, args.Value is true))" />
                         <span>@site.Name</span>
                     </label>
                 }
             </div>
-            <p class="publishing-help">@L["Publish_LeaveUnchecked"]</p>
-            <p class="publishing-notice">@L["Publish_Notice"]</p>
+            <p class="publishing-help">@RLSLocalizer["Publish_LeaveUnchecked"]</p>
+            <p class="publishing-notice">@RLSLocalizer["Publish_Notice"]</p>
         </fieldset>
     </DialogContent>
     <DialogActions>
-        <MudButton Disabled="@_isPublishing" OnClick="CancelPublishDialog">@L["Common_Cancel"]</MudButton>
+        <MudButton Disabled="@_isPublishing" OnClick="CancelPublishDialog">@RLSLocalizer["Common_Cancel"]</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    Disabled="@_isPublishing" OnClick="PublishSelected">
-            @(_isPublishing ? L["Publish_Publishing"] : L["Publish_Confirm"])
+            @(_isPublishing ? RLSLocalizer["Publish_Publishing"] : RLSLocalizer["Publish_Confirm"])
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -253,14 +253,14 @@ else
         if (Page is not null &&
             (!int.TryParse(Page, NumberStyles.None, CultureInfo.InvariantCulture, out pageNumber) || pageNumber < 1))
         {
-            _error = L["Postings_InvalidPage"].Value;
+            _error = RLSLocalizer["Postings_InvalidPage"].Value;
             return;
         }
 
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
-                ?? throw new System.Text.Json.JsonException(L["Api_NoEntryPoint"].Value);
+                ?? throw new System.Text.Json.JsonException(RLSLocalizer["Api_NoEntryPoint"].Value);
             if (version != _loadVersion)
             {
                 return;
@@ -269,7 +269,7 @@ else
                 link => link is { Rel: "list-postings", Method: "GET" });
             if (listLink is null)
             {
-                _error = L["Postings_ListNotOffered"].Value;
+                _error = RLSLocalizer["Postings_ListNotOffered"].Value;
                 return;
             }
 
@@ -277,18 +277,18 @@ else
                 link => link is { Rel: "list-job-sites", Method: "GET" });
             if (sitesLink is null)
             {
-                _error = L["Postings_JobSitesNotOffered"].Value;
+                _error = RLSLocalizer["Postings_JobSitesNotOffered"].Value;
                 return;
             }
             var sites = await Api.GetFromJsonAsync<JobSite[]>(sitesLink.Href)
-                ?? throw new System.Text.Json.JsonException(L["Api_NoJobSites"].Value);
+                ?? throw new System.Text.Json.JsonException(RLSLocalizer["Api_NoJobSites"].Value);
 
             var separator = listLink.Href.Contains('?') ? '&' : '?';
             var href = $"{listLink.Href}{separator}pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}";
             var page = await Api.GetFromJsonAsync<ListPostingsResponse>(
                     href,
                     ApiJsonSerializerOptions.Default)
-                ?? throw new System.Text.Json.JsonException(L["Api_NoPostingsPage"].Value);
+                ?? throw new System.Text.Json.JsonException(RLSLocalizer["Api_NoPostingsPage"].Value);
             if (version == _loadVersion)
             {
                 _page = page;
@@ -299,7 +299,7 @@ else
         {
             if (version == _loadVersion)
             {
-                _error = L["Postings_LoadFailed", ex.Message].Value;
+                _error = RLSLocalizer["Postings_LoadFailed", ex.Message].Value;
             }
         }
     }
@@ -316,12 +316,12 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
-                ?? throw new System.Text.Json.JsonException(L["Api_NoEntryPoint"].Value);
+                ?? throw new System.Text.Json.JsonException(RLSLocalizer["Api_NoEntryPoint"].Value);
             var publishLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "publish-posting", Method: "PATCH" });
             if (publishLink is null)
             {
-                _publishError = L["Publish_NotOffered"].Value;
+                _publishError = RLSLocalizer["Publish_NotOffered"].Value;
                 return;
             }
 
@@ -334,16 +334,16 @@ else
             {
                 _publishError = response.StatusCode switch
                 {
-                    System.Net.HttpStatusCode.NotFound => L["Publish_NotFound"].Value,
-                    System.Net.HttpStatusCode.Conflict => L["Publish_Conflict"].Value,
-                    _ => L["Publish_HttpError", (int)response.StatusCode].Value
+                    System.Net.HttpStatusCode.NotFound => RLSLocalizer["Publish_NotFound"].Value,
+                    System.Net.HttpStatusCode.Conflict => RLSLocalizer["Publish_Conflict"].Value,
+                    _ => RLSLocalizer["Publish_HttpError", (int)response.StatusCode].Value
                 };
                 return;
             }
 
             var published = await response.Content.ReadFromJsonAsync<PublishPostingResponse>(
                     ApiJsonSerializerOptions.Default)
-                ?? throw new System.Text.Json.JsonException(L["Api_NoPublishedPosting"].Value);
+                ?? throw new System.Text.Json.JsonException(RLSLocalizer["Api_NoPublishedPosting"].Value);
             _page = _page with
             {
                 Items = _page.Items.Select(posting => posting.Id == published.Id
@@ -356,7 +356,7 @@ else
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _publishError = L["Publish_Failed", ex.Message].Value;
+            _publishError = RLSLocalizer["Publish_Failed", ex.Message].Value;
         }
         finally
         {

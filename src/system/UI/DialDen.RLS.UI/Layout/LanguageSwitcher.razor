@@ -1,7 +1,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
-<div class="language-switcher" role="group" aria-label="@L["Language_Label"]">
+<div class="language-switcher" role="group" aria-label="@RLSLocalizer["Language_Label"]">
     @foreach (var language in RLSLanguages.All)
     {
         var selected = language.Code == _current;

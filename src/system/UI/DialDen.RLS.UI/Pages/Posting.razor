@@ -4,14 +4,14 @@
 @using DialDen.RLS.Abstractions.Postings
 @inject HttpClient Api
 
-<PageTitle>@L["PostingDetails_Title"] | Resume Life Simplifier</PageTitle>
+<PageTitle>@RLSLocalizer["PostingDetails_Title"] | Resume Life Simplifier</PageTitle>
 
-<div class="breadcrumb"><a href="/">@L["Nav_Home"]</a><span aria-hidden="true">/</span><a href="/postings">@L["Nav_ViewPostings"]</a><span aria-hidden="true">/</span><span>@L["PostingDetails_Breadcrumb"]</span></div>
+<div class="breadcrumb"><a href="/">@RLSLocalizer["Nav_Home"]</a><span aria-hidden="true">/</span><a href="/postings">@RLSLocalizer["Nav_ViewPostings"]</a><span aria-hidden="true">/</span><span>@RLSLocalizer["PostingDetails_Breadcrumb"]</span></div>
 <div class="page-heading">
     <div>
-        <p class="eyebrow">@L["PostingDetails_Eyebrow"]</p>
-        <h1>@L["PostingDetails_Title"]</h1>
-        <p class="page-description">@L["PostingDetails_Description"]</p>
+        <p class="eyebrow">@RLSLocalizer["PostingDetails_Eyebrow"]</p>
+        <h1>@RLSLocalizer["PostingDetails_Title"]</h1>
+        <p class="page-description">@RLSLocalizer["PostingDetails_Description"]</p>
     </div>
 </div>
 
@@ -23,54 +23,54 @@ else if (_posting is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
-        <p>@L["PostingDetails_Loading"]</p>
+        <p>@RLSLocalizer["PostingDetails_Loading"]</p>
     </div>
 }
 else
 {
-    <section class="surface-panel" aria-label="@L["PostingDetails_Title"]">
+    <section class="surface-panel" aria-label="@RLSLocalizer["PostingDetails_Title"]">
         <div class="posting-detail-heading">
             <span class="detail-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
             <div>
-                <span class="eyebrow">@L["PostingDetails_PostingEyebrow"]</span>
+                <span class="eyebrow">@RLSLocalizer["PostingDetails_PostingEyebrow"]</span>
                 <h2 class="detail-title">@_posting.Title</h2>
             </div>
         </div>
         <dl class="detail-fields">
             <div>
-                <dt>@L["PostingDetails_PostingId"]</dt>
+                <dt>@RLSLocalizer["PostingDetails_PostingId"]</dt>
                 <dd>@_posting.Id</dd>
             </div>
             <div>
-                <dt>@L["Common_Title"]</dt>
+                <dt>@RLSLocalizer["Common_Title"]</dt>
                 <dd>@_posting.Title</dd>
             </div>
             <div>
-                <dt>@L["Common_Status"]</dt>
-                <dd>@L.Translate("PostingStatus", _posting.Status.ToString())</dd>
+                <dt>@RLSLocalizer["Common_Status"]</dt>
+                <dd>@RLSLocalizer.Translate("PostingStatus", _posting.Status.ToString())</dd>
             </div>
         </dl>
-        <h3>@L["Common_Description"]</h3>
+        <h3>@RLSLocalizer["Common_Description"]</h3>
         <p data-testid="posting-description" style="white-space: pre-wrap">@_posting.Description</p>
-        <h3>@L["Common_PostingPublications"]</h3>
+        <h3>@RLSLocalizer["Common_PostingPublications"]</h3>
         @if (_posting.JobSitePublications.Count == 0)
         {
-            <p>@L["PostingDetails_NoJobSites"]</p>
+            <p>@RLSLocalizer["PostingDetails_NoJobSites"]</p>
         }
         else
         {
-            <ul aria-label="@L["Common_PostingPublications"]">
+            <ul aria-label="@RLSLocalizer["Common_PostingPublications"]">
                 @foreach (var publication in _posting.JobSitePublications)
                 {
                     <li data-job-site-id="@publication.JobSiteId">
                         <span>@publication.JobSiteId</span>:
-                        <span data-testid="job-site-publication-status">@L.Translate("PublicationStatus", publication.Status.ToString())</span>
+                        <span data-testid="job-site-publication-status">@RLSLocalizer.Translate("PublicationStatus", publication.Status.ToString())</span>
                     </li>
                 }
             </ul>
-            <p>@L["PostingDetails_AsynchronousNotice"]</p>
+            <p>@RLSLocalizer["PostingDetails_AsynchronousNotice"]</p>
         }
-        <div class="panel-footer">@L["PostingDetails_Footer"]</div>
+        <div class="panel-footer">@RLSLocalizer["PostingDetails_Footer"]</div>
     </section>
 }
 
@@ -89,12 +89,12 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
-                ?? throw new System.Text.Json.JsonException(L["Api_NoEntryPoint"].Value);
+                ?? throw new System.Text.Json.JsonException(RLSLocalizer["Api_NoEntryPoint"].Value);
             var viewLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "view-posting", Method: "GET" });
             if (viewLink is null)
             {
-                _error = L["PostingDetails_NotOffered"].Value;
+                _error = RLSLocalizer["PostingDetails_NotOffered"].Value;
                 return;
             }
 
@@ -102,18 +102,18 @@ else
             using var response = await Api.GetAsync(href);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                _error = L["PostingDetails_NotFound"].Value;
+                _error = RLSLocalizer["PostingDetails_NotFound"].Value;
                 return;
             }
 
             response.EnsureSuccessStatusCode();
             _posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>(
                 ApiJsonSerializerOptions.Default)
-                ?? throw new System.Text.Json.JsonException(L["Api_NoPosting"].Value);
+                ?? throw new System.Text.Json.JsonException(RLSLocalizer["Api_NoPosting"].Value);
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _error = L["PostingDetails_LoadFailed", ex.Message].Value;
+            _error = RLSLocalizer["PostingDetails_LoadFailed", ex.Message].Value;
         }
     }
 }
