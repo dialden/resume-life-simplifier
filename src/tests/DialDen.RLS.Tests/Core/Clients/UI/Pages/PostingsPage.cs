@@ -14,7 +14,7 @@ public class PostingsPage : BasePage
 
     public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
     {
-        await _page.GetByRole(AriaRole.Link, new() { Name = "Create posting", Exact = true }).ClickAsync();
+        await _page.GetByRole(AriaRole.Link, new() { Name = "Créer une offre", Exact = true }).ClickAsync();
         await _page.WaitForURLAsync("**/postings/create");
         var createPostingPage = new CreatePostingPage(_page);
         var fillTitleResult = await createPostingPage.FillTitle(title);
@@ -30,8 +30,8 @@ public class PostingsPage : BasePage
 
     public async Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id)
     {
-        var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
-        var empty = _page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No postings yet." });
+        var postings = _page.Locator("ul.posting-list");
+        var empty = _page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Aucune offre pour le moment." });
         var alert = _page.GetByRole(AriaRole.Alert);
         var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
         await postings.Or(empty).Or(alert).Or(errorBanner).First.WaitForAsync();
@@ -67,11 +67,11 @@ public class PostingsPage : BasePage
         }
 
         var title = await postingLink.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
-        await _page.GetByRole(AriaRole.Radio, new() { Name = $"Select posting {title}, ID {id}" }).ClickAsync();
+        await _page.GetByRole(AriaRole.Radio, new() { Name = $"Sélectionner l'offre {title}, identifiant {id}" }).ClickAsync();
 
         var status = _page.GetByTestId($"posting-status-{id}");
         var alert = _page.GetByRole(AriaRole.Alert);
-        var publishButton = _page.GetByRole(AriaRole.Button, new() { Name = "Publish selected", Exact = true });
+        var publishButton = _page.GetByRole(AriaRole.Button, new() { Name = "Publier la sélection", Exact = true });
         if (await publishButton.IsDisabledAsync())
         {
             return Result<PublishPostingResponse, SystemError>.Failure(
@@ -85,7 +85,7 @@ public class PostingsPage : BasePage
             await dialog.GetByTestId($"job-site-{jobSiteId}").CheckAsync();
         }
         var response = await _page.RunAndWaitForResponseAsync(
-            () => dialog.GetByRole(AriaRole.Button, new() { Name = "Confirm publication", Exact = true }).ClickAsync(),
+            () => dialog.GetByRole(AriaRole.Button, new() { Name = "Confirmer la publication", Exact = true }).ClickAsync(),
             response => response.Request.Method == "PATCH" &&
                         new Uri(response.Url).AbsolutePath == $"/postings/{id}");
         if (!response.Ok)
@@ -95,7 +95,7 @@ public class PostingsPage : BasePage
                 SystemError.Of(await alert.InnerTextAsync()));
         }
 
-        await status.Filter(new() { HasText = "Published" }).WaitForAsync();
+        await status.Filter(new() { HasText = "Publiée" }).WaitForAsync();
         if (await alert.IsVisibleAsync())
         {
             return Result<PublishPostingResponse, SystemError>.Failure(
@@ -141,7 +141,7 @@ public class PostingsPage : BasePage
         if (!await alert.IsVisibleAsync())
         {
             var totalCount = ReadTotalCount(await _page.GetByRole(AriaRole.Status)
-                .Filter(new() { HasText = "Showing" }).InnerTextAsync());
+                .Filter(new() { HasText = "Affichage de" }).InnerTextAsync());
             if (pageNumber < 1 || (long)(pageNumber - 1) * 10 >= totalCount && pageNumber > 1)
             {
                 await _page.GotoAsync($"/postings?page={pageNumber.ToString(CultureInfo.InvariantCulture)}");
@@ -164,29 +164,27 @@ public class PostingsPage : BasePage
         }
 
         var items = new List<ViewPostingResponse>();
-        foreach (var row in await _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true })
-                     .Locator("a.posting-row").AllAsync())
+        foreach (var row in await _page.Locator("ul.posting-list a.posting-row").AllAsync())
         {
             var href = await row.GetAttributeAsync("href")
                 ?? throw new InvalidOperationException("A posting row has no destination.");
             var id = int.Parse(href.Split('/').Last(), CultureInfo.InvariantCulture);
             var title = await row.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
-            var status = Enum.Parse<PostingStatus>(
-                await row.GetByTestId($"posting-status-{id}").InnerTextAsync(),
-                ignoreCase: false);
+            var status = ReadPostingStatus(
+                await row.GetByTestId($"posting-status-{id}").InnerTextAsync());
             items.Add(new ViewPostingResponse(id, title, status) { JobSitePublications = await ReadJobSitePublications(row) });
         }
 
         var total = ReadTotalCount(await _page.GetByRole(AriaRole.Status)
-            .Filter(new() { HasText = "Showing" }).InnerTextAsync());
+            .Filter(new() { HasText = "Affichage de" }).InnerTextAsync());
         var currentPage = int.Parse(await pagination.GetAttributeAsync("data-page-number")
             ?? throw new InvalidOperationException("The page number was not displayed."), CultureInfo.InvariantCulture);
         var pageSize = int.Parse(await pagination.GetAttributeAsync("data-page-size")
             ?? throw new InvalidOperationException("The page size was not displayed."), CultureInfo.InvariantCulture);
-        var previous = _page.GetByRole(AriaRole.Link, new() { Name = "Previous page", Exact = true });
-        var next = _page.GetByRole(AriaRole.Link, new() { Name = "Next page", Exact = true });
-        var disabledPrevious = _page.GetByRole(AriaRole.Button, new() { Name = "Previous page", Exact = true });
-        var disabledNext = _page.GetByRole(AriaRole.Button, new() { Name = "Next page", Exact = true });
+        var previous = _page.GetByRole(AriaRole.Link, new() { Name = "Précédent", Exact = true });
+        var next = _page.GetByRole(AriaRole.Link, new() { Name = "Suivant", Exact = true });
+        var disabledPrevious = _page.GetByRole(AriaRole.Button, new() { Name = "Précédent", Exact = true });
+        var disabledNext = _page.GetByRole(AriaRole.Button, new() { Name = "Suivant", Exact = true });
         var previousIsDisabled = await disabledPrevious.IsVisibleAsync() && await disabledPrevious.IsDisabledAsync();
         var nextIsDisabled = await disabledNext.IsVisibleAsync() && await disabledNext.IsDisabledAsync();
         if (await previous.IsVisibleAsync() != (currentPage > 1) ||
@@ -215,12 +213,11 @@ public class PostingsPage : BasePage
             {
                 return Result<ViewPostingResponse, SystemError>.Failure(SystemError.Of("The displayed postings page changed."));
             }
-            var row = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true })
-                .GetByRole(AriaRole.Link).Filter(new() { Has = _page.GetByTestId($"posting-status-{id}") });
+            var row = _page.Locator($"ul.posting-list a.posting-row[href='/postings/{id}']");
             var posting = new ViewPostingResponse(
                 id,
                 await row.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync(),
-                Enum.Parse<PostingStatus>(await row.GetByTestId($"posting-status-{id}").InnerTextAsync()))
+                ReadPostingStatus(await row.GetByTestId($"posting-status-{id}").InnerTextAsync()))
             {
                 JobSitePublications = await ReadJobSitePublications(row)
             };
@@ -234,16 +231,13 @@ public class PostingsPage : BasePage
 
     public async Task<ILocator> FindPostingLink(int id)
     {
-        var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
-        var link = postings.GetByRole(AriaRole.Link, new()
-        {
-            NameRegex = new Regex($@", ID {id}$")
-        });
+        var postings = _page.Locator("ul.posting-list");
+        var link = postings.Locator($"a.posting-row[href='/postings/{id}']");
         var pagination = _page.GetByTestId("posting-pagination");
         await pagination.WaitForAsync();
         while (!await link.IsVisibleAsync())
         {
-            var next = _page.GetByRole(AriaRole.Link, new() { Name = "Next page", Exact = true });
+            var next = _page.GetByRole(AriaRole.Link, new() { Name = "Suivant", Exact = true });
             if (!await next.IsVisibleAsync())
             {
                 break;
@@ -265,7 +259,7 @@ public class PostingsPage : BasePage
         var target = forward ? current + 1 : current - 1;
         await _page.GetByRole(AriaRole.Link, new()
         {
-            Name = forward ? "Next page" : "Previous page", Exact = true
+            Name = forward ? "Suivant" : "Précédent", Exact = true
         }).ClickAsync();
         await _page.Locator($"[data-testid='posting-pagination'][data-page-number='{target}']")
             .Or(_page.GetByRole(AriaRole.Alert)).First.WaitForAsync();
@@ -273,7 +267,7 @@ public class PostingsPage : BasePage
 
     private static long ReadTotalCount(string summary)
     {
-        var match = Regex.Match(summary, @"\bof (?<total>\d+) postings?\b", RegexOptions.CultureInvariant);
+        var match = Regex.Match(summary, @"\bsur (?<total>\d+) offres?\b", RegexOptions.CultureInvariant);
         if (!match.Success)
         {
             throw new InvalidOperationException($"The postings summary had an unexpected format: {summary}");

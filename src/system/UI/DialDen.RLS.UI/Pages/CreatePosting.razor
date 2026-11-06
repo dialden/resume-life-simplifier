@@ -1,28 +1,30 @@
 @page "/postings/create"
+@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
 @using DialDen.RLS.Abstractions.Postings
 @inject HttpClient Api
 @inject NavigationManager Navigation
+@inject IStringLocalizer<Messages> Localizer
 
-<PageTitle>Create posting | Resume Life Simplifier</PageTitle>
+<PageTitle>@Localizer["PageTitle_CreatePosting"]</PageTitle>
 
-<div class="breadcrumb"><a href="/postings">View postings</a><span aria-hidden="true">/</span><span>Create posting</span></div>
+<div class="breadcrumb"><a href="/postings">@Localizer["Navigation_JobPostings"]</a><span aria-hidden="true">/</span><span>@Localizer["CreatePosting_Title"]</span></div>
 <div class="page-heading">
     <div>
-        <p class="eyebrow">MAKE ROOM FOR WHAT'S NEXT</p>
-        <h1>Create posting</h1>
-        <p class="page-description">Add a new opportunity to your workspace.</p>
+        <p class="eyebrow">@Localizer["CreatePosting_Eyebrow"]</p>
+        <h1>@Localizer["CreatePosting_Title"]</h1>
+        <p class="page-description">@Localizer["CreatePosting_Description"]</p>
     </div>
 </div>
 
 @if (_loadError is not null)
 {
-    <MudAlert Severity="Severity.Error" role="alert">@_loadError</MudAlert>
+    <MudAlert Severity="Severity.Error" role="alert">@_loadError()</MudAlert>
 }
 else if (_createLink is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
-        <p>Preparing your posting...</p>
+        <p>@Localizer["CreatePosting_Loading"]</p>
     </div>
 }
 else
@@ -31,50 +33,50 @@ else
         <section class="surface-panel" aria-labelledby="posting-information">
             <div class="panel-header">
                 <div>
-                    <h2 id="posting-information">Posting information</h2>
-                    <p class="panel-description">Start with the role you're interested in.</p>
+                    <h2 id="posting-information">@Localizer["CreatePosting_InformationTitle"]</h2>
+                    <p class="panel-description">@Localizer["CreatePosting_InformationDescription"]</p>
                 </div>
                 <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Color="Color.Primary" />
             </div>
             <form @onsubmit="Submit" @onsubmit:preventDefault>
                 <div class="form-body">
-                    <MudTextField T="string" Label="Title" InputId="posting-title-input"
-                                  Variant="Variant.Outlined" HelperText="Use a title you'll recognize, such as Software Engineer."
+                    <MudTextField T="string" Label="@Localizer["CreatePosting_TitleLabel"]" InputId="posting-title-input"
+                                  Variant="Variant.Outlined" HelperText="@Localizer["CreatePosting_TitleHelp"]"
                                   @bind-Value="_title" Disabled="_isCreating" />
-                    <MudTextField T="string" Label="Description" InputId="posting-description-input"
-                                  Variant="Variant.Outlined" Lines="6" HelperText="Describe the role and responsibilities."
+                    <MudTextField T="string" Label="@Localizer["CreatePosting_DescriptionLabel"]" InputId="posting-description-input"
+                                  Variant="Variant.Outlined" Lines="6" HelperText="@Localizer["CreatePosting_DescriptionHelp"]"
                                   @bind-Value="_description" Disabled="_isCreating" />
                     @if (_creationError is not null)
                     {
-                        <MudAlert Class="mt-4" Severity="Severity.Error" role="alert">@_creationError</MudAlert>
+                        <MudAlert Class="mt-4" Severity="Severity.Error" role="alert">@_creationError()</MudAlert>
                     }
                 </div>
                 <div class="form-actions">
-                    <MudButton Href="/postings" Variant="Variant.Text" Disabled="_isCreating">Cancel</MudButton>
+                    <MudButton Href="/postings" Variant="Variant.Text" Disabled="_isCreating">@Localizer["Common_Cancel"]</MudButton>
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                                Color="Color.Primary" Disabled="_isCreating" StartIcon="@Icons.Material.Outlined.Add">
-                        @(_isCreating ? "Creating..." : "Create posting")
+                        @(_isCreating ? Localizer["CreatePosting_Creating"] : Localizer["CreatePosting_Submit"])
                     </MudButton>
                 </div>
             </form>
         </section>
         <aside class="help-panel" aria-labelledby="help-title">
             <span class="feature-icon"><MudIcon Icon="@Icons.Material.Outlined.Lightbulb" /></span>
-            <h2 id="help-title">A good place to start</h2>
-            <p>A clear title makes an opportunity easier to recognize when you return to your postings.</p>
+            <h2 id="help-title">@Localizer["CreatePosting_HelpTitle"]</h2>
+            <p>@Localizer["CreatePosting_HelpParagraphOne"]</p>
             <div class="help-divider"></div>
-            <p>Once created, your posting will appear in your list. Open it any time to see its details.</p>
+            <p>@Localizer["CreatePosting_HelpParagraphTwo"]</p>
         </aside>
     </div>
 }
 
 @code {
     private Link? _createLink;
-    private string? _loadError;
+    private Func<string>? _loadError;
     private string _title = string.Empty;
     private string _description = string.Empty;
     private bool _isCreating;
-    private string? _creationError;
+    private Func<string>? _creationError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,12 +88,12 @@ else
                 link => link is { Rel: "create-posting", Method: "POST" });
             if (_createLink is null)
             {
-                _loadError = "The RLS API does not currently offer posting creation.";
+                _loadError = () => Localizer["Error_ApiActionUnavailable_CreatePosting"];
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _loadError = $"Could not load posting creation: {ex.Message}";
+            _loadError = () => Localizer["Error_LoadCreatePosting", ex.Message];
         }
     }
 
@@ -113,9 +115,10 @@ else
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
                 var problem = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-                _creationError = string.Join(" ", problem.GetProperty("errors").EnumerateObject()
+                var messages = problem.GetProperty("errors").EnumerateObject()
                     .SelectMany(error => error.Value.EnumerateArray())
-                    .Select(error => error.GetString()));
+                    .Select(error => error.GetString()).ToArray();
+                _creationError = () => string.Join(" ", messages.Select(LocalizeApiMessage));
                 return;
             }
             response.EnsureSuccessStatusCode();
@@ -126,11 +129,17 @@ else
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _creationError = $"Could not create the posting: {ex.Message}";
+            _creationError = () => Localizer["Error_CreatePosting", ex.Message];
         }
         finally
         {
             _isCreating = false;
         }
     }
+
+    private string? LocalizeApiMessage(string? message) => message switch
+    {
+        "A posting description is required." => Localizer["Api_PostingDescriptionRequired"],
+        _ => message
+    };
 }

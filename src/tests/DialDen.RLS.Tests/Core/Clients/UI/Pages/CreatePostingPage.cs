@@ -11,7 +11,7 @@ public class CreatePostingPage : BasePage
 
     public async Task<Result<VoidValue, SystemError>> FillTitle(string title)
     {
-        var titleField = _page.GetByLabel("Title", new() { Exact = true });
+        var titleField = _page.GetByLabel("Titre", new() { Exact = true });
         var alert = _page.GetByRole(AriaRole.Alert);
         var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
         await titleField.Or(alert).Or(errorBanner).First.WaitForAsync();
@@ -37,12 +37,12 @@ public class CreatePostingPage : BasePage
     public async Task<Result<CreatePostingResponse, SystemError>> ClickCreatePosting()
     {
         var response = await _page.RunAndWaitForResponseAsync(
-            () => _page.GetByRole(AriaRole.Button, new() { Name = "Create posting", Exact = true }).ClickAsync(),
+            () => _page.GetByRole(AriaRole.Button, new() { Name = "Créer l'offre", Exact = true }).ClickAsync(),
             response => response.Request.Method == "POST" && new Uri(response.Url).AbsolutePath == "/postings");
 
         var alert = _page.GetByRole(AriaRole.Alert);
         var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
-        var postings = _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true });
+        var postings = _page.GetByRole(AriaRole.List, new() { Name = "Offres", Exact = true });
         await postings.Or(alert).Or(errorBanner).First.WaitForAsync();
 
         if (await alert.IsVisibleAsync())

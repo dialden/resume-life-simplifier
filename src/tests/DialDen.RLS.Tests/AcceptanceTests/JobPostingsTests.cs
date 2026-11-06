@@ -54,7 +54,7 @@ public class JobPostingsTests
     {
         await _testEnvironment.Scenario(Channel.UI)
             .When().CreatePosting().WithDescription(description)
-            .Then().ShouldFail().ErrorMessage("A posting description is required.");
+            .Then().ShouldFail().ErrorMessage("La description de l'offre est obligatoire.");
     }
 
     [Trait("Category", "Acceptance")]

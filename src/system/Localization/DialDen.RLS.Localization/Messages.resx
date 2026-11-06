@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Navigation_Overview" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Overview</value>
+  </data>
+  <data name="Navigation_JobPostings" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Job postings</value>
+  </data>
+  <data name="WorkspaceTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Your career workspace</value>
+  </data>
+  <data name="Accessibility_SkipToContent" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Skip to content</value>
+  </data>
+  <data name="Accessibility_Workspace" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Workspace</value>
+  </data>
+  <data name="Accessibility_Home" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Resume Life Simplifier home</value>
+  </data>
+  <data name="Accessibility_MainNavigation" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Main navigation</value>
+  </data>
+  <data name="Accessibility_Language" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Language</value>
+  </data>
+  <data name="Accessibility_AvailableActions" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Available actions</value>
+  </data>
+  <data name="Navigation_Workspace" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>WORKSPACE</value>
+  </data>
+  <data name="Navigation_Home" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Home</value>
+  </data>
+  <data name="Layout_SidebarNoteFirstLine" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>A little more organized.</value>
+  </data>
+  <data name="Layout_SidebarNoteSecondLine" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>A step closer to what's next.</value>
+  </data>
+  <data name="Layout_PersonalWorkspace" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Personal workspace</value>
+  </data>
+  <data name="Layout_Footer" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Make room for your next opportunity.</value>
+  </data>
+  <data name="Language_SelectFrench" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Switch language to French</value>
+  </data>
+  <data name="Language_SelectEnglish" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Switch language to English</value>
+  </data>
+  <data name="PageTitle_Overview" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Overview | Resume Life Simplifier</value>
+  </data>
+  <data name="PageTitle_JobPostings" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Job postings | Resume Life Simplifier</value>
+  </data>
+  <data name="PageTitle_CreatePosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Create posting | Resume Life Simplifier</value>
+  </data>
+  <data name="PageTitle_PostingDetails" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Posting details | Resume Life Simplifier</value>
+  </data>
+  <data name="PageTitle_NotFound" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Page not found | Resume Life Simplifier</value>
+  </data>
+  <data name="Home_Loading" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Loading your workspace...</value>
+  </data>
+  <data name="Home_Eyebrow" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>YOUR NEXT CHAPTER</value>
+  </data>
+  <data name="Home_Description" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>A clear space to organize your job opportunities.</value>
+  </data>
+  <data name="Home_HeroLabel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>LESS CLUTTER. MORE CLARITY.</value>
+  </data>
+  <data name="Home_WelcomeTitleFirstLine" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Your next opportunity</value>
+  </data>
+  <data name="Home_WelcomeTitleSecondLine" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>starts with a little order.</value>
+  </data>
+  <data name="Home_WelcomeDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Keep job postings together, find the details you need, and focus on what comes next.</value>
+  </data>
+  <data name="Home_ViewPostings" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>View postings</value>
+  </data>
+  <data name="Home_GettingStartedTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>A simpler way to stay organized</value>
+  </data>
+  <data name="Home_GettingStartedDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>One workspace. A clearer picture.</value>
+  </data>
+  <data name="Home_StepOneTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Capture an opportunity</value>
+  </data>
+  <data name="Home_StepOneDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Create a posting with a recognizable title so it's easy to find again.</value>
+  </data>
+  <data name="Home_StepTwoTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Keep everything together</value>
+  </data>
+  <data name="Home_StepTwoDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>List your postings in one place instead of losing track of opportunities.</value>
+  </data>
+  <data name="Home_StepThreeTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Return to the details</value>
+  </data>
+  <data name="Home_StepThreeDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Open any posting to review its information whenever you need it.</value>
+  </data>
+  <data name="CreatePosting_Title" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Create posting</value>
+  </data>
+  <data name="CreatePosting_Eyebrow" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>MAKE ROOM FOR WHAT'S NEXT</value>
+  </data>
+  <data name="CreatePosting_Description" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Add a new opportunity to your workspace.</value>
+  </data>
+  <data name="CreatePosting_Loading" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Preparing your posting...</value>
+  </data>
+  <data name="CreatePosting_InformationTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Posting information</value>
+  </data>
+  <data name="CreatePosting_InformationDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Start with the role you're interested in.</value>
+  </data>
+  <data name="CreatePosting_TitleLabel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Title</value>
+  </data>
+  <data name="CreatePosting_TitleHelp" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Use a title you'll recognize, such as Software Engineer.</value>
+  </data>
+  <data name="CreatePosting_DescriptionLabel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Description</value>
+  </data>
+  <data name="CreatePosting_DescriptionHelp" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Describe the role and responsibilities.</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Cancel</value>
+  </data>
+  <data name="CreatePosting_Creating" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Creating...</value>
+  </data>
+  <data name="CreatePosting_Submit" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Create posting</value>
+  </data>
+  <data name="CreatePosting_HelpTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>A good place to start</value>
+  </data>
+  <data name="CreatePosting_HelpParagraphOne" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>A clear title makes an opportunity easier to recognize when you return to your postings.</value>
+  </data>
+  <data name="CreatePosting_HelpParagraphTwo" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Once created, your posting will appear in your list. Open it any time to see its details.</value>
+  </data>
+  <data name="Postings_Eyebrow" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>OPPORTUNITIES, ORGANIZED</value>
+  </data>
+  <data name="Postings_Description" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>All your opportunities, in one place.</value>
+  </data>
+  <data name="Postings_Loading" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Loading your postings...</value>
+  </data>
+  <data name="LiveUpdates_Unavailable" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Live updates are currently unavailable.</value>
+  </data>
+  <data name="Postings_ListTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>All postings</value>
+  </data>
+  <data name="Postings_PanelCaption" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Your opportunity library</value>
+  </data>
+  <data name="Postings_PublishSelected" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Publish selected</value>
+  </data>
+  <data name="Postings_SelectDraftHelp" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Select a draft posting below to publish.</value>
+  </data>
+  <data name="Postings_EmptyTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>No postings yet.</value>
+  </data>
+  <data name="Postings_EmptyDescriptionFirstLine" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Your next opportunity belongs here.</value>
+  </data>
+  <data name="Postings_EmptyDescriptionSecondLine" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Choose Create posting to start your collection.</value>
+  </data>
+  <data name="Postings_EmptyPageTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>No postings on this page.</value>
+  </data>
+  <data name="Postings_EmptyPageDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>This page is beyond the end of your opportunity library.</value>
+  </data>
+  <data name="Postings_BackToFirstPage" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Back to first page</value>
+  </data>
+  <data name="Postings_SelectColumn" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>SELECT A POSTING</value>
+  </data>
+  <data name="Posting_Status" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Status</value>
+  </data>
+  <data name="Postings_ListLabel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Postings</value>
+  </data>
+  <data name="Postings_SelectPosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Select posting {0}, ID {1}</value>
+  </data>
+  <data name="Postings_ViewPosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>View posting {0}, ID {1}</value>
+  </data>
+  <data name="Postings_Reference" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Posting #{0}</value>
+  </data>
+  <data name="Postings_ViewDetails" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>View details</value>
+  </data>
+  <data name="PublicListing_LinkLabel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>View public listing</value>
+  </data>
+  <data name="Postings_Count" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Showing {0}-{1} of {2} postings</value>
+  </data>
+  <data name="Postings_PaginationLabel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Posting pages</value>
+  </data>
+  <data name="Pagination_Previous" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Previous</value>
+  </data>
+  <data name="Pagination_Next" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Next</value>
+  </data>
+  <data name="Pagination_Page" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Page {0} of {1}</value>
+  </data>
+  <data name="Postings_PublishTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Publish posting</value>
+  </data>
+  <data name="Postings_PublishingChannels" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Publishing channels</value>
+  </data>
+  <data name="Postings_PublishingChannelsHelp" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Your posting will be published in RLS. Select any external job sites to include.</value>
+  </data>
+  <data name="Postings_PublishToSite" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Publish to {0}</value>
+  </data>
+  <data name="Postings_PublishWithoutExternalSites" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Leave all sites unchecked to publish only in RLS.</value>
+  </data>
+  <data name="Postings_PublishingNotice" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Confirming requests publication on the selected external job sites. Production providers may create live job postings.</value>
+  </data>
+  <data name="Postings_Publishing" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Publishing...</value>
+  </data>
+  <data name="Postings_ConfirmPublication" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Confirm publication</value>
+  </data>
+  <data name="Posting_Title" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Posting details</value>
+  </data>
+  <data name="Posting_Description" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>A closer look at your opportunity.</value>
+  </data>
+  <data name="Posting_Loading" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Loading posting details...</value>
+  </data>
+  <data name="Posting_Eyebrow" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>JOB POSTING</value>
+  </data>
+  <data name="Posting_Id" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Posting ID</value>
+  </data>
+  <data name="Posting_Details" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Details</value>
+  </data>
+  <data name="Posting_JobSitePublications" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Job-site publications</value>
+  </data>
+  <data name="Posting_NoExternalSites" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>No external job sites selected.</value>
+  </data>
+  <data name="Posting_ExternalPublicationNotice" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>External publications are processed asynchronously. Their statuses will update automatically when processing completes.</value>
+  </data>
+  <data name="Posting_PanelFooter" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Part of your personal opportunity library</value>
+  </data>
+  <data name="PublicListing_DefaultTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Job listing</value>
+  </data>
+  <data name="PublicListing_PageTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>{0} | Resume Life Simplifier</value>
+  </data>
+  <data name="PublicListing_NotFoundCode" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>404</value>
+  </data>
+  <data name="PublicListing_NotFoundTitle" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Page not found</value>
+  </data>
+  <data name="PublicListing_NotFoundDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>This public job listing does not exist.</value>
+  </data>
+  <data name="PublicListing_Loading" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Loading job listing...</value>
+  </data>
+  <data name="PublicListing_RegionLabel" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Public listing</value>
+  </data>
+  <data name="PublicListing_Eyebrow" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>JOB OPPORTUNITY</value>
+  </data>
+  <data name="PublicListing_Footer" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Published by Resume Life Simplifier</value>
+  </data>
+  <data name="PostingStatus_Draft" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Draft</value>
+  </data>
+  <data name="PostingStatus_Published" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Published</value>
+  </data>
+  <data name="PublicationStatus_Pending" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Pending</value>
+  </data>
+  <data name="PublicationStatus_Succeeded" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Succeeded</value>
+  </data>
+  <data name="PublicationStatus_Failed" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Failed</value>
+  </data>
+  <data name="Postings_InvalidPage" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Page number must be a positive whole number. Use Job postings to return to the first page.</value>
+  </data>
+  <data name="NotFound_Title" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Page not found</value>
+  </data>
+  <data name="NotFound_Description" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Sorry, the content you are looking for does not exist.</value>
+  </data>
+  <data name="NotFound_BackToOverview" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Back to overview</value>
+  </data>
+  <data name="Error_ApiUnreachable" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not reach the RLS API: {0}</value>
+  </data>
+  <data name="Error_LoadCreatePosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not load posting creation: {0}</value>
+  </data>
+  <data name="Error_CreatePosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not create the posting: {0}</value>
+  </data>
+  <data name="Error_LoadPosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not load the posting: {0}</value>
+  </data>
+  <data name="Error_LoadPublicListing" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not load the public listing: {0}</value>
+  </data>
+  <data name="Error_LoadPostings" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not load postings: {0}</value>
+  </data>
+  <data name="Error_PublishPosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not publish the posting: {0}</value>
+  </data>
+  <data name="Error_PublishPostingHttp" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Could not publish the posting: the API returned HTTP {0}.</value>
+  </data>
+  <data name="Error_PostingNotFound" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>The selected posting could not be found.</value>
+  </data>
+  <data name="Error_ApiActionUnavailable_CreatePosting" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>The RLS API does not currently offer posting creation.</value>
+  </data>
+  <data name="Error_ApiActionUnavailable_PostingsList" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>The RLS API does not currently offer a postings list.</value>
+  </data>
+  <data name="Error_ApiActionUnavailable_PublicListings" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>The RLS API does not currently offer public job listings.</value>
+  </data>
+  <data name="Error_ApiActionUnavailable_JobSites" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>The RLS API does not currently offer job-site destinations.</value>
+  </data>
+  <data name="Error_ApiActionUnavailable_Publish" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>The RLS API does not currently offer posting publishing.</value>
+  </data>
+  <data name="Error_ApiActionUnavailable_PostingDetails" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>The RLS API does not currently offer posting details.</value>
+  </data>
+  <data name="Api_PostingDescriptionRequired" xml:space="preserve">
+    <comment>API message; returned by POST /postings validation.</comment>
+    <value>A posting description is required.</value>
+  </data>
+  <data name="Api_PostingAlreadyPublished" xml:space="preserve">
+    <comment>API message; returned when publishing an already published posting.</comment>
+    <value>This posting cannot be published again.</value>
+  </data>
+</root>

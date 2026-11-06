@@ -1,42 +1,45 @@
 ﻿@page "/"
+@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
 
-<PageTitle>Overview | Resume Life Simplifier</PageTitle>
+@inject IStringLocalizer<Messages> Localizer
+
+<PageTitle>@Localizer["PageTitle_Overview"]</PageTitle>
 
 @inject HttpClient Api
 
 @if (_error is not null)
 {
-    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+    <MudAlert Severity="Severity.Error" role="alert">@_error()</MudAlert>
 }
 else if (_entryPoint is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
-        <p>Loading your workspace...</p>
+        <p>@Localizer["Home_Loading"]</p>
     </div>
 }
 else
 {
     <div class="page-heading">
         <div>
-            <p class="eyebrow">YOUR NEXT CHAPTER</p>
-            <h1>Overview</h1>
-            <p class="page-description">A clear space to organize your job opportunities.</p>
+            <p class="eyebrow">@Localizer["Home_Eyebrow"]</p>
+            <h1>@Localizer["Navigation_Overview"]</h1>
+            <p class="page-description">@Localizer["Home_Description"]</p>
         </div>
-        <span class="page-tag">Personal workspace</span>
+        <span class="page-tag">@Localizer["Layout_PersonalWorkspace"]</span>
     </div>
 
     <section class="welcome-panel" aria-labelledby="welcome-title">
         <div class="welcome-copy">
-            <span class="hero-label">LESS CLUTTER. MORE CLARITY.</span>
-            <h2 id="welcome-title">Your next opportunity<br />starts with a little order.</h2>
-            <p>Keep job postings together, find the details you need, and focus on what comes next.</p>
-            <ul class="hero-actions" aria-label="Available actions">
+            <span class="hero-label">@Localizer["Home_HeroLabel"]</span>
+            <h2 id="welcome-title">@Localizer["Home_WelcomeTitleFirstLine"]<br />@Localizer["Home_WelcomeTitleSecondLine"]</h2>
+            <p>@Localizer["Home_WelcomeDescription"]</p>
+            <ul class="hero-actions" aria-label="@Localizer["Accessibility_AvailableActions"]">
                 @foreach (var link in _entryPoint.Links.Where(link => link is { Rel: "list-postings", Method: "GET" }))
                 {
                     <li>
                         <a class="action-link action-primary" href="/postings" rel="@link.Rel">
-                            View postings
+                            @Localizer["Home_ViewPostings"]
                             <MudIcon Icon="@Icons.Material.Outlined.ArrowForward" />
                         </a>
                     </li>
@@ -58,27 +61,27 @@ else
 
     <section class="getting-started" aria-labelledby="getting-started-title">
         <div class="section-heading">
-            <h2 id="getting-started-title">A simpler way to stay organized</h2>
-            <p>One workspace. A clearer picture.</p>
+            <h2 id="getting-started-title">@Localizer["Home_GettingStartedTitle"]</h2>
+            <p>@Localizer["Home_GettingStartedDescription"]</p>
         </div>
         <div class="feature-grid">
             <article class="feature-card">
                 <span class="feature-icon"><MudIcon Icon="@Icons.Material.Outlined.LibraryAdd" /></span>
                 <span class="step-number">01</span>
-                <h3>Capture an opportunity</h3>
-                <p>Create a posting with a recognizable title so it's easy to find again.</p>
+                <h3>@Localizer["Home_StepOneTitle"]</h3>
+                <p>@Localizer["Home_StepOneDescription"]</p>
             </article>
             <article class="feature-card">
                 <span class="feature-icon feature-icon-blue"><MudIcon Icon="@Icons.Material.Outlined.ViewList" /></span>
                 <span class="step-number">02</span>
-                <h3>Keep everything together</h3>
-                <p>List your postings in one place instead of losing track of opportunities.</p>
+                <h3>@Localizer["Home_StepTwoTitle"]</h3>
+                <p>@Localizer["Home_StepTwoDescription"]</p>
             </article>
             <article class="feature-card">
                 <span class="feature-icon feature-icon-purple"><MudIcon Icon="@Icons.Material.Outlined.Description" /></span>
                 <span class="step-number">03</span>
-                <h3>Return to the details</h3>
-                <p>Open any posting to review its information whenever you need it.</p>
+                <h3>@Localizer["Home_StepThreeTitle"]</h3>
+                <p>@Localizer["Home_StepThreeDescription"]</p>
             </article>
         </div>
     </section>
@@ -86,7 +89,7 @@ else
 
 @code {
     private RLSEntryPoint? _entryPoint;
-    private string? _error;
+    private Func<string>? _error;
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,7 +99,7 @@ else
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _error = $"Could not reach the RLS API: {ex.Message}";
+            _error = () => Localizer["Error_ApiUnreachable", ex.Message];
         }
     }
 }

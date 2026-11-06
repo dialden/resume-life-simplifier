@@ -14,6 +14,9 @@
   <Folder Name="/system/Infrastructure/">
     <Project Path="system/Infrastructure/DialDen.RLS.Infrastructure/DialDen.RLS.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/system/Localization/">
+    <Project Path="system/Localization/DialDen.RLS.Localization/DialDen.RLS.Localization.csproj" />
+  </Folder>
   <Folder Name="/system/JobSites/">
     <Project Path="system/JobSites/DialDen.RLS.JobSites.Abstractions/DialDen.RLS.JobSites.Abstractions.csproj" />
     <Project Path="system/JobSites/DialDen.RLS.JobSites.Jobillico/DialDen.RLS.JobSites.Jobillico.csproj" />

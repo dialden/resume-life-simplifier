@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
     <meta charset="utf-8" />
@@ -31,7 +31,17 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>
+        window.rlsSetDocumentLanguage = lang => document.documentElement.lang = lang;
+    </script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js" autostart="false"></script>
+    <script>
+        Blazor.start({
+            configureRuntime: runtime => runtime.withConfig({
+                loadAllSatelliteResources: true
+            })
+        });
+    </script>
 </body>
 
 </html>

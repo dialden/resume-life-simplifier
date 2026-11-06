@@ -1,4 +1,5 @@
 @page "/postings"
+@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
 @using DialDen.RLS.Abstractions.Postings
 @using System.Globalization
 @using DialDen.RLS.UI.Notifications
@@ -7,54 +8,55 @@
 @inject HttpClient Api
 @inject NotificationService Notifications
 @inject ILogger<Postings> Logger
+@inject IStringLocalizer<Messages> Localizer
 
-<PageTitle>Job postings | Resume Life Simplifier</PageTitle>
+<PageTitle>@Localizer["PageTitle_JobPostings"]</PageTitle>
 
-<div class="breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Job postings</span></div>
+<div class="breadcrumb"><a href="/">@Localizer["Navigation_Home"]</a><span aria-hidden="true">/</span><span>@Localizer["Navigation_JobPostings"]</span></div>
 <div class="page-heading">
     <div>
-        <p class="eyebrow">OPPORTUNITIES, ORGANIZED</p>
-        <h1>Job postings</h1>
-        <p class="page-description">All your opportunities, in one place.</p>
+        <p class="eyebrow">@Localizer["Postings_Eyebrow"]</p>
+        <h1>@Localizer["Navigation_JobPostings"]</h1>
+        <p class="page-description">@Localizer["Postings_Description"]</p>
     </div>
     <a class="action-link action-primary" href="/postings/create">
-        <MudIcon Icon="@Icons.Material.Outlined.Add" />Create posting
+        <MudIcon Icon="@Icons.Material.Outlined.Add" />@Localizer["CreatePosting_Title"]
     </a>
 </div>
 
 @if (_error is not null)
 {
-    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+    <MudAlert Severity="Severity.Error" role="alert">@_error()</MudAlert>
 }
 else if (_page is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
-        <p>Loading your postings...</p>
+        <p>@Localizer["Postings_Loading"]</p>
     </div>
 }
 else
 {
     @if (_liveUpdatesUnavailable)
     {
-        <MudAlert Severity="Severity.Warning" role="alert" data-testid="live-updates-warning">Live updates are currently unavailable.</MudAlert>
+        <MudAlert Severity="Severity.Warning" role="alert" data-testid="live-updates-warning">@Localizer["LiveUpdates_Unavailable"]</MudAlert>
     }
     <section class="surface-panel" aria-labelledby="postings-heading">
         <div class="panel-header">
             <div class="panel-title">
-                <h2 id="postings-heading">All postings</h2>
+                <h2 id="postings-heading">@Localizer["Postings_ListTitle"]</h2>
                 <span class="count-badge">@_page.TotalCount</span>
             </div>
-            <span class="panel-caption">Your opportunity library</span>
+            <span class="panel-caption">@Localizer["Postings_PanelCaption"]</span>
         </div>
         <div class="posting-list-actions">
             <div class="publishing-submit">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            Disabled="@(!CanPublishSelected || _isPublishing)"
                            OnClick="OpenPublishDialog">
-                    Publish selected
+                    @Localizer["Postings_PublishSelected"]
                 </MudButton>
-                <p class="publishing-help">Select a draft posting below to publish.</p>
+                <p class="publishing-help">@Localizer["Postings_SelectDraftHelp"]</p>
             </div>
         </div>
         @if (_page.Items.Count == 0)
@@ -63,60 +65,60 @@ else
                 <span class="empty-icon"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
                 @if (_page.TotalCount == 0)
                 {
-                    <h3>No postings yet.</h3>
-                    <p>Your next opportunity belongs here.<br />Choose Create posting to start your collection.</p>
+                    <h3>@Localizer["Postings_EmptyTitle"]</h3>
+                    <p>@Localizer["Postings_EmptyDescriptionFirstLine"]<br />@Localizer["Postings_EmptyDescriptionSecondLine"]</p>
                 }
                 else
                 {
-                    <h3>No postings on this page.</h3>
-                    <p>This page is beyond the end of your opportunity library.</p>
+                    <h3>@Localizer["Postings_EmptyPageTitle"]</h3>
+                    <p>@Localizer["Postings_EmptyPageDescription"]</p>
                 }
                 @if (_page.PageNumber > 1)
                 {
-                    <a class="action-link action-primary" href="/postings">Back to first page</a>
+                    <a class="action-link action-primary" href="/postings">@Localizer["Postings_BackToFirstPage"]</a>
                 }
             </div>
         }
         else
         {
-            <div class="list-columns" aria-hidden="true"><span>SELECT A POSTING</span><span>STATUS</span></div>
-            <ul class="posting-list" aria-label="Postings">
+            <div class="list-columns" aria-hidden="true"><span>@Localizer["Postings_SelectColumn"]</span><span>@Localizer["Posting_Status"]</span></div>
+            <ul class="posting-list" aria-label="@Localizer["Postings_ListLabel"]">
                 @foreach (var posting in _page.Items)
                 {
                     <li @key="posting.Id" class="posting-list-item">
                         <label class="posting-selection">
                             <input type="radio" name="selectedPosting" value="@posting.Id"
                                    checked="@(_selectedPostingId == posting.Id)"
-                                   aria-label="@($"Select posting {posting.Title}, ID {posting.Id}")"
+                                   aria-label="@Localizer["Postings_SelectPosting", posting.Title, posting.Id]"
                                    @onchange="@(() => _selectedPostingId = posting.Id)" />
                         </label>
                         <a class="posting-row" href="@($"/postings/{posting.Id}")"
-                           aria-label="View posting @posting.Title, ID @posting.Id">
+                           aria-label="@Localizer["Postings_ViewPosting", posting.Title, posting.Id]">
                             <span class="posting-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" /></span>
                             <span class="posting-summary">
                                 <span class="posting-name" role="heading" aria-level="3">@posting.Title</span>
-                                <span class="posting-reference">Posting #@posting.Id</span>
+                                <span class="posting-reference">@Localizer["Postings_Reference", posting.Id]</span>
                                 @if (posting.JobSitePublications.Count > 0)
                                 {
-                                    <span role="list" aria-label="Job-site publications">
+                                    <span role="list" aria-label="@Localizer["Posting_JobSitePublications"]">
                                         @foreach (var publication in posting.JobSitePublications)
                                         {
                                             <span role="listitem" data-job-site-id="@publication.JobSiteId">
                                                 @publication.JobSiteId:
-                                                <span data-testid="job-site-publication-status">@publication.Status</span>
+                                                <span data-testid="job-site-publication-status">@Localizer[$"PublicationStatus_{publication.Status}"]</span>
                                             </span>
                                         }
                                     </span>
                                 }
                             </span>
-                            <span class="posting-status" data-testid="posting-status-@posting.Id">@posting.Status</span>
-                            <span class="row-action" aria-hidden="true">View details<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
+                            <span class="posting-status" data-testid="posting-status-@posting.Id">@Localizer[$"PostingStatus_{posting.Status}"]</span>
+                            <span class="row-action" aria-hidden="true">@Localizer["Postings_ViewDetails"]<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
                         </a>
                         @if (posting.PublicListingUrl is not null)
                         {
                             <a class="row-action" data-testid="public-listing-link-@posting.Id"
                                href="@posting.PublicListingUrl" target="_blank" rel="noopener noreferrer">
-                                Public listing
+                                @Localizer["PublicListing_LinkLabel"]
                             </a>
                         }
                     </li>
@@ -125,31 +127,31 @@ else
         }
         <div class="panel-footer pagination-footer" data-testid="posting-pagination"
              data-total-count="@_page.TotalCount" data-page-number="@_page.PageNumber" data-page-size="@_page.PageSize">
-            <span role="status">Showing @FirstPosting-@LastPosting of @_page.TotalCount @(_page.TotalCount == 1 ? "posting" : "postings")</span>
-            <nav class="pagination-controls" aria-label="Posting pages">
+            <span role="status">@Localizer["Postings_Count", FirstPosting, LastPosting, _page.TotalCount]</span>
+            <nav class="pagination-controls" aria-label="@Localizer["Postings_PaginationLabel"]">
                 @if (_page.PageNumber > 1)
                 {
-                    <a class="pagination-link" href="@PageUrl(_page.PageNumber - 1)" aria-label="Previous page">
-                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />Previous
+                    <a class="pagination-link" href="@PageUrl(_page.PageNumber - 1)" aria-label="@Localizer["Pagination_Previous"]">
+                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />@Localizer["Pagination_Previous"]
                     </a>
                 }
                 else
                 {
-                    <button class="pagination-link disabled" type="button" aria-label="Previous page" disabled>
-                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />Previous
+                    <button class="pagination-link disabled" type="button" aria-label="@Localizer["Pagination_Previous"]" disabled>
+                        <MudIcon Icon="@Icons.Material.Outlined.ChevronLeft" Size="Size.Small" />@Localizer["Pagination_Previous"]
                     </button>
                 }
-                <span class="page-indicator">Page @_page.PageNumber of @TotalPages</span>
+                <span class="page-indicator">@Localizer["Pagination_Page", _page.PageNumber, TotalPages]</span>
                 @if (_page.PageNumber < TotalPages)
                 {
-                    <a class="pagination-link" href="@PageUrl(_page.PageNumber + 1)" aria-label="Next page">
-                        Next<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
+                    <a class="pagination-link" href="@PageUrl(_page.PageNumber + 1)" aria-label="@Localizer["Pagination_Next"]">
+                        @Localizer["Pagination_Next"]<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
                     </a>
                 }
                 else
                 {
-                    <button class="pagination-link disabled" type="button" aria-label="Next page" disabled>
-                        Next<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
+                    <button class="pagination-link disabled" type="button" aria-label="@Localizer["Pagination_Next"]" disabled>
+                        @Localizer["Pagination_Next"]<MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Size="Size.Small" />
                     </button>
                 }
             </nav>
@@ -159,39 +161,39 @@ else
 
 <MudDialog @bind-Visible="_showPublishDialog" Options="_publishDialogOptions">
     <TitleContent>
-        <h2>Publish posting</h2>
+        <h2>@Localizer["Postings_PublishTitle"]</h2>
     </TitleContent>
     <DialogContent>
         <p class="publishing-posting-title">@_page?.Items.SingleOrDefault(posting => posting.Id == _selectedPostingId)?.Title</p>
         @if (_publishError is not null)
         {
-            <MudAlert Severity="Severity.Error" role="alert">@_publishError</MudAlert>
+            <MudAlert Severity="Severity.Error" role="alert">@_publishError()</MudAlert>
         }
         <fieldset class="publishing-channels" disabled="@_isPublishing"
                   aria-describedby="publishing-channels-help">
-            <legend>Publishing channels</legend>
-            <p id="publishing-channels-help" class="publishing-help">Your posting will be published in RLS. Select any external job sites to include.</p>
+            <legend>@Localizer["Postings_PublishingChannels"]</legend>
+            <p id="publishing-channels-help" class="publishing-help">@Localizer["Postings_PublishingChannelsHelp"]</p>
             <div class="publishing-options">
                 @foreach (var site in _jobSites)
                 {
                     <label class="publishing-option">
                         <input type="checkbox" data-testid="job-site-@site.Id"
-                               aria-label="@($"Publish to {site.Name}")"
+                               aria-label="@Localizer["Postings_PublishToSite", site.Name]"
                                checked="@_selectedJobSiteIds.Contains(site.Id)"
                                @onchange="@(args => SelectJobSite(site.Id, args.Value is true))" />
                         <span>@site.Name</span>
                     </label>
                 }
             </div>
-            <p class="publishing-help">Leave all sites unchecked to publish only in RLS.</p>
-            <p class="publishing-notice">Confirming requests publication on the selected external job sites. Production providers may create live job postings.</p>
+            <p class="publishing-help">@Localizer["Postings_PublishWithoutExternalSites"]</p>
+            <p class="publishing-notice">@Localizer["Postings_PublishingNotice"]</p>
         </fieldset>
     </DialogContent>
     <DialogActions>
-        <MudButton Disabled="@_isPublishing" OnClick="CancelPublishDialog">Cancel</MudButton>
+        <MudButton Disabled="@_isPublishing" OnClick="CancelPublishDialog">@Localizer["Common_Cancel"]</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    Disabled="@_isPublishing" OnClick="PublishSelected">
-            @(_isPublishing ? "Publishing..." : "Confirm publication")
+            @(_isPublishing ? Localizer["Postings_Publishing"] : Localizer["Postings_ConfirmPublication"])
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -201,7 +203,7 @@ else
     public string? Page { get; set; }
 
     private ListPostingsResponse? _page;
-    private string? _error;
+    private Func<string>? _error;
     private int _loadVersion;
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private CancellationTokenSource? _viewCancellation;
@@ -211,7 +213,7 @@ else
     private int? _selectedPostingId;
     private bool _isPublishing;
     private bool _showPublishDialog;
-    private string? _publishError;
+    private Func<string>? _publishError;
     private readonly DialogOptions _publishDialogOptions = new()
     {
         FullWidth = true,
@@ -283,7 +285,7 @@ else
         if (Page is not null &&
             (!int.TryParse(Page, NumberStyles.None, CultureInfo.InvariantCulture, out pageNumber) || pageNumber < 1))
         {
-            _error = "Page number must be a positive whole number. Use Job postings to return to the first page.";
+            _error = () => Localizer["Postings_InvalidPage"];
             return;
         }
 
@@ -299,7 +301,7 @@ else
                 link => link is { Rel: "list-postings", Method: "GET" });
             if (listLink is null)
             {
-                _error = "The RLS API does not currently offer a postings list.";
+                _error = () => Localizer["Error_ApiActionUnavailable_PostingsList"];
                 return;
             }
 
@@ -307,7 +309,7 @@ else
                 link => link is { Rel: "list-job-sites", Method: "GET" });
             if (sitesLink is null)
             {
-                _error = "The RLS API does not currently offer job-site destinations.";
+                _error = () => Localizer["Error_ApiActionUnavailable_JobSites"];
                 return;
             }
             var sites = await Api.GetFromJsonAsync<JobSite[]>(sitesLink.Href, token)
@@ -334,7 +336,7 @@ else
         {
             if (version == _loadVersion)
             {
-                _error = $"Could not load postings: {ex.Message}";
+                _error = () => Localizer["Error_LoadPostings", ex.Message];
             }
         }
     }
@@ -370,7 +372,7 @@ else
                 link => link is { Rel: "publish-posting", Method: "PATCH" });
             if (publishLink is null)
             {
-                _publishError = "The RLS API does not currently offer posting publishing.";
+                _publishError = () => Localizer["Error_ApiActionUnavailable_Publish"];
                 return;
             }
 
@@ -381,11 +383,12 @@ else
                 ApiJsonSerializerOptions.Default);
             if (!response.IsSuccessStatusCode)
             {
-                _publishError = response.StatusCode switch
+                var statusCode = response.StatusCode;
+                _publishError = () => statusCode switch
                 {
-                    System.Net.HttpStatusCode.NotFound => "The selected posting could not be found.",
-                    System.Net.HttpStatusCode.Conflict => "This posting cannot be published again.",
-                    _ => $"Could not publish the posting: the API returned HTTP {(int)response.StatusCode}."
+                    System.Net.HttpStatusCode.NotFound => Localizer["Error_PostingNotFound"],
+                    System.Net.HttpStatusCode.Conflict => Localizer["Api_PostingAlreadyPublished"],
+                    _ => Localizer["Error_PublishPostingHttp", (int)statusCode]
                 };
                 return;
             }
@@ -414,7 +417,7 @@ else
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
-            _publishError = $"Could not publish the posting: {ex.Message}";
+            _publishError = () => Localizer["Error_PublishPosting", ex.Message];
         }
         finally
         {
@@ -517,6 +520,7 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        Dispose();
         _disposed = true;
         ++_loadVersion;
         await StopObserving();

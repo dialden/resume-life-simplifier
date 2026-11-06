@@ -8,8 +8,8 @@ public sealed class PublicListingPage(IPage page)
 {
     public async Task<Result<PublicListingResponse, SystemError>> ReadListing()
     {
-        var listing = page.GetByRole(AriaRole.Region, new() { Name = "Public listing", Exact = true });
-        var notFound = page.GetByRole(AriaRole.Heading, new() { Name = "Page not found", Exact = true });
+        var listing = page.Locator("section[data-posting-id]");
+        var notFound = page.GetByTestId("public-listing-not-found");
         var alert = page.GetByRole(AriaRole.Alert).Filter(new() { Visible = true });
         await listing.Or(notFound).Or(alert).First.WaitForAsync();
         if (await notFound.IsVisibleAsync())

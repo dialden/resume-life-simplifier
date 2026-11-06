@@ -1,4 +1,5 @@
 @page "/postings/{Id:int}"
+@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
 @using System.Globalization
 @using System.Net
 @using DialDen.RLS.Abstractions.Postings
@@ -8,85 +9,86 @@
 @inject HttpClient Api
 @inject NotificationService Notifications
 @inject ILogger<Posting> Logger
+@inject IStringLocalizer<Messages> Localizer
 
-<PageTitle>Posting details | Resume Life Simplifier</PageTitle>
+<PageTitle>@Localizer["PageTitle_PostingDetails"]</PageTitle>
 
-<div class="breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><a href="/postings">View postings</a><span aria-hidden="true">/</span><span>Details</span></div>
+<div class="breadcrumb"><a href="/">@Localizer["Navigation_Home"]</a><span aria-hidden="true">/</span><a href="/postings">@Localizer["Navigation_JobPostings"]</a><span aria-hidden="true">/</span><span>@Localizer["Posting_Details"]</span></div>
 <div class="page-heading">
     <div>
-        <p class="eyebrow">YOUR OPPORTUNITY LIBRARY</p>
-        <h1>Posting details</h1>
-        <p class="page-description">A closer look at your opportunity.</p>
+        <p class="eyebrow">@Localizer["Postings_PanelCaption"]</p>
+        <h1>@Localizer["Posting_Title"]</h1>
+        <p class="page-description">@Localizer["Posting_Description"]</p>
     </div>
 </div>
 
 @if (_error is not null)
 {
-    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+    <MudAlert Severity="Severity.Error" role="alert">@_error()</MudAlert>
 }
 else if (_posting is null)
 {
     <div class="state-panel" role="status">
         <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
-        <p>Loading posting details...</p>
+        <p>@Localizer["Posting_Loading"]</p>
     </div>
 }
 else
 {
     @if (_liveUpdatesUnavailable)
     {
-        <MudAlert Severity="Severity.Warning" role="alert" data-testid="live-updates-warning">Live updates are currently unavailable.</MudAlert>
+        <MudAlert Severity="Severity.Warning" role="alert" data-testid="live-updates-warning">@Localizer["LiveUpdates_Unavailable"]</MudAlert>
     }
-    <section class="surface-panel" aria-label="Posting details">
+    <section class="surface-panel" aria-label="@Localizer["PageTitle_PostingDetails"]">
         <div class="posting-detail-heading">
             <span class="detail-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
             <div>
-                <span class="eyebrow">JOB POSTING</span>
+                <span class="eyebrow">@Localizer["Posting_Eyebrow"]</span>
                 <h2 class="detail-title">@_posting.Title</h2>
             </div>
         </div>
         <dl class="detail-fields">
             <div>
-                <dt>Posting ID</dt>
+                <dt>@Localizer["Posting_Id"]</dt>
                 <dd>@_posting.Id</dd>
             </div>
             <div>
-                <dt>Title</dt>
+                <dt>@Localizer["CreatePosting_TitleLabel"]</dt>
                 <dd>@_posting.Title</dd>
             </div>
             <div>
-                <dt>Status</dt>
-                <dd>@_posting.Status</dd>
+                <dt>@Localizer["Posting_Status"]</dt>
+                <dd>@Localizer[$"PostingStatus_{_posting.Status}"]</dd>
             </div>
         </dl>
-        <h3>Description</h3>
+        <h3>@Localizer["CreatePosting_DescriptionLabel"]</h3>
         <p data-testid="posting-description" style="white-space: pre-wrap">@_posting.Description</p>
         @if (_posting.PublicListingUrl is not null)
         {
             <p>
                 <a data-testid="public-listing-link-@_posting.Id" href="@_posting.PublicListingUrl"
-                   target="_blank" rel="noopener noreferrer">View public listing</a>
+                   target="_blank" rel="noopener noreferrer">@Localizer["PublicListing_LinkLabel"]</a>
             </p>
         }
-        <h3>Job-site publications</h3>
+        <h3>@Localizer["Posting_JobSitePublications"]</h3>
         @if (_posting.JobSitePublications.Count == 0)
         {
-            <p>No external job sites selected.</p>
+            <p>@Localizer["Posting_NoExternalSites"]</p>
         }
         else
         {
-            <ul aria-label="Job-site publications">
+            <ul aria-label="@Localizer["Posting_JobSitePublications"]">
                 @foreach (var publication in _posting.JobSitePublications)
                 {
                     <li data-job-site-id="@publication.JobSiteId">
                         <span>@publication.JobSiteId</span>:
-                        <span data-testid="job-site-publication-status">@publication.Status</span>
+                        <span data-testid="job-site-publication-status">@Localizer[$"PublicationStatus_{publication.Status}"]</span>
                     </li>
                 }
             </ul>
-            <p>External publications are processed asynchronously. Their statuses will update automatically when processing completes.</p>
+            <p>@Localizer["Posting_ExternalPublicationNotice"]</p>
         }
-        <div class="panel-footer">Part of your personal opportunity library</div>
+        <div class="panel-footer">@Localizer["Posting_PanelFooter"]</div>
     </section>
 }
 
@@ -95,7 +97,7 @@ else
     public int Id { get; set; }
 
     private ViewPostingResponse? _posting;
-    private string? _error;
+    private Func<string>? _error;
     private bool _liveUpdatesUnavailable;
     private CancellationTokenSource? _viewCancellation;
     private Task? _observation;
@@ -124,7 +126,7 @@ else
                 link => link is { Rel: "view-posting", Method: "GET" });
             if (viewLink is null)
             {
-                _error = "The RLS API does not currently offer posting details.";
+                _error = () => Localizer["Error_ApiActionUnavailable_PostingDetails"];
                 return;
             }
 
@@ -132,7 +134,7 @@ else
             using var response = await Api.GetAsync(href, token);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                _error = "Posting not found.";
+                _error = () => Localizer["Error_PostingNotFound"];
                 return;
             }
 
@@ -153,7 +155,7 @@ else
         {
             if (!token.IsCancellationRequested)
             {
-                _error = $"Could not load the posting: {ex.Message}";
+                _error = () => Localizer["Error_LoadPosting", ex.Message];
             }
         }
     }
@@ -246,6 +248,7 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        Dispose();
         _disposed = true;
         await StopObserving();
     }

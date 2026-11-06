@@ -62,7 +62,7 @@ public class HomePage : BasePage
             return Result<PostingsPage, SystemError>.Failure(SystemError.Of(error));
         }
 
-        var postingsLink = _page.GetByRole(AriaRole.Link, new() { Name = "View postings", Exact = true });
+        var postingsLink = _page.GetByRole(AriaRole.Link, new() { Name = "Voir les offres", Exact = true });
         if (!await postingsLink.IsVisibleAsync())
         {
             return Result<PostingsPage, SystemError>.Failure(
