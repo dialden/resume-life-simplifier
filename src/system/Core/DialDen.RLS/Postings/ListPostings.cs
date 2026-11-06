@@ -6,11 +6,16 @@ internal sealed class ListPostings : IListPostings
 {
     private readonly IPostingsArchive _postingsArchive;
     private readonly IJobSitePublications _jobSitePublications;
+    private readonly IPublicListingAddress _publicListingAddress;
 
-    public ListPostings(IPostingsArchive postingsArchive, IJobSitePublications jobSitePublications)
+    public ListPostings(
+        IPostingsArchive postingsArchive,
+        IJobSitePublications jobSitePublications,
+        IPublicListingAddress publicListingAddress)
     {
         _postingsArchive = postingsArchive;
         _jobSitePublications = jobSitePublications;
+        _publicListingAddress = publicListingAddress;
     }
 
     public async Task<ListPostingsResponse> List(ListPostingsRequest request, CancellationToken cancellationToken)
@@ -22,6 +27,9 @@ internal sealed class ListPostings : IListPostings
             list.Postings.Select(posting => new ViewPostingResponse(posting.Id, posting.Title, posting.Status)
             {
                 Description = posting.Description,
+                PublicListingUrl = posting.Status == PostingStatus.Published
+                    ? _publicListingAddress.ForPosting(posting.Id)
+                    : null,
                 JobSitePublications = publications.GetValueOrDefault(posting.Id, [])
                     .Select(publication => new JobSitePublicationResponse(publication.JobSiteId, publication.Status))
                     .ToArray()

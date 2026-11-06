@@ -1,4 +1,5 @@
 using DialDen.RLS.Tests.Core.Drivers.JobSites;
+using Shouldly;
 
 namespace DialDen.RLS.Tests.Core.Dsl.External.JobSites;
 
@@ -19,6 +20,16 @@ public class JobSitesDsl
     }
 
     public Task Reset() => _driver.ResetAndAcceptByDefault();
+
+    public async Task HasPublicListingAddress(string jobSiteId, int postingId, Uri expectedAddress)
+    {
+        var addresses = await _driver.PublicListingAddressesReceivedFor(jobSiteId, postingId);
+        addresses.ShouldNotBeEmpty();
+        foreach (var address in addresses)
+        {
+            address.ShouldBe(expectedAddress);
+        }
+    }
 
     public void AcceptPostings(string jobSiteId) => _responses[jobSiteId] = true;
 

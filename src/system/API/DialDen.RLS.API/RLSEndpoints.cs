@@ -19,6 +19,7 @@ public static class RLSEndpoints
                 new Link("list-job-sites", "/job-sites", "GET"),
                 new Link("publish-posting", "/postings/{id}", "PATCH"),
                 new Link("view-posting", "/postings/{id}", "GET"),
+                new Link("view-public-listing", "/public-postings/{id}", "GET"),
                 new Link("notifications", "/notifications/stream", "GET")
             ])))
             .WithName("EntryPoint")
@@ -92,6 +93,22 @@ public static class RLSEndpoints
             .WithName("ViewPosting")
             .WithSummary("Retrieves a job posting by its identifier.")
             .Produces<ViewPostingResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        app.MapGet("/public-postings/{id:int}", async Task<IResult> (
+                int id,
+                [FromServices] IViewPublicListing viewPublicListing,
+                CancellationToken cancellationToken) =>
+            {
+                var listing = await viewPublicListing.View(id, cancellationToken);
+                return listing is null
+                    ? TypedResults.NotFound()
+                    : TypedResults.Ok(listing);
+            })
+            .WithName("ViewPublicListing")
+            .WithSummary("Retrieves the current details of a published job posting.")
+            .WithDescription("Draft and unknown postings are not publicly available.")
+            .Produces<PublicListingResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapPatch("/postings/{id:int}", async Task<IResult> (

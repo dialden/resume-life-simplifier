@@ -34,7 +34,9 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
         }
         await processRunner.Run("gcloud",
             ["run", "services", "update", apiName, $"--project={config.ProjectId}",
-                $"--region={config.Region}", $"--update-env-vars=RLS_API_Cors__AllowedOrigins__0={url}", "--quiet"]);
+                $"--region={config.Region}",
+                $"--update-env-vars=RLS_API_Cors__AllowedOrigins__0={url},RLS_API_PublicWebsite__BaseUrl={url}",
+                "--quiet"]);
         await processRunner.Run("gcloud",
             ["run", "services", "update-traffic", apiName, $"--project={config.ProjectId}",
                 $"--region={config.Region}", "--to-latest", "--quiet"]);

@@ -7,15 +7,18 @@ internal sealed class PublishPosting : IPublishPosting
     private readonly IPostingsArchive _postingsArchive;
     private readonly IJobSitesCatalog _jobSitesCatalog;
     private readonly IJobSitePublications _jobSitePublications;
+    private readonly IPublicListingAddress _publicListingAddress;
 
     public PublishPosting(
         IPostingsArchive postingsArchive,
         IJobSitesCatalog jobSitesCatalog,
-        IJobSitePublications jobSitePublications)
+        IJobSitePublications jobSitePublications,
+        IPublicListingAddress publicListingAddress)
     {
         _postingsArchive = postingsArchive;
         _jobSitesCatalog = jobSitesCatalog;
         _jobSitePublications = jobSitePublications;
+        _publicListingAddress = publicListingAddress;
     }
 
     public async Task<PublishPostingResponse?> Publish(
@@ -32,7 +35,8 @@ internal sealed class PublishPosting : IPublishPosting
         }
 
         var published = posting.Publish();
-        await _jobSitePublications.Request(published, jobSites, cancellationToken);
+        var publicListingUrl = _publicListingAddress.ForPosting(published.Id);
+        await _jobSitePublications.Request(published, jobSites, publicListingUrl, cancellationToken);
         try
         {
             await _postingsArchive.Save(published, cancellationToken);
@@ -43,7 +47,7 @@ internal sealed class PublishPosting : IPublishPosting
             throw new PostingAlreadyPublishedException();
         }
 
-        return new PublishPostingResponse(published.Id, published.Status)
+        return new PublishPostingResponse(published.Id, published.Status, publicListingUrl)
         {
             JobSitePublications = jobSites
                 .Select(site => new JobSitePublicationResponse(site.Id, JobSitePublicationStatus.Pending))

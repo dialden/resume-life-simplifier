@@ -1,10 +1,38 @@
 using WireMock.Admin.Mappings;
 using WireMock.Client;
+using System.Globalization;
 
 namespace DialDen.RLS.Tests.Core.Drivers.JobSites;
 
 public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnlyList<string> jobSiteIds) : IJobSitesDriver
 {
+    public async Task<IReadOnlyList<Uri?>> PublicListingAddressesReceivedFor(string jobSiteId, int postingId)
+    {
+        var requests = await adminApi.GetRequestsAsync();
+        var addresses = new List<Uri?>();
+        foreach (var entry in requests)
+        {
+            var request = entry.Request
+                ?? throw new InvalidOperationException("The job-site request log contains no request.");
+            if (request.Path != $"/publish/{Uri.EscapeDataString(jobSiteId)}"
+                || request.Query is null
+                || !request.Query.TryGetValue("postingId", out var ids)
+                || !ids.Contains(postingId.ToString(CultureInfo.InvariantCulture)))
+            {
+                continue;
+            }
+            if (!request.Query.TryGetValue("publicListingUrl", out var urls))
+            {
+                addresses.Add(null);
+            }
+            else
+            {
+                addresses.AddRange(urls.Select(address => new Uri(address, UriKind.Absolute)));
+            }
+        }
+        return addresses;
+    }
+
     public async Task ResetAndAcceptByDefault()
     {
         await adminApi.ResetMappingsAsync();

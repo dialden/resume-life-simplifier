@@ -13,6 +13,7 @@ internal sealed class JobillicoJobSite(IHttpClientFactory clients, JobillicoOpti
 
     public async Task Publish(JobSitePosting posting, CancellationToken cancellationToken)
     {
+        var publicListingUrl = posting.PublicListingUrl;
         var request = new XElement("request",
             new XElement("bsandboxoff", options.UseProduction ? "1" : "0"),
             new XElement("oauth",
@@ -24,6 +25,8 @@ internal sealed class JobillicoJobSite(IHttpClientFactory clients, JobillicoOpti
                 new XElement("irecruiter", options.RecruiterId),
                 new XElement("stitle_en", posting.Title),
                 new XElement("srefnumber", posting.PostingId.ToString(CultureInfo.InvariantCulture)),
+                publicListingUrl is null ? null : new XElement("surl_fr", publicListingUrl.AbsoluteUri),
+                publicListingUrl is null ? null : new XElement("surl_en", publicListingUrl.AbsoluteUri),
                 new XElement("olocations", new XElement("ilocation", options.LocationId)),
                 new XElement("sdescription_en", posting.Description)));
         using var content = new StringContent(

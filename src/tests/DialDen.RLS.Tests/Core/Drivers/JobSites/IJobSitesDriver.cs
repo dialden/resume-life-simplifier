@@ -6,4 +6,6 @@ public interface IJobSitesDriver
     Task ResetAndAcceptByDefault();
 
     Task SetResponse(string jobSiteId, int postingId, bool accepts, TimeSpan delay);
+
+    Task<IReadOnlyList<Uri?>> PublicListingAddressesReceivedFor(string jobSiteId, int postingId);
 }

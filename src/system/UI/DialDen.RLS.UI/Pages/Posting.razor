@@ -61,6 +61,13 @@ else
         </dl>
         <h3>Description</h3>
         <p data-testid="posting-description" style="white-space: pre-wrap">@_posting.Description</p>
+        @if (_posting.PublicListingUrl is not null)
+        {
+            <p>
+                <a data-testid="public-listing-link-@_posting.Id" href="@_posting.PublicListingUrl"
+                   target="_blank" rel="noopener noreferrer">View public listing</a>
+            </p>
+        }
         <h3>Job-site publications</h3>
         @if (_posting.JobSitePublications.Count == 0)
         {

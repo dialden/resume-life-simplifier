@@ -112,6 +112,13 @@ else
                             <span class="posting-status" data-testid="posting-status-@posting.Id">@posting.Status</span>
                             <span class="row-action" aria-hidden="true">View details<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
                         </a>
+                        @if (posting.PublicListingUrl is not null)
+                        {
+                            <a class="row-action" data-testid="public-listing-link-@posting.Id"
+                               href="@posting.PublicListingUrl" target="_blank" rel="noopener noreferrer">
+                                Public listing
+                            </a>
+                        }
                     </li>
                 }
             </ul>
@@ -393,7 +400,12 @@ else
             _page = _page with
             {
                 Items = _page.Items.Select(posting => posting.Id == published.Id
-                    ? posting with { Status = published.Status, JobSitePublications = published.JobSitePublications }
+                    ? posting with
+                    {
+                        Status = published.Status,
+                        PublicListingUrl = published.PublicListingUrl,
+                        JobSitePublications = published.JobSitePublications
+                    }
                     : posting).ToArray()
             };
             _selectedPostingId = null;

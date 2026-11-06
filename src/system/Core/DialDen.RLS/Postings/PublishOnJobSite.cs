@@ -23,11 +23,17 @@ internal sealed class PublishOnJobSite(
         var posting = await postingsArchive.FindById(request.PostingId, cancellationToken)
             ?? throw new InvalidOperationException($"Posting {request.PostingId} does not exist.");
         var jobSite = jobSites.SingleOrDefault(site => site.Id == request.JobSiteId);
-        await jobSitePublications.Save(await PublishOn(jobSite, posting, publication, cancellationToken), cancellationToken);
+        await jobSitePublications.Save(
+            await PublishOn(jobSite, posting, publication, request.PublicListingUrl, cancellationToken),
+            cancellationToken);
     }
 
     private async Task<JobSitePublication> PublishOn(
-        IJobSite? jobSite, Posting posting, JobSitePublication publication, CancellationToken cancellationToken)
+        IJobSite? jobSite,
+        Posting posting,
+        JobSitePublication publication,
+        Uri? publicListingUrl,
+        CancellationToken cancellationToken)
     {
         if (jobSite is null)
         {
@@ -38,7 +44,9 @@ internal sealed class PublishOnJobSite(
 
         try
         {
-            await jobSite.Publish(new JobSitePosting(posting.Id, posting.Title, posting.Description), cancellationToken);
+            await jobSite.Publish(
+                new JobSitePosting(posting.Id, posting.Title, posting.Description, publicListingUrl),
+                cancellationToken);
             return publication.Succeed();
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

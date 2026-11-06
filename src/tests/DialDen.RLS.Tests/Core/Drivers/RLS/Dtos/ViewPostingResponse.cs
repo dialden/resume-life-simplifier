@@ -6,5 +6,6 @@ public record ViewPostingResponse(
     DialDen.RLS.Abstractions.Postings.PostingStatus Status)
 {
     public string Description { get; init; } = "";
+    public Uri? PublicListingUrl { get; init; }
     public IReadOnlyList<JobSitePublicationResponse> JobSitePublications { get; init; } = [];
 }

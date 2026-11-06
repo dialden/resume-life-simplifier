@@ -116,8 +116,21 @@ public class PostingsPage : BasePage
         return Result<PublishPostingResponse, SystemError>.Success(
             new PublishPostingResponse(publishedPosting.GetProperty("id").GetInt32(), publishedStatus)
             {
+                PublicListingUrl = await ReadPublicListingAddress(id),
                 JobSitePublications = publications
             });
+    }
+
+    private async Task<Uri?> ReadPublicListingAddress(int id)
+    {
+        var link = _page.GetByTestId($"public-listing-link-{id}");
+        if (!await link.IsVisibleAsync())
+        {
+            return null;
+        }
+        var address = await link.GetAttributeAsync("href")
+            ?? throw new InvalidOperationException("The public listing link has no address.");
+        return new Uri(address, UriKind.Absolute);
     }
 
     public async Task<Result<PostingPageResponse, SystemError>> ReadPage(int pageNumber)
@@ -152,7 +165,7 @@ public class PostingsPage : BasePage
 
         var items = new List<ViewPostingResponse>();
         foreach (var row in await _page.GetByRole(AriaRole.List, new() { Name = "Postings", Exact = true })
-                     .GetByRole(AriaRole.Link).AllAsync())
+                     .Locator("a.posting-row").AllAsync())
         {
             var href = await row.GetAttributeAsync("href")
                 ?? throw new InvalidOperationException("A posting row has no destination.");

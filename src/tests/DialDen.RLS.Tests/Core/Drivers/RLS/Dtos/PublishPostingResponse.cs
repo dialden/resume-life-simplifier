@@ -4,5 +4,6 @@ public sealed record PublishPostingResponse(
     int Id,
     DialDen.RLS.Abstractions.Postings.PostingStatus Status)
 {
+    public Uri? PublicListingUrl { get; init; }
     public IReadOnlyList<JobSitePublicationResponse> JobSitePublications { get; init; } = [];
 }

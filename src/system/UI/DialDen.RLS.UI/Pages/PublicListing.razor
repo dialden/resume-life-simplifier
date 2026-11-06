@@ -1,0 +1,86 @@
+@page "/jobs/{Id:int}"
+@using System.Globalization
+@using System.Net
+@using DialDen.RLS.Abstractions.Postings
+@inject HttpClient Api
+
+<PageTitle>@(_listing?.Title ?? "Job listing") | Resume Life Simplifier</PageTitle>
+
+@if (_notFound)
+{
+    <section class="surface-panel empty-state">
+        <p class="eyebrow">404</p>
+        <h1>Page not found</h1>
+        <p>This public job listing does not exist.</p>
+    </section>
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+}
+else if (_listing is null)
+{
+    <div class="state-panel" role="status">
+        <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
+        <p>Loading job listing...</p>
+    </div>
+}
+else
+{
+    <HeadContent>
+        <link rel="canonical" href="@_listing.PublicListingUrl.AbsoluteUri" />
+        <meta name="description" content="@_listing.Description" />
+    </HeadContent>
+    <section class="surface-panel" aria-label="Public listing" data-posting-id="@_listing.Id">
+        <p class="eyebrow">JOB OPPORTUNITY</p>
+        <h1>@_listing.Title</h1>
+        <h2>Description</h2>
+        <p data-testid="public-listing-description" style="white-space: pre-wrap">@_listing.Description</p>
+        <div class="panel-footer">Published by Resume Life Simplifier</div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private PublicListingResponse? _listing;
+    private string? _error;
+    private bool _notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _listing = null;
+        _error = null;
+        _notFound = false;
+        try
+        {
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
+                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            var link = entryPoint.Links.SingleOrDefault(
+                item => item is { Rel: "view-public-listing", Method: "GET" });
+            if (link is null)
+            {
+                _error = "The RLS API does not currently offer public job listings.";
+                return;
+            }
+
+            var href = link.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
+            using var response = await Api.GetAsync(href);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _notFound = true;
+                return;
+            }
+
+            response.EnsureSuccessStatusCode();
+            _listing = await response.Content.ReadFromJsonAsync<PublicListingResponse>(
+                ApiJsonSerializerOptions.Default)
+                ?? throw new System.Text.Json.JsonException("The API returned no public listing.");
+        }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _error = $"Could not load the public listing: {exception.Message}";
+        }
+    }
+}
