@@ -87,6 +87,14 @@ public abstract class TestEnvironment
         return ActivatorUtilities.CreateInstance<UseCaseDsl>(sp, rls, externalSystems);
     }
 
+    public UIClient InteractWithUI()
+    {
+        StartHostsFor(Channel.UI);
+        var scenarioScope = _scope.ServiceProvider.CreateScope();
+        _scenarioScopes.Add(scenarioScope);
+        return scenarioScope.ServiceProvider.GetRequiredService<UIClient>();
+    }
+
     /// <summary>
     /// Override to configure additional services.
     /// </summary>
