@@ -45,6 +45,9 @@ services:
       RLS_TEST_Hosting__UIUrl: ${RLS_TEST_Hosting__UIUrl:-}
       RLS_API_Cors__AllowedOrigins__0: ${UI_HTTP_URL:?Required}
       RLS_API_Cors__AllowedOrigins__1: ${UI_HTTPS_URL:?Required}
+      RLS_API_PublicWebsite__BaseUrl: ${UI_HTTP_URL:?Required}
+      REAL_EXT_SYSTEMS_RLS_API_PublicWebsite__BaseUrl: ${UI_HTTP_URL:?Required}
+      STUBBED_EXT_SYSTEMS_RLS_API_PublicWebsite__BaseUrl: ${UI_HTTP_URL:?Required}
       RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_DEV_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       REAL_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       STUBBED_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}

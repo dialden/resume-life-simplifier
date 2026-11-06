@@ -58,6 +58,24 @@ public class PostingsEndpoint
         return Result<ViewPostingResponse, SystemError>.Success(posting);
     }
 
+    public async Task<Result<PublicListingResponse, SystemError>> ViewPublicListing(int id)
+    {
+        using var response = await _httpClient.GetAsync($"/public-postings/{id}");
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return Result<PublicListingResponse, SystemError>.Failure(SystemError.Of("Public listing not found."));
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            return Result<PublicListingResponse, SystemError>.Failure(SystemError.Of(
+                $"Viewing public listing {id} returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
+        }
+
+        var listing = await response.Content.ReadFromJsonAsync<PublicListingResponse>(ResponseJsonOptions)
+            ?? throw new InvalidOperationException("The public listing response was empty.");
+        return Result<PublicListingResponse, SystemError>.Success(listing);
+    }
+
     /// <summary>
     /// Follows the posting's event stream, viewing the posting whenever an event says to, until
     /// <paramref name="isExpected"/> holds or <paramref name="timeout"/> elapses. Returns the latest view.

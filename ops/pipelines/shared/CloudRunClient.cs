@@ -15,13 +15,11 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
                 $"--image={image}", $"--service-account={serviceAccount}",
                 "--execution-environment=gen2", "--port=80", "--cpu=1", "--memory=512Mi",
                 "--min-instances=0", "--max-instances=1", "--concurrency=80",
-                "--ingress=all", "--allow-unauthenticated", $"--env-vars-file={environmentFile}",
+                "--ingress=all", "--allow-unauthenticated", "--no-traffic",
+                $"--env-vars-file={environmentFile}",
                 "--clear-secrets", "--clear-cloudsql-instances",
                 "--startup-probe=httpGet.path=/,httpGet.port=80,periodSeconds=5,timeoutSeconds=3,failureThreshold=24",
                 "--quiet"]);
-        await processRunner.Run("gcloud",
-            ["run", "services", "update-traffic", name, $"--project={config.ProjectId}",
-                $"--region={config.Region}", "--to-latest", "--quiet"]);
         var description = await processRunner.Run("gcloud",
             ["run", "services", "describe", name, $"--project={config.ProjectId}",
                 $"--region={config.Region}", "--format=json", "--quiet"], captureOutput: true);
@@ -34,12 +32,26 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
         }
         await processRunner.Run("gcloud",
             ["run", "services", "update", apiName, $"--project={config.ProjectId}",
-                $"--region={config.Region}", $"--update-env-vars=RLS_API_Cors__AllowedOrigins__0={url}", "--quiet"]);
+                $"--region={config.Region}",
+                $"--update-env-vars=RLS_API_Cors__AllowedOrigins__0={url},RLS_API_PublicWebsite__BaseUrl={url}",
+                "--quiet"]);
         await processRunner.Run("gcloud",
             ["run", "services", "update-traffic", apiName, $"--project={config.ProjectId}",
                 $"--region={config.Region}", "--to-latest", "--quiet"]);
 
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
+        using var apiResponse = await client.GetAsync(new Uri(new Uri(apiUrl, UriKind.Absolute), "/health"));
+        var apiBody = await apiResponse.Content.ReadAsStringAsync();
+        if (!apiResponse.IsSuccessStatusCode || apiBody.Trim() != "Healthy")
+        {
+            throw new InvalidOperationException(
+                $"API health check failed at '{apiUrl}': HTTP {(int)apiResponse.StatusCode}, {apiBody}.");
+        }
+
+        await processRunner.Run("gcloud",
+            ["run", "services", "update-traffic", name, $"--project={config.ProjectId}",
+                $"--region={config.Region}", "--to-latest", "--quiet"]);
+
         using var settingsResponse = await client.GetAsync(new Uri(address, "/appsettings.json"));
         settingsResponse.EnsureSuccessStatusCode();
         using var settings = JsonDocument.Parse(await settingsResponse.Content.ReadAsStringAsync());
@@ -79,14 +91,11 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
                 $"--image={image}", $"--service-account={serviceAccount}",
                 "--execution-environment=gen2", "--port=8080", "--cpu=1", "--memory=512Mi",
                 "--min-instances=0", "--max-instances=1", "--concurrency=10", "--timeout=60",
-                "--ingress=all", "--allow-unauthenticated",
+                "--ingress=all", "--allow-unauthenticated", "--no-traffic",
                 $"--set-cloudsql-instances={connectionName}", $"--env-vars-file={environmentFile}",
                 $"--set-secrets=RLS_API_ConnectionStrings__RLS={connectionSecret}",
                 "--startup-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=5,timeoutSeconds=3,failureThreshold=24",
                 "--quiet"]);
-        await processRunner.Run("gcloud",
-            ["run", "services", "update-traffic", name, $"--project={config.ProjectId}",
-                $"--region={config.Region}", "--to-latest", "--quiet"]);
         var description = await processRunner.Run("gcloud",
             ["run", "services", "describe", name, $"--project={config.ProjectId}",
                 $"--region={config.Region}", "--format=json", "--quiet"], captureOutput: true);
@@ -97,16 +106,8 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
         {
             throw new InvalidOperationException($"Cloud Run returned no valid HTTPS URL for API '{name}'.");
         }
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
-        using var response = await client.GetAsync(new Uri(address, "/health"));
-        var body = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode || body.Trim() != "Healthy")
-        {
-            throw new InvalidOperationException(
-                $"API health check failed at '{address}': HTTP {(int)response.StatusCode}, {body}.");
-        }
         await File.WriteAllTextAsync(Path.Combine(artifactsDirectory, "api-url.txt"), url + "\n");
-        PipelineLog.Write($"API deployed and public health check passed: {url}");
+        PipelineLog.Write($"API deployed without traffic pending UI configuration: {url}");
         return url;
     }
 

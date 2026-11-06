@@ -12,6 +12,9 @@ public class APIRLSDriver : IRLSDriver
         _apiClient = apiClient;
     }
 
+    public Task<Result<PublicListingResponse, SystemError>> ViewPublicListing(int id, Uri? address = null)
+        => _apiClient.Postings.ViewPublicListing(id);
+
     public async Task<Result<VoidValue, SystemError>> GoToRLS()
     {
         return await _apiClient.Health.CheckHealth();

@@ -23,21 +23,37 @@ public class UIClient : IDisposable
     {
         if (_page == null)
         {
-            var browserType = _playwright[PlaywrightSettingsProvider.BrowserName];
-            _browser = await browserType.LaunchAsync();
-            _page = await _browser.NewPageAsync(new BrowserNewPageOptions { BaseURL = _configuration.UIUrl });
-            _page.Request += (_, request) =>
-            {
-                if (new Uri(request.Url).AbsolutePath == "/notifications/stream")
-                {
-                    Interlocked.Increment(ref _notificationStreamRequests);
-                }
-            };
-            await _page.GotoAsync(string.Empty);
-            return new HomePage(_page);
+            var page = await CreatePage();
+            await page.GotoAsync(string.Empty);
+            return new HomePage(page);
         }
 
         return await new HomePage(_page).GoToHomePage();
+    }
+
+    public Uri PublicWebsiteBaseUrl => new(_configuration.UIUrl);
+
+    public async Task<PublicListingPage> OpenPublicListing(Uri address)
+    {
+        var page = _page ?? await CreatePage();
+        await page.GotoAsync(new Uri(new Uri(_configuration.UIUrl), address.PathAndQuery).AbsoluteUri);
+        return new PublicListingPage(page);
+    }
+
+    private async Task<IPage> CreatePage()
+    {
+        var browserType = _playwright[PlaywrightSettingsProvider.BrowserName];
+        _browser = await browserType.LaunchAsync();
+        var page = await _browser.NewPageAsync(new BrowserNewPageOptions { BaseURL = _configuration.UIUrl });
+        page.Request += (_, request) =>
+        {
+            if (new Uri(request.Url).AbsolutePath == "/notifications/stream")
+            {
+                Interlocked.Increment(ref _notificationStreamRequests);
+            }
+        };
+        _page = page;
+        return page;
     }
 
     public Result<PostingPage, SystemError> DisplayedPostingPage(int id)
