@@ -10,6 +10,8 @@ public sealed class PublishPostingVerification(
 {
     public int Id => Response.Id;
 
+    public Uri PublicListingUrl => Response.PublicListingUrl.ShouldNotBeNull();
+
     public void HasStatus(string expectedStatus)
     {
         Response.Status.ToString().ShouldBe(expectedStatus);

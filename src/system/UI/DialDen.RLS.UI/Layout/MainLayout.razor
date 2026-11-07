@@ -2,6 +2,8 @@
 
 @implements IAsyncDisposable
 @inject DialDen.RLS.UI.Notifications.NotificationService Notifications
+@inject DialDen.RLS.UI.Language.LanguageState Language
+@inject IStringLocalizer<Messages> Localizer
 
 <MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
@@ -9,46 +11,58 @@
 <MudSnackbarProvider />
 
 <div class="workspace-shell">
-    <a class="skip-link" href="#main-content">Skip to content</a>
-    <aside class="workspace-sidebar" aria-label="Workspace">
-        <a class="brand" href="/" aria-label="Resume Life Simplifier home">
+    <a class="skip-link" href="#main-content">@Localizer["Accessibility_SkipToContent"]</a>
+    <aside class="workspace-sidebar" aria-label="@Localizer["Accessibility_Workspace"]">
+        <a class="brand" href="/" aria-label="@Localizer["Accessibility_Home"]">
             <span class="brand-mark" aria-hidden="true">
                 <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
             </span>
             <span class="brand-name">Resume Life<span>Simplifier</span></span>
         </a>
 
-        <div class="nav-caption">WORKSPACE</div>
-        <nav class="workspace-nav" aria-label="Main navigation">
+        <div class="nav-caption">@Localizer["Navigation_Workspace"]</div>
+        <nav class="workspace-nav" aria-label="@Localizer["Accessibility_MainNavigation"]">
             <NavLink href="/" Match="NavLinkMatch.All" class="workspace-nav-link">
                 <MudIcon Icon="@Icons.Material.Outlined.SpaceDashboard" />
-                <span>Overview</span>
+                <span>@Localizer["Navigation_Overview"]</span>
             </NavLink>
             <NavLink href="/postings" class="workspace-nav-link">
                 <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
-                <span>Job postings</span>
+                <span>@Localizer["Navigation_JobPostings"]</span>
             </NavLink>
         </nav>
 
         <div class="sidebar-note">
             <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" />
-            <p>A little more organized.<br />A step closer to what's next.</p>
+            <p>@Localizer["Layout_SidebarNoteFirstLine"]<br />@Localizer["Layout_SidebarNoteSecondLine"]</p>
         </div>
         <div class="sidebar-footer">Resume Life Simplifier</div>
     </aside>
 
     <div class="workspace-main">
         <header class="workspace-topbar">
-            <span class="topbar-title">Your career workspace</span>
+            <span class="topbar-title">@Localizer["WorkspaceTitle"]</span>
+            <div class="language-switcher" role="group" aria-label="@Localizer["Accessibility_Language"]">
+                <MudButton data-testid="language-fr"
+                           Variant="@(Language.Current.TwoLetterISOLanguageName == "fr" ? Variant.Filled : Variant.Text)"
+                           Color="Color.Primary" Size="Size.Small"
+                           OnClick="@(() => Language.ChangeAsync("fr"))"
+                           aria-label="@Localizer["Language_SelectFrench"]">FR</MudButton>
+                <MudButton data-testid="language-en"
+                           Variant="@(Language.Current.TwoLetterISOLanguageName == "en" ? Variant.Filled : Variant.Text)"
+                           Color="Color.Primary" Size="Size.Small"
+                           OnClick="@(() => Language.ChangeAsync("en"))"
+                           aria-label="@Localizer["Language_SelectEnglish"]">EN</MudButton>
+            </div>
             <span class="workspace-label">
                 <span class="workspace-dot" aria-hidden="true"></span>
-                Personal workspace
+                @Localizer["Layout_PersonalWorkspace"]
             </span>
         </header>
         <main id="main-content" class="workspace-content" tabindex="-1">
             @Body
         </main>
-        <footer class="workspace-footer">Make room for your next opportunity.</footer>
+        <footer class="workspace-footer">@Localizer["Layout_Footer"]</footer>
     </div>
 </div>
 
@@ -58,7 +72,17 @@
 
     protected override void OnInitialized()
     {
+        Language.LanguageChanged += OnLanguageChanged;
         _notifications = ObserveNotifications();
+    }
+
+    private void OnLanguageChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            DialDen.RLS.UI.Language.LanguageState.Apply(Language.Current);
+            StateHasChanged();
+        });
     }
 
     private async Task ObserveNotifications()
@@ -75,6 +99,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        Language.LanguageChanged -= OnLanguageChanged;
         _notificationsCancellation.Cancel();
         try
         {

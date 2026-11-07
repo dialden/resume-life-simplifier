@@ -1,3 +1,4 @@
+using DialDen.RLS.UI.Language;
 using DialDen.RLS.UI.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -7,7 +8,8 @@ public static class UIServiceCollectionExtensions
 {
     public static IServiceCollection AddRLSUI(this IServiceCollection services)
     {
-        services.AddLocalization(options => options.ResourcesPath = "Resources");
+        services.AddLocalization();
+        services.AddScoped<LanguageState>();
         services.AddScoped<NotificationStreamClient>();
         services.AddScoped<NotificationService>();
         return services;

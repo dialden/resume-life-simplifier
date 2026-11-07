@@ -9,6 +9,25 @@ public class HomePage : BasePage
     {
     }
 
+    public async Task SelectLanguage(string language)
+    {
+        var button = language switch
+        {
+            "fr" => _page.GetByTestId("language-fr"),
+            "en" => _page.GetByTestId("language-en"),
+            _ => throw new ArgumentOutOfRangeException(nameof(language), language, "Supported languages are 'en' and 'fr'.")
+        };
+        await button.ClickAsync();
+        await _page.WaitForFunctionAsync(
+            "(expectedLanguage) => document.documentElement.lang === expectedLanguage", language);
+    }
+
+    public Task<string> ReadWorkspaceTitle() => _page.Locator(".topbar-title").InnerTextAsync();
+
+    public async Task<string> ReadDocumentLanguage() =>
+        await _page.Locator("html").GetAttributeAsync("lang")
+        ?? throw new InvalidOperationException("The document language was not set.");
+
     /// <summary>
     /// Waits for the home page to finish loading the API entry point, then returns the error shown
     /// (the page's alert or Blazor's unhandled error banner), or null if the page loaded fine.
@@ -62,7 +81,7 @@ public class HomePage : BasePage
             return Result<PostingsPage, SystemError>.Failure(SystemError.Of(error));
         }
 
-        var postingsLink = _page.GetByRole(AriaRole.Link, new() { Name = "View postings", Exact = true });
+        var postingsLink = _page.GetByRole(AriaRole.Link, new() { Name = "Voir les offres", Exact = true });
         if (!await postingsLink.IsVisibleAsync())
         {
             return Result<PostingsPage, SystemError>.Failure(

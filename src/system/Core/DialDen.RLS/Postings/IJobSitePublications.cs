@@ -8,7 +8,11 @@ public interface IJobSitePublications
     /// Requests publishing the posting on each job site. The requests become durable only when
     /// <see cref="IPostingsArchive.Save"/> succeeds, so call this before saving the published posting.
     /// </summary>
-    Task Request(Posting posting, IReadOnlyList<JobSite> jobSites, CancellationToken cancellationToken);
+    Task Request(
+        Posting posting,
+        IReadOnlyList<JobSite> jobSites,
+        Uri publicListingUrl,
+        CancellationToken cancellationToken);
 
     Task<JobSitePublication?> Find(int postingId, string jobSiteId, CancellationToken cancellationToken);
 

@@ -149,6 +149,30 @@ forwards committed commands to the durable PostgreSQL queue
 `rls-job-site-publication`; pending outbox work is retried and survives restarts.
 Publishing without external destinations creates no job-site publication commands.
 
+### Public job-posting URL configuration
+
+The public UI origin is supplied independently of the application's listening
+addresses:
+
+```sh
+RLS_API_PublicWebsite__BaseUrl=https://careers.example.com
+```
+
+Set the full HTTP(S) origin, including a port when needed, without a path,
+query, fragment, or trailing slash. This maps to `PublicWebsite:BaseUrl` through
+the API's existing environment-variable configuration provider. It is used only
+to construct public job-posting links; it does not configure hosting, listening
+ports, CORS, or the UI's API address. The API includes the generated public
+address in queued external-publication commands, so the Worker does not require
+this setting. When a posting is published, its address is based on its stable
+identifier (`/jobs/{id}`). The public page reads the current published posting,
+and Jobillico submissions use that same address in both `surl_fr` and `surl_en`.
+
+In the devcontainer, Compose supplies the API and real/stubbed API
+test-environment variables from the existing `UI_HTTP_URL` in
+[.devcontainer/.env](./.devcontainer/.env), without a separate public-origin
+setting.
+
 ### Worker and job-site plugins
 
 The Worker (`DialDen.RLS.Worker.Root`) is a separate process. It consumes the

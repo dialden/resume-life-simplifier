@@ -13,6 +13,7 @@ public static class CoreServiceCollectionExtensions
         services.AddScoped<ICreatePosting, CreatePosting>();
         services.AddScoped<IPublishPosting, PublishPosting>();
         services.AddScoped<IViewPosting, ViewPosting>();
+        services.AddScoped<IViewPublicListing, ViewPublicListing>();
         services.AddScoped<IListPostings, ListPostings>();
         services.AddScoped<IJobSites, Postings.JobSites>();
         services.AddScoped<IRegisterJobSites, RegisterJobSites>();

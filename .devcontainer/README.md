@@ -144,6 +144,20 @@ If the pre-launch build fails, fix the build error rather than choosing
 After changing these values, rebuild the container to refresh its environment
 and regenerate the settings. Do not edit generated launch settings directly.
 
+## Public job-posting address
+
+The existing `UI_HTTP_URL` in [.env](./.env) also supplies the UI origin for
+public job-posting links. No separate public-origin variable is needed.
+
+Compose maps it to `RLS_API_PublicWebsite__BaseUrl`, including the
+real/stubbed API test-environment variants. The API reads this as
+`PublicWebsite:BaseUrl` and includes the resulting address in queued external
+publication commands; the Worker does not need its own UI-origin setting.
+`PublicWebsite:BaseUrl` is used only to construct public job-posting URLs; it
+does not configure hosting or the UI's API connection. `UI_HTTP_URL` retains its
+existing launch-profile and CORS uses. Recreate the devcontainer to refresh its
+environment.
+
 ## Test hosting
 
 Tests use environment variables rather than test appsettings JSON files.

@@ -6,11 +6,16 @@ internal sealed class ViewPosting : IViewPosting
 {
     private readonly IPostingsArchive _postingsArchive;
     private readonly IJobSitePublications _jobSitePublications;
+    private readonly IPublicListingAddress _publicListingAddress;
 
-    public ViewPosting(IPostingsArchive postingsArchive, IJobSitePublications jobSitePublications)
+    public ViewPosting(
+        IPostingsArchive postingsArchive,
+        IJobSitePublications jobSitePublications,
+        IPublicListingAddress publicListingAddress)
     {
         _postingsArchive = postingsArchive;
         _jobSitePublications = jobSitePublications;
+        _publicListingAddress = publicListingAddress;
     }
 
     public async Task<ViewPostingResponse?> View(
@@ -29,6 +34,9 @@ internal sealed class ViewPosting : IViewPosting
         return new ViewPostingResponse(posting.Id, posting.Title, posting.Status)
         {
             Description = posting.Description,
+            PublicListingUrl = posting.Status == PostingStatus.Published
+                ? _publicListingAddress.ForPosting(posting.Id)
+                : null,
             JobSitePublications = publications.Select(ToResponse).ToArray()
         };
     }

@@ -1,0 +1,88 @@
+@page "/jobs/{Id:int}"
+@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@using System.Globalization
+@using System.Net
+@using DialDen.RLS.Abstractions.Postings
+@inject HttpClient Api
+@inject IStringLocalizer<Messages> Localizer
+
+<PageTitle>@Localizer["PublicListing_PageTitle", _listing?.Title ?? Localizer["PublicListing_DefaultTitle"]]</PageTitle>
+
+@if (_notFound)
+{
+    <section class="surface-panel empty-state" data-testid="public-listing-not-found">
+        <p class="eyebrow">@Localizer["PublicListing_NotFoundCode"]</p>
+        <h1>@Localizer["PublicListing_NotFoundTitle"]</h1>
+        <p>@Localizer["PublicListing_NotFoundDescription"]</p>
+    </section>
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" role="alert">@_error</MudAlert>
+}
+else if (_listing is null)
+{
+    <div class="state-panel" role="status">
+        <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
+        <p>@Localizer["PublicListing_Loading"]</p>
+    </div>
+}
+else
+{
+    <HeadContent>
+        <link rel="canonical" href="@_listing.PublicListingUrl.AbsoluteUri" />
+        <meta name="description" content="@_listing.Description" />
+    </HeadContent>
+    <section class="surface-panel" aria-label="@Localizer["PublicListing_RegionLabel"]" data-posting-id="@_listing.Id">
+        <p class="eyebrow">@Localizer["PublicListing_Eyebrow"]</p>
+        <h1>@_listing.Title</h1>
+        <h2>@Localizer["CreatePosting_DescriptionLabel"]</h2>
+        <p data-testid="public-listing-description" style="white-space: pre-wrap">@_listing.Description</p>
+        <div class="panel-footer">@Localizer["PublicListing_Footer"]</div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private PublicListingResponse? _listing;
+    private string? _error;
+    private bool _notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _listing = null;
+        _error = null;
+        _notFound = false;
+        try
+        {
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
+                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            var link = entryPoint.Links.SingleOrDefault(
+                item => item is { Rel: "view-public-listing", Method: "GET" });
+            if (link is null)
+            {
+                _error = Localizer["Error_ApiActionUnavailable_PublicListings"];
+                return;
+            }
+
+            var href = link.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
+            using var response = await Api.GetAsync(href);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _notFound = true;
+                return;
+            }
+
+            response.EnsureSuccessStatusCode();
+            _listing = await response.Content.ReadFromJsonAsync<PublicListingResponse>(
+                ApiJsonSerializerOptions.Default)
+                ?? throw new System.Text.Json.JsonException("The API returned no public listing.");
+        }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _error = Localizer["Error_LoadPublicListing", exception.Message];
+        }
+    }
+}

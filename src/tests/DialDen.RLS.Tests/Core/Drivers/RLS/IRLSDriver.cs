@@ -8,6 +8,7 @@ public interface IRLSDriver
     Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description);
     Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds);
     Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id);
+    Task<Result<PublicListingResponse, SystemError>> ViewPublicListing(int id, Uri? address = null);
 
     /// <summary>
     /// Keeps observing the posting being viewed, without viewing it again, until <paramref name="isExpected"/>

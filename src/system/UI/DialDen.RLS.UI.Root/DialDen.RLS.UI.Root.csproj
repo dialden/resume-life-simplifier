@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- EFIGS ICU data covers French and English and allows changing culture at startup. -->
+    <BlazorIcuDataFileName>icudt_EFIGS.dat</BlazorIcuDataFileName>
   </PropertyGroup>
 
   <ItemGroup>

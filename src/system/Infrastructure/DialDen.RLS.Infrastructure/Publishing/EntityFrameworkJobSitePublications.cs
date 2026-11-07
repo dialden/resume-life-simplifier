@@ -13,7 +13,11 @@ internal sealed class EntityFrameworkJobSitePublications(
     ISendEndpointProvider sendEndpointProvider,
     IOptions<MessagingOptions> messagingOptions) : IJobSitePublications
 {
-    public async Task Request(Posting posting, IReadOnlyList<JobSite> jobSites, CancellationToken cancellationToken)
+    public async Task Request(
+        Posting posting,
+        IReadOnlyList<JobSite> jobSites,
+        Uri publicListingUrl,
+        CancellationToken cancellationToken)
     {
         if (jobSites.Count == 0)
         {
@@ -30,7 +34,8 @@ internal sealed class EntityFrameworkJobSitePublications(
                 PostingId = posting.Id,
                 JobSiteId = jobSite.Id
             });
-            await endpoint.Send(new PublishPostingOnJobSite(posting.Id, jobSite.Id), cancellationToken);
+            await endpoint.Send(
+                new PublishPostingOnJobSite(posting.Id, jobSite.Id, publicListingUrl), cancellationToken);
         }
     }
 

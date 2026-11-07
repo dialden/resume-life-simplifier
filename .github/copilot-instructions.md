@@ -47,6 +47,20 @@
 - Some layers are still scaffolding. Follow these intended boundaries when
   implementing features; missing wiring is not permission to bypass them.
 
+## Localization
+
+- Always localize customer-facing UI text and API messages through the shared
+  [localization resources](../src/system/Localization/DialDen.RLS.Localization/);
+  do not introduce hard-coded customer-facing strings.
+- Add or update matching entries in `Messages.resx` (English) and
+  `Messages.fr.resx` (French), including formatted messages and accessibility text.
+- Every resource entry in both files must have a `<comment>` identifying its
+  origin as `UI text` or `API message`. For API messages, also identify the
+  originating endpoint or operation.
+- Name injected `IStringLocalizer<Messages>` instances `Localizer`.
+- Keep localization in the delivery adapters; do not introduce localization
+  dependencies into Core or change machine-facing contract values.
+
 ## Test-first development
 
 - Start each behavior change with an acceptance test that describes the customer

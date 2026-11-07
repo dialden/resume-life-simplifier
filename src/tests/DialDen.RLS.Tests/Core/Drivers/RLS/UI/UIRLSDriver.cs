@@ -14,6 +14,13 @@ public class UIRLSDriver : IRLSDriver
         _uiClient = uiClient;
     }
 
+    public async Task<Result<PublicListingResponse, SystemError>> ViewPublicListing(int id, Uri? address = null)
+    {
+        var target = address ?? new Uri(_uiClient.PublicWebsiteBaseUrl, $"jobs/{id}");
+        var publicPage = await _uiClient.OpenPublicListing(target);
+        return await publicPage.ReadListing();
+    }
+
     public async Task<Result<VoidValue, SystemError>> GoToRLS()
     {
         var homePage = await _uiClient.OpenHomePage();

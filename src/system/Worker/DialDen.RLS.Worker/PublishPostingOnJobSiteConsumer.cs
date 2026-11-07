@@ -10,7 +10,8 @@ public sealed class PublishPostingOnJobSiteConsumer(IPublishOnJobSite publishOnJ
     public async Task Consume(ConsumeContext<PublishPostingOnJobSite> context)
     {
         await publishOnJobSite.Publish(
-            new PublishOnJobSiteRequest(context.Message.PostingId, context.Message.JobSiteId),
+            new PublishOnJobSiteRequest(
+                context.Message.PostingId, context.Message.JobSiteId, context.Message.PublicListingUrl),
             context.CancellationToken);
 
         await context.Publish(
