@@ -22,5 +22,7 @@ public class RLSDsl
 
     public ViewPublicListing ViewPublicListing() => _useCaseFactory.Create<ViewPublicListing>();
 
+    public ApplyToPosting ApplyToPosting() => _useCaseFactory.Create<ApplyToPosting>();
+
     public ListPostings ListPostings() => _useCaseFactory.Create<ListPostings>();
 }

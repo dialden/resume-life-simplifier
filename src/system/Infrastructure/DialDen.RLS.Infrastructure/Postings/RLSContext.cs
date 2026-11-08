@@ -1,4 +1,5 @@
 using DialDen.RLS.Infrastructure.JobSites;
+using DialDen.RLS.Infrastructure.Applications;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
     public DbSet<JobSitePublicationEntity> JobSitePublications => Set<JobSitePublicationEntity>();
 
     public DbSet<JobSiteEntity> JobSites => Set<JobSiteEntity>();
+    public DbSet<ApplicationEntity> Applications => Set<ApplicationEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,5 +52,18 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
         jobSite.Property(entity => entity.Id).HasColumnName("id");
         jobSite.Property(entity => entity.Name).HasColumnName("name").IsRequired();
         jobSite.Property(entity => entity.IsAvailable).HasColumnName("is_available");
+
+        var application = modelBuilder.Entity<ApplicationEntity>();
+        application.ToTable("applications");
+        application.HasKey(entity => entity.Id);
+        application.Property(entity => entity.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+        application.Property(entity => entity.PostingId).HasColumnName("posting_id");
+        application.Property(entity => entity.Name).HasColumnName("name").IsRequired();
+        application.Property(entity => entity.Email).HasColumnName("email").IsRequired();
+        application.Property(entity => entity.ResumeFileName).HasColumnName("resume_file_name").IsRequired();
+        application.Property(entity => entity.Resume).HasColumnName("resume").IsRequired();
+        application.Property(entity => entity.Source).HasColumnName("source").IsRequired();
+        application.Property(entity => entity.ReferralJobSiteId).HasColumnName("referral_job_site_id");
+        application.HasOne<PostingEntity>().WithMany().HasForeignKey(entity => entity.PostingId);
     }
 }

@@ -26,6 +26,13 @@ public class GivenStage
         return step;
     }
 
+    public GivenApplication Application()
+    {
+        var step = new GivenApplication(this);
+        _steps.Add(step);
+        return step;
+    }
+
     public GivenJobSite JobSite(string jobSiteId)
     {
         var step = new GivenJobSite(this, jobSiteId);

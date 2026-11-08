@@ -21,5 +21,7 @@ public sealed class WhenStage
 
     public WhenViewPublicListing ViewPublicListing() => new(_app, _scenario, _setup);
 
+    public WhenApplyToPosting ApplyToPosting() => new(_app, _scenario, _setup);
+
     public WhenListPostings ListPostings() => new(_app, _scenario, _setup);
 }

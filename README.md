@@ -165,8 +165,39 @@ to construct public job-posting links; it does not configure hosting, listening
 ports, CORS, or the UI's API address. The API includes the generated public
 address in queued external-publication commands, so the Worker does not require
 this setting. When a posting is published, its address is based on its stable
-identifier (`/jobs/{id}`). The public page reads the current published posting,
-and Jobillico submissions use that same address in both `surl_fr` and `surl_en`.
+identifier (`/jobs/{id}`). The public page reads the current published posting.
+Links sent to job sites, including Jobillico's `surl_fr` and `surl_en`, add a
+`referralJobSiteId` query parameter; the canonical public address remains unchanged.
+
+### Applications from public listings
+
+The public listing at `/jobs/{id}` presents the job details and an **Apply for
+this job** action. The separate `/jobs/{id}/apply` page collects a name, email
+and résumé, and offers a link back to the job details. Referral information is
+preserved between these pages.
+PDF and DOCX files up to 5 MiB are accepted. Each submission is stored with its
+posting and résumé in PostgreSQL; repeated submissions are kept separately.
+The posting details page links to a dedicated applicants page at
+`/postings/{id}/applicants`, where reviewers can see applications, their sources
+and referrals, and download résumés. The API exposes submission through
+`POST /public-postings/{id}/applications` (multipart form fields `name`, `email`,
+`resume` and optional `referralJobSiteId`), and review through
+`GET /postings/{id}/applications`,
+`GET /postings/{id}/applications/{applicationId}` and
+`GET /postings/{id}/applications/{applicationId}/resume`. Draft and unknown
+postings do not accept applications. Apply migrations before starting the API.
+
+The recorded intake source is `Client website`. A separate job-site referral is
+recorded when the query parameter identifies a publication for that posting.
+The parameter is untrusted and may be altered or removed, so it is an attribution
+hint, not proof of origin. Old links and visits without a recognized referral
+are recorded without a job-site referral.
+
+**Demo only:** application review endpoints, contact information and résumé
+downloads are publicly accessible without authentication or organization access
+controls. Use fictitious applicant information only; do not use this workflow
+for real personal data until access controls, retention and operational safeguards
+are implemented. File checks are not malware scanning.
 
 In the devcontainer, Compose supplies the API and real/stubbed API
 test-environment variables from the existing `UI_HTTP_URL` in

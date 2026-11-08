@@ -15,4 +15,7 @@ public class ThenSuccessAnd<TSuccessResponse, TSuccessVerification>
     public ThenPostingPages<TSuccessResponse, TSuccessVerification> PostingPages() => new(_stage);
 
     public ThenPublicListing<TSuccessResponse, TSuccessVerification> PublicListing() => new(_stage);
+
+    public ThenApplication<TSuccessResponse, TSuccessVerification> ApplicationForPosting(string idAlias)
+        => new(_stage, idAlias);
 }

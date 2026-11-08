@@ -7,8 +7,10 @@ public class APIClient
     {
         Health = new HealthEndpoint(httpClient);
         Postings = new PostingsEndpoint(httpClient);
+        Applications = new ApplicationsEndpoint(httpClient);
     }
 
     public HealthEndpoint Health { get; }
     public PostingsEndpoint Postings { get; }
+    public ApplicationsEndpoint Applications { get; }
 }

@@ -21,6 +21,26 @@ public class UIRLSDriver : IRLSDriver
         return await publicPage.ReadListing();
     }
 
+    public async Task<Result<VoidValue, SystemError>> ApplyToPosting(
+        int postingId, string name, string email, byte[] resume, string? referralJobSiteId)
+    {
+        var referral = referralJobSiteId is null ? "" : $"?referralJobSiteId={Uri.EscapeDataString(referralJobSiteId)}";
+        var page = await _uiClient.OpenPublicListing(new Uri(_uiClient.PublicWebsiteBaseUrl, $"jobs/{postingId}{referral}"));
+        return await page.Apply(name, email, resume);
+    }
+
+    public async Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ListApplications(int postingId)
+    {
+        var page = await _uiClient.OpenPosting(postingId);
+        return await page.ReadApplications();
+    }
+
+    public async Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId)
+    {
+        var page = await _uiClient.OpenPosting(postingId);
+        return await page.DownloadResume(applicationId);
+    }
+
     public async Task<Result<VoidValue, SystemError>> GoToRLS()
     {
         var homePage = await _uiClient.OpenHomePage();

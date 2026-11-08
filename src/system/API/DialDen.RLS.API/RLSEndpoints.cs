@@ -20,6 +20,9 @@ public static class RLSEndpoints
                 new Link("publish-posting", "/postings/{id}", "PATCH"),
                 new Link("view-posting", "/postings/{id}", "GET"),
                 new Link("view-public-listing", "/public-postings/{id}", "GET"),
+                new Link("submit-application", "/public-postings/{id}/applications", "POST"),
+                new Link("list-applications", "/postings/{id}/applications", "GET"),
+                new Link("download-resume", "/postings/{id}/applications/{applicationId}/resume", "GET"),
                 new Link("notifications", "/notifications/stream", "GET")
             ])))
             .WithName("EntryPoint")
@@ -155,6 +158,7 @@ public static class RLSEndpoints
             .ProducesValidationProblem();
 
         app.MapNotifications();
+        app.MapApplicationEndpoints();
 
         return app;
     }

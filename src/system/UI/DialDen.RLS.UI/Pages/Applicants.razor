@@ -1,0 +1,175 @@
+@page "/postings/{Id:int}/applicants"
+@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@using System.Globalization
+@using System.Net
+@using DialDen.RLS.Abstractions.Postings
+@using DialDen.RLS.Abstractions.Applications
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
+@inject HttpClient Api
+@inject IStringLocalizer<Messages> Localizer
+@inject ILogger<Applicants> Logger
+
+<PageTitle>@Localizer["Applicants_PageTitle", _posting?.Title ?? Localizer["Navigation_JobPostings"]]</PageTitle>
+
+<div class="breadcrumb">
+    <a href="/postings">@Localizer["Navigation_JobPostings"]</a><span aria-hidden="true">/</span>
+    <a href="@PostingAddress">@Localizer["Posting_Details"]</a><span aria-hidden="true">/</span>
+    <span>@Localizer["Applicants_Title"]</span>
+</div>
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" role="alert">@_error()</MudAlert>
+}
+else if (_posting is null || _applications is null)
+{
+    <div class="state-panel" role="status">
+        <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
+        <p>@Localizer["Applications_Loading"]</p>
+    </div>
+}
+else
+{
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">@Localizer["Applicants_Title"]</p>
+            <h1>@_posting.Title</h1>
+            <p class="page-description">@Localizer["Applicants_Description"]</p>
+        </div>
+        <MudButton Href="@PostingAddress" Variant="Variant.Outlined" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.ArrowBack">@Localizer["Applicants_BackToPosting"]</MudButton>
+    </div>
+    <section class="surface-panel" aria-labelledby="applicants-heading">
+        <div class="panel-header">
+            <div class="panel-title">
+                <h2 id="applicants-heading">@Localizer["Applicants_Title"]</h2>
+                <span class="count-badge">@_applications.Count</span>
+            </div>
+            <span class="panel-caption">@Localizer["Postings_Reference", Id]</span>
+        </div>
+        <div data-testid="applications">
+            @if (_applications.Count == 0)
+            {
+                <div class="empty-state" role="status">
+                    <span class="empty-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.PeopleOutline" Size="Size.Large" /></span>
+                    <h3>@Localizer["Applications_Empty"]</h3>
+                    <p>@Localizer["Applicants_EmptyHelp"]</p>
+                </div>
+            }
+            @foreach (var application in _applications)
+            {
+                <article class="applicant-card" data-application-id="@application.Id">
+                    <div class="applicant-heading">
+                        <span class="posting-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.PersonOutline" /></span>
+                        <h3 data-testid="application-name">@application.Name</h3>
+                    </div>
+                    <dl class="applicant-fields">
+                        <div>
+                            <dt>@Localizer["Application_Email"]</dt>
+                            <dd data-testid="application-email">@application.Email</dd>
+                        </div>
+                        <div>
+                            <dt>@Localizer["Applications_Source"]</dt>
+                            <dd data-testid="application-source">@(application.Source == "Client website" ? Localizer["Applications_SourceClientWebsite"] : application.Source)</dd>
+                        </div>
+                        @if (application.ReferralJobSiteId is not null)
+                        {
+                            <div>
+                                <dt>@Localizer["Applications_Referral"]</dt>
+                                <dd data-testid="application-referral">@application.ReferralJobSiteId</dd>
+                            </div>
+                        }
+                    </dl>
+                    <a class="action-link applicant-download" data-testid="download-resume"
+                       href="@ResumeAddress(application.Id)" download>
+                        <MudIcon Icon="@Icons.Material.Outlined.FileDownload" />@Localizer["Applications_Download"]
+                    </a>
+                </article>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private ViewPostingResponse? _posting;
+    private IReadOnlyList<ApplicationResponse>? _applications;
+    private Link? _resumeLink;
+    private Func<string>? _error;
+    private CancellationTokenSource? _pageCancellation;
+
+    private string PostingAddress => $"/postings/{Id.ToString(CultureInfo.InvariantCulture)}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _pageCancellation?.Cancel();
+        _pageCancellation?.Dispose();
+        _pageCancellation = new CancellationTokenSource();
+        var token = _pageCancellation.Token;
+        _posting = null;
+        _applications = null;
+        _resumeLink = null;
+        _error = null;
+        try
+        {
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
+                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            var postingLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "view-posting", Method: "GET" });
+            var applicationsLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "list-applications", Method: "GET" });
+            var resumeLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "download-resume", Method: "GET" });
+            if (postingLink is null || applicationsLink is null || resumeLink is null)
+            {
+                _error = () => Localizer["Applications_LoadError"];
+                return;
+            }
+            var postingHref = postingLink.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
+            using var response = await Api.GetAsync(postingHref, token);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _error = () => Localizer["Error_PostingNotFound"];
+                return;
+            }
+            response.EnsureSuccessStatusCode();
+            var posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>(ApiJsonSerializerOptions.Default, token)
+                ?? throw new System.Text.Json.JsonException("The API returned no posting.");
+            var applicationsHref = applicationsLink.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
+            var applications = await Api.GetFromJsonAsync<ApplicationResponse[]>(applicationsHref, token)
+                ?? throw new System.Text.Json.JsonException("The API returned no applications.");
+            token.ThrowIfCancellationRequested();
+            _posting = posting;
+            _applications = applications;
+            _resumeLink = resumeLink;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Navigation cancels requests for the previous posting.
+        }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        {
+            if (!token.IsCancellationRequested)
+            {
+                Logger.LogWarning(exception, "Could not load applicants for posting {PostingId}.", Id);
+                _error = () => Localizer["Applications_LoadError"];
+            }
+        }
+    }
+
+    private string ResumeAddress(int applicationId)
+    {
+        var link = _resumeLink ?? throw new InvalidOperationException("The résumé action was not loaded.");
+        var href = link.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture))
+            .Replace("{applicationId}", applicationId.ToString(CultureInfo.InvariantCulture));
+        var baseAddress = Api.BaseAddress ?? throw new InvalidOperationException("The API address is not configured.");
+        return new Uri(baseAddress, href).AbsoluteUri;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        _pageCancellation?.Cancel();
+        _pageCancellation?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

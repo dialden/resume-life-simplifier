@@ -40,6 +40,13 @@ public class UIClient : IDisposable
         return new PublicListingPage(page);
     }
 
+    public async Task<PostingPage> OpenPosting(int id)
+    {
+        var page = _page ?? await CreatePage();
+        await page.GotoAsync($"/postings/{id}");
+        return new PostingPage(page);
+    }
+
     private async Task<IPage> CreatePage()
     {
         var browserType = _playwright[PlaywrightSettingsProvider.BrowserName];

@@ -10,6 +10,29 @@ public class PostingPage : BasePage
     {
     }
 
+    public async Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ReadApplications()
+    {
+        var posting = await ReadPosting();
+        if (posting.IsFailure)
+        {
+            return Result<IReadOnlyList<ApplicationResponse>, SystemError>.Failure(posting.Error);
+        }
+
+        await _page.GetByTestId("view-applicants").ClickAsync();
+        return await new ApplicantsPage(_page).ReadApplications();
+    }
+
+    public async Task<Result<byte[], SystemError>> DownloadResume(int applicationId)
+    {
+        var applications = await ReadApplications();
+        if (applications.IsFailure)
+        {
+            return Result<byte[], SystemError>.Failure(applications.Error);
+        }
+
+        return await new ApplicantsPage(_page).DownloadResume(applicationId);
+    }
+
     /// <summary>Reads the displayed posting repeatedly, without reloading or navigating.</summary>
     public async Task<Result<ViewPostingResponse, SystemError>> ObservePosting(
         Func<ViewPostingResponse, bool> isExpected, TimeSpan timeout)

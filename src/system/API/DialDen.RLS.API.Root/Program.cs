@@ -52,6 +52,10 @@ else
     app.UseHttpsRedirection();
 }
 app.UseCors();
+app.UseRequestLocalization(new RequestLocalizationOptions()
+    .SetDefaultCulture("en")
+    .AddSupportedCultures("en", "fr")
+    .AddSupportedUICultures("en", "fr"));
 app.MapRLSEndpoints();
 app.MapHealthChecks("/health");
 app.Run();
