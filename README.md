@@ -169,6 +169,11 @@ identifier (`/jobs/{id}`). The public page reads the current published posting.
 Links sent to job sites, including Jobillico's `surl_fr` and `surl_en`, add a
 `referralJobSiteId` query parameter; the canonical public address remains unchanged.
 
+API route registration is composed by
+[`RLSEndpoints`](src/system/API/DialDen.RLS.API/RLSEndpoints.cs).
+Resource-specific endpoint classes own the entry point, job sites, postings,
+public listings, applications and notifications.
+
 ### Applications from public listings
 
 The public listing at `/jobs/{id}` presents the job details and an **Apply for
