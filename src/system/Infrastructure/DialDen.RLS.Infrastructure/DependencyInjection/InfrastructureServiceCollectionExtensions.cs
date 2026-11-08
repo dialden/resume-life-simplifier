@@ -5,7 +5,7 @@ using DialDen.RLS.Messaging.Contracts;
 using DialDen.RLS.Postings;
 using DialDen.RLS.Infrastructure.PublicWebsite;
 using DialDen.RLS.Infrastructure.Applications;
-using DialDen.RLS.Applications;
+using DialDen.RLS.JobApplications;
 using MassTransit;
 using MassTransit.SqlTransport.PostgreSql;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,4 @@
-namespace DialDen.RLS.Applications;
+namespace DialDen.RLS.JobApplications;
 
 public sealed record Application(
     int Id, int PostingId, string Name, string Email, string ResumeFileName,

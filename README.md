@@ -377,9 +377,15 @@ context. Core and its contracts remain independent of EF Core.
 ### Persistence
 
 Application persistence uses EF Core with the Npgsql PostgreSQL provider, rather
-than direct Npgsql commands. The context maps the existing `postings` table,
-including its identity identifier and text-based posting status. The
-`ConnectionStrings:RLS` setting remains unchanged.
+than direct Npgsql commands.
+[`RLSContext`](src/system/Infrastructure/DialDen.RLS.Infrastructure/RLSContext.cs)
+maps postings, job-site publications, job sites and applications directly to
+their domain-facing records, without duplicate persistence entity classes.
+Fluent configuration stays in Infrastructure; Core has no EF dependencies.
+Job-site catalog availability is an EF shadow property, and the calculated
+publication `IsPending` property is not persisted. Generated identifiers,
+text-based statuses, posting concurrency checks and transactional outbox writes
+are preserved. The `ConnectionStrings:RLS` setting remains unchanged.
 
 Flyway remains the schema owner. Application startup does not create the
 database, run EF migrations, or modify its schema. Continue adding schema changes

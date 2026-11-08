@@ -1,4 +1,4 @@
-namespace DialDen.RLS.Applications;
+namespace DialDen.RLS.JobApplications;
 
 public interface IApplicationsArchive
 {

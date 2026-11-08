@@ -1,6 +1,7 @@
 using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.Postings;
 using DialDen.RLS.Abstractions.Applications;
+using DialDen.RLS.JobApplications;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DialDen.RLS.DependencyInjection;
@@ -19,7 +20,7 @@ public static class CoreServiceCollectionExtensions
         services.AddScoped<IJobSites, Postings.JobSites>();
         services.AddScoped<IRegisterJobSites, RegisterJobSites>();
         services.AddScoped<IPublishOnJobSite, PublishOnJobSite>();
-        services.AddScoped<IApplications, Applications.Applications>();
+        services.AddScoped<IApplications, Applications>();
 
         return services;
     }

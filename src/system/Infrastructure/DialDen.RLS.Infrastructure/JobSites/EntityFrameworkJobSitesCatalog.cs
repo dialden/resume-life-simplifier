@@ -1,5 +1,4 @@
 using DialDen.RLS.Abstractions.Postings;
-using DialDen.RLS.Infrastructure.Postings;
 using DialDen.RLS.Postings;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,9 +9,8 @@ internal sealed class EntityFrameworkJobSitesCatalog(RLSContext context) : IJobS
     public async Task<IReadOnlyList<JobSite>> ListAvailable(CancellationToken cancellationToken) =>
         await context.JobSites
             .AsNoTracking()
-            .Where(entity => entity.IsAvailable)
+            .Where(entity => EF.Property<bool>(entity, "IsAvailable"))
             .OrderBy(entity => entity.Id)
-            .Select(entity => new JobSite(entity.Id, entity.Name))
             .ToListAsync(cancellationToken);
 
     public async Task MakeAvailableOnly(IReadOnlyList<JobSite> jobSites, CancellationToken cancellationToken)
@@ -21,17 +19,18 @@ internal sealed class EntityFrameworkJobSitesCatalog(RLSContext context) : IJobS
         var known = await context.JobSites.ToDictionaryAsync(entity => entity.Id, cancellationToken);
         foreach (var entity in known.Values)
         {
-            entity.IsAvailable = false;
+            context.Entry(entity).Property<bool>("IsAvailable").CurrentValue = false;
         }
         foreach (var jobSite in jobSites)
         {
             if (!known.TryGetValue(jobSite.Id, out var entity))
             {
-                entity = new JobSiteEntity { Id = jobSite.Id, Name = jobSite.Name };
+                entity = jobSite;
                 context.JobSites.Add(entity);
+                known.Add(jobSite.Id, entity);
             }
-            entity.Name = jobSite.Name;
-            entity.IsAvailable = true;
+            context.Entry(entity).CurrentValues.SetValues(jobSite);
+            context.Entry(entity).Property<bool>("IsAvailable").CurrentValue = true;
         }
         await context.SaveChangesAsync(cancellationToken);
     }

@@ -4,7 +4,7 @@ using DialDen.RLS.Abstractions.Applications;
 using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.Postings;
 
-namespace DialDen.RLS.Applications;
+namespace DialDen.RLS.JobApplications;
 
 internal sealed class Applications(
     IApplicationsArchive archive, IPostingsArchive postings, IJobSitePublications publications) : IApplications

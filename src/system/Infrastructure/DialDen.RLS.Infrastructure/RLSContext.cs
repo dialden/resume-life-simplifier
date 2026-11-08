@@ -1,18 +1,19 @@
-using DialDen.RLS.Infrastructure.JobSites;
-using DialDen.RLS.Infrastructure.Applications;
+using DialDen.RLS.Abstractions.Postings;
+using DialDen.RLS.JobApplications;
+using DialDen.RLS.Postings;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace DialDen.RLS.Infrastructure.Postings;
+namespace DialDen.RLS.Infrastructure;
 
 internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbContext(options)
 {
-    public DbSet<PostingEntity> Postings => Set<PostingEntity>();
+    public DbSet<Posting> Postings => Set<Posting>();
 
-    public DbSet<JobSitePublicationEntity> JobSitePublications => Set<JobSitePublicationEntity>();
+    public DbSet<JobSitePublication> JobSitePublications => Set<JobSitePublication>();
 
-    public DbSet<JobSiteEntity> JobSites => Set<JobSiteEntity>();
-    public DbSet<ApplicationEntity> Applications => Set<ApplicationEntity>();
+    public DbSet<JobSite> JobSites => Set<JobSite>();
+    public DbSet<Application> Applications => Set<Application>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,7 +21,7 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
         modelBuilder.AddOutboxMessageEntity(entity => entity.ToTable("OutboxMessage", "messaging"));
         modelBuilder.AddOutboxStateEntity(entity => entity.ToTable("OutboxState", "messaging"));
 
-        var posting = modelBuilder.Entity<PostingEntity>();
+        var posting = modelBuilder.Entity<Posting>();
         posting.ToTable("postings");
         posting.HasKey(entity => entity.Id);
         posting.Property(entity => entity.Id)
@@ -35,25 +36,26 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
             .IsRequired();
         posting.Property(entity => entity.Description).HasColumnName("description").IsRequired();
 
-        var publication = modelBuilder.Entity<JobSitePublicationEntity>();
+        var publication = modelBuilder.Entity<JobSitePublication>();
         publication.ToTable("job_site_publications");
         publication.HasKey(entity => new { entity.PostingId, entity.JobSiteId });
         publication.Property(entity => entity.PostingId).HasColumnName("posting_id");
         publication.Property(entity => entity.JobSiteId).HasColumnName("job_site_id");
         publication.Property(entity => entity.Status).HasColumnName("status").HasConversion<string>();
-        publication.HasOne<PostingEntity>()
+        publication.Ignore(entity => entity.IsPending);
+        publication.HasOne<Posting>()
             .WithMany()
             .HasForeignKey(entity => entity.PostingId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        var jobSite = modelBuilder.Entity<JobSiteEntity>();
+        var jobSite = modelBuilder.Entity<JobSite>();
         jobSite.ToTable("job_sites");
         jobSite.HasKey(entity => entity.Id);
         jobSite.Property(entity => entity.Id).HasColumnName("id");
         jobSite.Property(entity => entity.Name).HasColumnName("name").IsRequired();
-        jobSite.Property(entity => entity.IsAvailable).HasColumnName("is_available");
+        jobSite.Property<bool>("IsAvailable").HasColumnName("is_available");
 
-        var application = modelBuilder.Entity<ApplicationEntity>();
+        var application = modelBuilder.Entity<Application>();
         application.ToTable("applications");
         application.HasKey(entity => entity.Id);
         application.Property(entity => entity.Id).HasColumnName("id").UseIdentityByDefaultColumn();
@@ -64,6 +66,6 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
         application.Property(entity => entity.Resume).HasColumnName("resume").IsRequired();
         application.Property(entity => entity.Source).HasColumnName("source").IsRequired();
         application.Property(entity => entity.ReferralJobSiteId).HasColumnName("referral_job_site_id");
-        application.HasOne<PostingEntity>().WithMany().HasForeignKey(entity => entity.PostingId);
+        application.HasOne<Posting>().WithMany().HasForeignKey(entity => entity.PostingId);
     }
 }
