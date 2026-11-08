@@ -1,5 +1,4 @@
 using DialDen.RLS.Abstractions.Postings;
-using DialDen.RLS.Infrastructure.Postings;
 using DialDen.RLS.Messaging.Contracts;
 using DialDen.RLS.Postings;
 using MassTransit;
@@ -29,11 +28,8 @@ internal sealed class EntityFrameworkJobSitePublications(
             new Uri($"queue:{messagingOptions.Value.JobSitePublicationQueue}"));
         foreach (var jobSite in jobSites)
         {
-            context.JobSitePublications.Add(new JobSitePublicationEntity
-            {
-                PostingId = posting.Id,
-                JobSiteId = jobSite.Id
-            });
+            context.JobSitePublications.Add(
+                new JobSitePublication(posting.Id, jobSite.Id, JobSitePublicationStatus.Pending));
             await endpoint.Send(
                 new PublishPostingOnJobSite(posting.Id, jobSite.Id, publicListingUrl), cancellationToken);
         }
@@ -41,11 +37,10 @@ internal sealed class EntityFrameworkJobSitePublications(
 
     public async Task<JobSitePublication?> Find(int postingId, string jobSiteId, CancellationToken cancellationToken)
     {
-        var entity = await context.JobSitePublications
+        return await context.JobSitePublications
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 entity => entity.PostingId == postingId && entity.JobSiteId == jobSiteId, cancellationToken);
-        return entity is null ? null : ToPublication(entity);
     }
 
     public async Task Save(JobSitePublication publication, CancellationToken cancellationToken)
@@ -85,10 +80,6 @@ internal sealed class EntityFrameworkJobSitePublications(
                 group => group.Key,
                 group => (IReadOnlyList<JobSitePublication>)group
                     .OrderBy(entity => entity.JobSiteId, StringComparer.Ordinal)
-                    .Select(ToPublication)
                     .ToArray());
     }
-
-    private static JobSitePublication ToPublication(JobSitePublicationEntity entity) =>
-        new(entity.PostingId, entity.JobSiteId, entity.Status);
 }

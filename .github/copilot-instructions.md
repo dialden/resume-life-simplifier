@@ -47,6 +47,33 @@
 - Some layers are still scaffolding. Follow these intended boundaries when
   implementing features; missing wiring is not permission to bypass them.
 
+## UI design and polish
+
+- Treat visual polish as part of feature completeness, not a follow-up task.
+  New and modified screens must match the existing professional site design.
+- Reuse the theme, typography and teal/navy palette from
+  [MainLayout](../src/system/UI/DialDen.RLS.UI/Layout/MainLayout.razor), and the
+  shared spacing, cards, headings and responsive layouts in
+  [app.css](../src/system/UI/DialDen.RLS.UI.Root/wwwroot/css/app.css).
+- Follow established screen patterns such as
+  [CreatePosting](../src/system/UI/DialDen.RLS.UI/Pages/CreatePosting.razor).
+  Prefer existing MudBlazor fields, buttons, alerts and progress indicators over
+  unstyled native controls. File inputs and other necessary native controls must
+  have a styled, accessible presentation consistent with the site.
+- Use clear visual hierarchy, readable content widths, consistent padding and
+  deliberate primary and secondary actions. Separate browsing content from
+  task-focused forms when appropriate; do not crowd unrelated interactions onto
+  one screen or invent unavailable job or organization details.
+- Design loading, empty, validation, submission, success and failure states with
+  the same care as the normal screen. Keep forms usable and preserve entered
+  values after recoverable errors.
+- Ensure responsive desktop and mobile layouts, associated field labels,
+  keyboard access and visible focus states. Verify changed screens in a browser
+  at desktop and mobile widths; compilation alone does not establish UI quality.
+- Keep acceptance scenarios focused on customer outcomes, not page navigation,
+  selectors or visual styling. Adapt navigation in UI drivers and clients and
+  rerun existing behavior scenarios; use browser checks for presentation changes.
+
 ## Localization
 
 - Always localize customer-facing UI text and API messages through the shared

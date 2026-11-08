@@ -15,6 +15,16 @@ public class APIRLSDriver : IRLSDriver
     public Task<Result<PublicListingResponse, SystemError>> ViewPublicListing(int id, Uri? address = null)
         => _apiClient.Postings.ViewPublicListing(id);
 
+    public Task<Result<VoidValue, SystemError>> ApplyToPosting(
+        int postingId, string name, string email, byte[] resume, string? referralJobSiteId)
+        => _apiClient.Applications.Submit(postingId, name, email, resume, referralJobSiteId);
+
+    public Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ListApplications(int postingId)
+        => _apiClient.Applications.List(postingId);
+
+    public Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId)
+        => _apiClient.Applications.DownloadResume(postingId, applicationId);
+
     public async Task<Result<VoidValue, SystemError>> GoToRLS()
     {
         return await _apiClient.Health.CheckHealth();

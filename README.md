@@ -165,8 +165,44 @@ to construct public job-posting links; it does not configure hosting, listening
 ports, CORS, or the UI's API address. The API includes the generated public
 address in queued external-publication commands, so the Worker does not require
 this setting. When a posting is published, its address is based on its stable
-identifier (`/jobs/{id}`). The public page reads the current published posting,
-and Jobillico submissions use that same address in both `surl_fr` and `surl_en`.
+identifier (`/jobs/{id}`). The public page reads the current published posting.
+Links sent to job sites, including Jobillico's `surl_fr` and `surl_en`, add a
+`referralJobSiteId` query parameter; the canonical public address remains unchanged.
+
+API route registration is composed by
+[`RLSEndpoints`](src/system/API/DialDen.RLS.API/RLSEndpoints.cs).
+Resource-specific endpoint classes own the entry point, job sites, postings,
+public listings, applications and notifications.
+
+### Applications from public listings
+
+The public listing at `/jobs/{id}` presents the job details and an **Apply for
+this job** action. The separate `/jobs/{id}/apply` page collects a name, email
+and résumé, and offers a link back to the job details. Referral information is
+preserved between these pages.
+PDF and DOCX files up to 5 MiB are accepted. Each submission is stored with its
+posting and résumé in PostgreSQL; repeated submissions are kept separately.
+The posting details page links to a dedicated applicants page at
+`/postings/{id}/applicants`, where reviewers can see applications, their sources
+and referrals, and download résumés. The API exposes submission through
+`POST /public-postings/{id}/applications` (multipart form fields `name`, `email`,
+`resume` and optional `referralJobSiteId`), and review through
+`GET /postings/{id}/applications`,
+`GET /postings/{id}/applications/{applicationId}` and
+`GET /postings/{id}/applications/{applicationId}/resume`. Draft and unknown
+postings do not accept applications. Apply migrations before starting the API.
+
+The recorded intake source is `Client website`. A separate job-site referral is
+recorded when the query parameter identifies a publication for that posting.
+The parameter is untrusted and may be altered or removed, so it is an attribution
+hint, not proof of origin. Old links and visits without a recognized referral
+are recorded without a job-site referral.
+
+**Demo only:** application review endpoints, contact information and résumé
+downloads are publicly accessible without authentication or organization access
+controls. Use fictitious applicant information only; do not use this workflow
+for real personal data until access controls, retention and operational safeguards
+are implemented. File checks are not malware scanning.
 
 In the devcontainer, Compose supplies the API and real/stubbed API
 test-environment variables from the existing `UI_HTTP_URL` in
@@ -341,9 +377,15 @@ context. Core and its contracts remain independent of EF Core.
 ### Persistence
 
 Application persistence uses EF Core with the Npgsql PostgreSQL provider, rather
-than direct Npgsql commands. The context maps the existing `postings` table,
-including its identity identifier and text-based posting status. The
-`ConnectionStrings:RLS` setting remains unchanged.
+than direct Npgsql commands.
+[`RLSContext`](src/system/Infrastructure/DialDen.RLS.Infrastructure/RLSContext.cs)
+maps postings, job-site publications, job sites and applications directly to
+their domain-facing records, without duplicate persistence entity classes.
+Fluent configuration stays in Infrastructure; Core has no EF dependencies.
+Job-site catalog availability is an EF shadow property, and the calculated
+publication `IsPending` property is not persisted. Generated identifiers,
+text-based statuses, posting concurrency checks and transactional outbox writes
+are preserved. The `ConnectionStrings:RLS` setting remains unchanged.
 
 Flyway remains the schema owner. Application startup does not create the
 database, run EF migrations, or modify its schema. Continue adding schema changes

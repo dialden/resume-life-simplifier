@@ -6,6 +6,24 @@ namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
 public sealed class PublicListingPage(IPage page)
 {
+    public async Task<Result<VoidValue, SystemError>> Apply(string name, string email, byte[] resume)
+    {
+        var listing = await ReadListing();
+        if (listing.IsFailure)
+        {
+            return Result.Failure<SystemError>(listing.Error);
+        }
+
+        var apply = page.GetByTestId("apply-to-posting");
+        if (!await apply.IsVisibleAsync())
+        {
+            return Result.Failure<SystemError>(SystemError.Of("The public listing has no application action."));
+        }
+
+        await apply.ClickAsync();
+        return await new ApplicationPage(page).Submit(name, email, resume);
+    }
+
     public async Task<Result<PublicListingResponse, SystemError>> ReadListing()
     {
         var listing = page.Locator("section[data-posting-id]");

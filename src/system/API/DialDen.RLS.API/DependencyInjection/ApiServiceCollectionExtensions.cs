@@ -8,6 +8,7 @@ public static class ApiServiceCollectionExtensions
     public static IServiceCollection AddRLSApi(this IServiceCollection services)
     {
         services.AddSingleton<SseConnectionManager>();
+        services.AddLocalization();
         return services;
     }
 }

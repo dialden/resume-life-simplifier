@@ -1,4 +1,5 @@
 using System.Data;
+using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.Postings;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,26 +9,25 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
 {
     public async Task<Posting> Add(string title, string description, CancellationToken cancellationToken)
     {
-        var entity = new PostingEntity { Title = title, Description = description };
-        context.Postings.Add(entity);
+        var posting = new Posting(0, title, PostingStatus.Draft) { Description = description };
+        context.Postings.Add(posting);
         await context.SaveChangesAsync(cancellationToken);
 
-        return ToPosting(entity);
+        return posting;
     }
 
     public async Task<Posting?> FindById(int postingId, CancellationToken cancellationToken)
     {
         // Tracked, so Save can detect changes made after the posting was found.
-        var entity = await context.Postings.SingleOrDefaultAsync(
+        return await context.Postings.SingleOrDefaultAsync(
             entity => entity.Id == postingId, cancellationToken);
-        return entity is null ? null : ToPosting(entity);
     }
 
     public async Task Save(Posting posting, CancellationToken cancellationToken)
     {
         var entity = context.Postings.Local.SingleOrDefault(entity => entity.Id == posting.Id)
             ?? throw new InvalidOperationException("Find the posting before saving it.");
-        var found = context.Entry(entity).OriginalValues.ToObject() as PostingEntity
+        var found = context.Entry(entity).OriginalValues.ToObject() as Posting
             ?? throw new InvalidOperationException("The found posting could not be read.");
 
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
@@ -45,9 +45,7 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
             throw new PostingChangedConcurrentlyException();
         }
 
-        entity.Title = posting.Title;
-        entity.Description = posting.Description;
-        entity.Status = posting.Status;
+        context.Entry(entity).CurrentValues.SetValues(posting);
         context.Entry(entity).State = EntityState.Unchanged;
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -73,11 +71,6 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
                 .ToListAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new PostingList(entities.Select(ToPosting).ToArray(), totalPostings);
+        return new PostingList(entities.ToArray(), totalPostings);
     }
-
-    private static Posting ToPosting(PostingEntity entity) => new(entity.Id, entity.Title, entity.Status)
-    {
-        Description = entity.Description
-    };
 }

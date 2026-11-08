@@ -27,7 +27,8 @@ public class JobSitesDsl
         addresses.ShouldNotBeEmpty();
         foreach (var address in addresses)
         {
-            address.ShouldBe(expectedAddress);
+            address.ShouldBe(new Uri(
+                $"{expectedAddress.AbsoluteUri}?referralJobSiteId={Uri.EscapeDataString(jobSiteId)}"));
         }
     }
 

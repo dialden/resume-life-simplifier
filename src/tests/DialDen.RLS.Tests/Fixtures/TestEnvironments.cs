@@ -43,7 +43,7 @@ public class TestEnvironments : IDisposable, IAsyncLifetime
             await connection.OpenAsync();
             await using var command = new NpgsqlCommand(
                 """
-                TRUNCATE TABLE job_site_publications, postings,
+                TRUNCATE TABLE applications, job_site_publications, postings,
                     messaging."OutboxMessage", messaging."OutboxState", messaging."InboxState",
                     transport.message_delivery, transport.message
                 RESTART IDENTITY;

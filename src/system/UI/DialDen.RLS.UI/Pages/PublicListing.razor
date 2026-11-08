@@ -33,12 +33,34 @@ else
         <link rel="canonical" href="@_listing.PublicListingUrl.AbsoluteUri" />
         <meta name="description" content="@_listing.Description" />
     </HeadContent>
-    <section class="surface-panel" aria-label="@Localizer["PublicListing_RegionLabel"]" data-posting-id="@_listing.Id">
-        <p class="eyebrow">@Localizer["PublicListing_Eyebrow"]</p>
-        <h1>@_listing.Title</h1>
-        <h2>@Localizer["CreatePosting_DescriptionLabel"]</h2>
-        <p data-testid="public-listing-description" style="white-space: pre-wrap">@_listing.Description</p>
-        <div class="panel-footer">@Localizer["PublicListing_Footer"]</div>
+    <section class="public-job" aria-label="@Localizer["PublicListing_RegionLabel"]" data-posting-id="@_listing.Id">
+        <div class="public-job-heading">
+            <span class="detail-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
+            <div>
+                <p class="eyebrow">@Localizer["PublicListing_Eyebrow"]</p>
+                <h1>@_listing.Title</h1>
+                <p class="page-description">@Localizer["PublicListing_Intro"]</p>
+            </div>
+        </div>
+        <div class="editor-grid">
+            <article class="surface-panel">
+                <div class="panel-header">
+                    <h2>@Localizer["PublicListing_AboutRole"]</h2>
+                </div>
+                <div class="public-job-description" data-testid="public-listing-description">@_listing.Description</div>
+                <div class="panel-footer">@Localizer["PublicListing_Footer"]</div>
+            </article>
+            <aside class="help-panel public-job-apply" aria-labelledby="apply-title">
+                <span class="feature-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Send" /></span>
+                <h2 id="apply-title">@Localizer["PublicListing_ApplyTitle"]</h2>
+                <p>@Localizer["PublicListing_ApplyDescription"]</p>
+                <MudButton Href="@ApplyAddress" data-testid="apply-to-posting" Variant="Variant.Filled"
+                           Color="Color.Primary" FullWidth EndIcon="@Icons.Material.Outlined.ArrowForward">
+                    @Localizer["PublicListing_Apply"]
+                </MudButton>
+                <p class="public-job-file-hint">@Localizer["Application_ResumeHelp"]</p>
+            </aside>
+        </div>
     </section>
 }
 
@@ -46,9 +68,16 @@ else
     [Parameter]
     public int Id { get; set; }
 
+    [SupplyParameterFromQuery(Name = "referralJobSiteId")]
+    public string? ReferralJobSiteId { get; set; }
+
     private PublicListingResponse? _listing;
     private string? _error;
     private bool _notFound;
+
+    private string ApplyAddress => $"/jobs/{Id.ToString(CultureInfo.InvariantCulture)}/apply"
+        + (string.IsNullOrEmpty(ReferralJobSiteId) ? ""
+            : $"?referralJobSiteId={Uri.EscapeDataString(ReferralJobSiteId)}");
 
     protected override async Task OnParametersSetAsync()
     {
@@ -85,4 +114,5 @@ else
             _error = Localizer["Error_LoadPublicListing", exception.Message];
         }
     }
+
 }

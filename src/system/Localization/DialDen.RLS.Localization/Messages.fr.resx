@@ -594,4 +594,56 @@
     <comment>API message; returned when publishing an already published posting.</comment>
     <value>Cette offre ne peut pas être publiée une deuxième fois.</value>
   </data>
+  <data name="Application_FormTitle" xml:space="preserve"><comment>UI text</comment><value>Postuler à cette offre</value></data>
+  <data name="Application_Name" xml:space="preserve"><comment>UI text</comment><value>Nom</value></data>
+  <data name="Application_Email" xml:space="preserve"><comment>UI text</comment><value>Courriel</value></data>
+  <data name="Application_Resume" xml:space="preserve"><comment>UI text</comment><value>Curriculum vitæ</value></data>
+  <data name="Application_ResumeHelp" xml:space="preserve"><comment>UI text</comment><value>PDF ou DOCX, jusqu'à 5 Mio.</value></data>
+  <data name="Application_Submit" xml:space="preserve"><comment>UI text</comment><value>Envoyer la candidature</value></data>
+  <data name="Application_Submitted" xml:space="preserve"><comment>UI text</comment><value>Votre candidature a été reçue.</value></data>
+  <data name="Application_Unavailable" xml:space="preserve"><comment>UI text</comment><value>Les candidatures ne sont pas disponibles actuellement.</value></data>
+  <data name="Application_InvalidResume" xml:space="preserve"><comment>UI text</comment><value>Choisissez un CV PDF ou DOCX de 5 Mio maximum.</value></data>
+  <data name="Application_Invalid" xml:space="preserve"><comment>UI text</comment><value>Vérifiez votre nom, votre courriel et votre CV. Le CV doit être un PDF ou DOCX de 5 Mio maximum.</value></data>
+  <data name="Application_Failed" xml:space="preserve"><comment>UI text</comment><value>Impossible d'envoyer votre candidature. Veuillez réessayer.</value></data>
+  <data name="Applications_Title" xml:space="preserve"><comment>UI text</comment><value>Candidatures</value></data>
+  <data name="Applications_LoadError" xml:space="preserve"><comment>UI text</comment><value>Impossible de charger les candidatures.</value></data>
+  <data name="Applications_Loading" xml:space="preserve"><comment>UI text</comment><value>Chargement des candidatures…</value></data>
+  <data name="Applications_Empty" xml:space="preserve"><comment>UI text</comment><value>Aucune candidature pour le moment.</value></data>
+  <data name="Applications_Source" xml:space="preserve"><comment>UI text</comment><value>Source</value></data>
+  <data name="Applications_SourceClientWebsite" xml:space="preserve"><comment>UI text</comment><value>Site Web du client</value></data>
+  <data name="Applications_Referral" xml:space="preserve"><comment>UI text</comment><value>Provenance</value></data>
+  <data name="Applications_Download" xml:space="preserve"><comment>UI text</comment><value>Télécharger le CV</value></data>
+  <data name="Api_ApplicationInvalid_name" xml:space="preserve"><comment>API message; POST /public-postings/{id}/applications validation.</comment><value>Entrez un nom d'au plus 200 caractères.</value></data>
+  <data name="Api_ApplicationInvalid_email" xml:space="preserve"><comment>API message; POST /public-postings/{id}/applications validation.</comment><value>Entrez une adresse courriel valide d'au plus 254 caractères.</value></data>
+  <data name="Api_ApplicationInvalid_resume" xml:space="preserve"><comment>API message; POST /public-postings/{id}/applications validation.</comment><value>Fournissez un CV PDF ou DOCX de 5 Mio maximum.</value></data>
+  <data name="PublicListing_Intro" xml:space="preserve"><comment>UI text</comment><value>Découvrez le poste et faites le prochain pas dans votre carrière.</value></data>
+  <data name="PublicListing_AboutRole" xml:space="preserve"><comment>UI text</comment><value>À propos du poste</value></data>
+  <data name="PublicListing_ApplyTitle" xml:space="preserve"><comment>UI text</comment><value>Cette occasion vous intéresse ?</value></data>
+  <data name="PublicListing_ApplyDescription" xml:space="preserve"><comment>UI text</comment><value>Partagez vos coordonnées et votre CV sur la page de candidature.</value></data>
+  <data name="PublicListing_Apply" xml:space="preserve"><comment>UI text</comment><value>Postuler à cette offre</value></data>
+  <data name="Application_PageTitle" xml:space="preserve"><comment>UI text</comment><value>Postuler — {0} | Resume Life Simplifier</value></data>
+  <data name="Application_BackToJob" xml:space="preserve"><comment>UI text</comment><value>Retour aux détails de l'offre</value></data>
+  <data name="Application_Intro" xml:space="preserve"><comment>UI text</comment><value>Présentez-vous et partagez votre CV avec l'équipe de recrutement.</value></data>
+  <data name="Application_YourDetails" xml:space="preserve"><comment>UI text</comment><value>Votre candidature</value></data>
+  <data name="Application_RequiredFields" xml:space="preserve"><comment>UI text</comment><value>Le nom, le courriel et le CV sont obligatoires.</value></data>
+  <data name="Application_NoFile" xml:space="preserve"><comment>UI text</comment><value>Aucun CV sélectionné pour le moment.</value></data>
+  <data name="Application_ChooseResume" xml:space="preserve"><comment>UI text</comment><value>Choisir un CV</value></data>
+  <data name="Application_NameRequired" xml:space="preserve"><comment>UI text</comment><value>Saisissez votre nom.</value></data>
+  <data name="Application_EmailRequired" xml:space="preserve"><comment>UI text</comment><value>Saisissez votre adresse courriel.</value></data>
+  <data name="Application_SelectedFile" xml:space="preserve"><comment>UI text</comment><value>CV sélectionné : {0}</value></data>
+  <data name="Application_Submitting" xml:space="preserve"><comment>UI text</comment><value>Envoi de la candidature…</value></data>
+  <data name="Application_Confirmation" xml:space="preserve"><comment>UI text</comment><value>Votre candidature au poste {0} est maintenant accessible à l'équipe de recrutement.</value></data>
+  <data name="Application_HelpTitle" xml:space="preserve"><comment>UI text</comment><value>Avant l'envoi</value></data>
+  <data name="Application_HelpDescription" xml:space="preserve"><comment>UI text</comment><value>Vérifiez vos coordonnées et choisissez le CV à transmettre à l'équipe de recrutement.</value></data>
+  <data name="Application_HelpAfterSubmit" xml:space="preserve"><comment>UI text</comment><value>Une confirmation s'affichera une fois votre candidature reçue.</value></data>
+  <data name="Application_Loading" xml:space="preserve"><comment>UI text</comment><value>Chargement de la page de candidature…</value></data>
+  <data name="Application_LoadFailed" xml:space="preserve"><comment>UI text</comment><value>Impossible de charger cette page de candidature. Rechargez la page pour réessayer.</value></data>
+  <data name="Applicants_Title" xml:space="preserve"><comment>UI text</comment><value>Candidats</value></data>
+  <data name="Applicants_View" xml:space="preserve"><comment>UI text</comment><value>Voir les candidats</value></data>
+  <data name="Applicants_PageTitle" xml:space="preserve"><comment>UI text</comment><value>Candidats — {0} | Resume Life Simplifier</value></data>
+  <data name="Applicants_ReviewHelp" xml:space="preserve"><comment>UI text</comment><value>Consultez les candidatures reçues pour cette offre et téléchargez le CV de chaque candidat.</value></data>
+  <data name="Applicants_Description" xml:space="preserve"><comment>UI text</comment><value>Consultez les coordonnées, les sources des candidatures et les CV au même endroit.</value></data>
+  <data name="Applicants_BackToPosting" xml:space="preserve"><comment>UI text</comment><value>Retour à l'offre</value></data>
+  <data name="Applicants_EmptyHelp" xml:space="preserve"><comment>UI text</comment><value>Les candidatures reçues pour cette offre apparaîtront ici.</value></data>
+  <data name="Posting_PublicListingHelp" xml:space="preserve"><comment>UI text</comment><value>Consultez l'offre publiée et le formulaire tels qu'ils sont présentés aux candidats.</value></data>
 </root>

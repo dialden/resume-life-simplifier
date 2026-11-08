@@ -45,7 +45,9 @@ internal sealed class PublishOnJobSite(
         try
         {
             await jobSite.Publish(
-                new JobSitePosting(posting.Id, posting.Title, posting.Description, publicListingUrl),
+                new JobSitePosting(posting.Id, posting.Title, posting.Description,
+                    publicListingUrl is null ? null : new Uri(
+                        $"{publicListingUrl.AbsoluteUri}?referralJobSiteId={Uri.EscapeDataString(publication.JobSiteId)}")),
                 cancellationToken);
             return publication.Succeed();
         }

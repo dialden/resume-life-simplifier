@@ -4,6 +4,8 @@ using DialDen.RLS.Infrastructure.Publishing;
 using DialDen.RLS.Messaging.Contracts;
 using DialDen.RLS.Postings;
 using DialDen.RLS.Infrastructure.PublicWebsite;
+using DialDen.RLS.Infrastructure.Applications;
+using DialDen.RLS.JobApplications;
 using MassTransit;
 using MassTransit.SqlTransport.PostgreSql;
 using Microsoft.EntityFrameworkCore;
@@ -49,6 +51,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IPostingsArchive, EntityFrameworkPostingsArchive>();
         services.AddScoped<IJobSitePublications, EntityFrameworkJobSitePublications>();
         services.AddScoped<IJobSitesCatalog, EntityFrameworkJobSitesCatalog>();
+        services.AddScoped<IApplicationsArchive, EntityFrameworkApplicationsArchive>();
         services.AddSingleton<IPublicListingAddress>(serviceProvider =>
             new ConfiguredPublicListingAddress(
                 serviceProvider.GetRequiredService<IConfiguration>()));

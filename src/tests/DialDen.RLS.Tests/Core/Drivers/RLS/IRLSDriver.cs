@@ -9,6 +9,10 @@ public interface IRLSDriver
     Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds);
     Task<Result<ViewPostingResponse, SystemError>> ViewPosting(int id);
     Task<Result<PublicListingResponse, SystemError>> ViewPublicListing(int id, Uri? address = null);
+    Task<Result<VoidValue, SystemError>> ApplyToPosting(
+        int postingId, string name, string email, byte[] resume, string? referralJobSiteId);
+    Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ListApplications(int postingId);
+    Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId);
 
     /// <summary>
     /// Keeps observing the posting being viewed, without viewing it again, until <paramref name="isExpected"/>

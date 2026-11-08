@@ -1,0 +1,268 @@
+@page "/jobs/{Id:int}/apply"
+@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@using System.Globalization
+@using System.Net
+@using Microsoft.Extensions.Logging
+@using DialDen.RLS.Abstractions.Postings
+@implements IAsyncDisposable
+@inject HttpClient Api
+@inject IStringLocalizer<Messages> Localizer
+@inject ILogger<ApplyToPosting> Logger
+
+<PageTitle>@Localizer["Application_PageTitle", _listing?.Title ?? Localizer["PublicListing_DefaultTitle"]]</PageTitle>
+
+<div class="public-job">
+    <div class="breadcrumb">
+        <a href="@ListingAddress">@Localizer["Application_BackToJob"]</a>
+        <span aria-hidden="true">/</span><span>@Localizer["Application_FormTitle"]</span>
+    </div>
+    @if (_notFound)
+    {
+        <section class="surface-panel empty-state" data-testid="public-listing-not-found">
+            <span class="empty-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.WorkOutline" Size="Size.Large" /></span>
+            <h1>@Localizer["PublicListing_NotFoundTitle"]</h1>
+            <p>@Localizer["PublicListing_NotFoundDescription"]</p>
+        </section>
+    }
+    else if (_loadError is not null)
+    {
+        <MudAlert Severity="Severity.Error" role="alert">@_loadError()</MudAlert>
+    }
+    else if (_listing is null)
+    {
+        <div class="state-panel" role="status">
+            <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" />
+            <p>@Localizer["Application_Loading"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="page-heading application-heading">
+            <div>
+                <p class="eyebrow">@Localizer["Application_FormTitle"]</p>
+                <h1>@_listing.Title</h1>
+                <p class="page-description">@Localizer["Application_Intro"]</p>
+            </div>
+        </div>
+        @if (_submitted)
+        {
+            <section class="surface-panel empty-state application-confirmation" role="status" data-testid="application-submitted">
+                <span class="empty-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="Size.Large" /></span>
+                <h2>@Localizer["Application_Submitted"]</h2>
+                <p>@Localizer["Application_Confirmation", _listing.Title]</p>
+                <MudButton Href="@ListingAddress" Variant="Variant.Outlined" Color="Color.Primary">
+                    @Localizer["Application_BackToJob"]
+                </MudButton>
+            </section>
+        }
+        else
+        {
+            <div class="editor-grid">
+                <section class="surface-panel" aria-labelledby="application-information">
+                    <div class="panel-header">
+                        <div>
+                            <h2 id="application-information">@Localizer["Application_YourDetails"]</h2>
+                            <p class="panel-description">@Localizer["Application_RequiredFields"]</p>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Outlined.PersonOutline" Color="Color.Primary" />
+                    </div>
+                    <form data-testid="application-form" @onsubmit="SubmitApplication" @onsubmit:preventDefault>
+                        <div class="form-body application-fields">
+                            <MudTextField T="string" Label="@Localizer["Application_Name"]" InputId="application-name"
+                                          Variant="Variant.Outlined" @bind-Value="_name" Immediate
+                                          MaxLength="200" Required RequiredError="@Localizer["Application_NameRequired"]"
+                                          Disabled="_submitting" />
+                            <MudTextField T="string" Label="@Localizer["Application_Email"]" InputId="application-email"
+                                          Variant="Variant.Outlined" @bind-Value="_email" Immediate InputType="InputType.Email"
+                                          MaxLength="254" Required RequiredError="@Localizer["Application_EmailRequired"]"
+                                          Disabled="_submitting" />
+                            <div class="resume-upload">
+                                <div class="resume-upload-heading">
+                                    <span class="feature-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.UploadFile" /></span>
+                                    <div>
+                                        <label for="application-resume">@Localizer["Application_Resume"]</label>
+                                        <p id="resume-help">@Localizer["Application_ResumeHelp"]</p>
+                                    </div>
+                                </div>
+                                <div class="resume-file-picker">
+                                    <InputFile id="application-resume" class="resume-file-input" data-testid="application-resume"
+                                               OnChange="SelectResume" accept=".pdf,.docx" disabled="@_submitting"
+                                               aria-label="@Localizer["Application_ChooseResume"]"
+                                               aria-describedby="resume-help resume-selected" />
+                                    <span class="resume-file-button" aria-hidden="true">@Localizer["Application_ChooseResume"]</span>
+                                </div>
+                                <p id="resume-selected" role="status" class="resume-selected">
+                                    @(_resume is null ? Localizer["Application_NoFile"] : Localizer["Application_SelectedFile", _resume.Name])
+                                </p>
+                            </div>
+                            @if (_applicationError is not null)
+                            {
+                                <MudAlert Severity="Severity.Error" role="alert">@_applicationError()</MudAlert>
+                            }
+                        </div>
+                        <div class="form-actions">
+                            <MudButton Href="@ListingAddress" Variant="Variant.Text" Disabled="_submitting">@Localizer["Common_Cancel"]</MudButton>
+                            <MudButton data-testid="submit-application" ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                       Color="Color.Primary" Disabled="_submitting" StartIcon="@Icons.Material.Outlined.Send">
+                                @(_submitting ? Localizer["Application_Submitting"] : Localizer["Application_Submit"])
+                            </MudButton>
+                        </div>
+                    </form>
+                </section>
+                <aside class="help-panel" aria-labelledby="application-help">
+                    <span class="feature-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.Lightbulb" /></span>
+                    <h2 id="application-help">@Localizer["Application_HelpTitle"]</h2>
+                    <p>@Localizer["Application_HelpDescription"]</p>
+                    <div class="help-divider"></div>
+                    <p>@Localizer["Application_HelpAfterSubmit"]</p>
+                </aside>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "referralJobSiteId")]
+    public string? ReferralJobSiteId { get; set; }
+
+    private const long MaxResumeBytes = 5 * 1024 * 1024;
+    private PublicListingResponse? _listing;
+    private Link? _submitLink;
+    private Func<string>? _loadError;
+    private Func<string>? _applicationError;
+    private bool _notFound;
+    private string _name = "";
+    private string _email = "";
+    private IBrowserFile? _resume;
+    private bool _submitting;
+    private bool _submitted;
+    private CancellationTokenSource? _pageCancellation;
+
+    private string ListingAddress => $"/jobs/{Id.ToString(CultureInfo.InvariantCulture)}"
+        + (string.IsNullOrEmpty(ReferralJobSiteId) ? ""
+            : $"?referralJobSiteId={Uri.EscapeDataString(ReferralJobSiteId)}");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _pageCancellation?.Cancel();
+        _pageCancellation?.Dispose();
+        _pageCancellation = new CancellationTokenSource();
+        var token = _pageCancellation.Token;
+        _listing = null;
+        _submitLink = null;
+        _loadError = null;
+        _applicationError = null;
+        _notFound = false;
+        _submitted = false;
+        _submitting = false;
+        _name = "";
+        _email = "";
+        _resume = null;
+        try
+        {
+            var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
+                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+            var viewLink = entryPoint.Links.SingleOrDefault(
+                link => link is { Rel: "view-public-listing", Method: "GET" });
+            _submitLink = entryPoint.Links.SingleOrDefault(
+                link => link is { Rel: "submit-application", Method: "POST" });
+            if (viewLink is null || _submitLink is null)
+            {
+                _loadError = () => Localizer["Application_Unavailable"];
+                return;
+            }
+            var href = viewLink.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
+            using var response = await Api.GetAsync(href, token);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _notFound = true;
+                return;
+            }
+            response.EnsureSuccessStatusCode();
+            var listing = await response.Content.ReadFromJsonAsync<PublicListingResponse>(
+                ApiJsonSerializerOptions.Default, token)
+                ?? throw new System.Text.Json.JsonException("The API returned no public listing.");
+            token.ThrowIfCancellationRequested();
+            _listing = listing;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Navigation cancels requests for the previous posting.
+        }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        {
+            if (!token.IsCancellationRequested)
+            {
+                Logger.LogWarning(exception, "Could not load the application page.");
+                _loadError = () => Localizer["Application_LoadFailed"];
+            }
+        }
+    }
+
+    private void SelectResume(InputFileChangeEventArgs args)
+    {
+        _resume = args.File;
+        _applicationError = null;
+    }
+
+    private async Task SubmitApplication()
+    {
+        if (_submitting || _submitted) return;
+        _applicationError = null;
+        if (_resume is null || _resume.Size == 0 || _resume.Size > MaxResumeBytes)
+        {
+            _applicationError = () => Localizer["Application_InvalidResume"];
+            return;
+        }
+        var link = _submitLink ?? throw new InvalidOperationException("The application action has not been loaded.");
+        var token = _pageCancellation?.Token ?? throw new InvalidOperationException("The application page has not loaded.");
+        var href = link.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
+        _submitting = true;
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(_name), "name");
+            content.Add(new StringContent(_email), "email");
+            if (!string.IsNullOrEmpty(ReferralJobSiteId))
+                content.Add(new StringContent(ReferralJobSiteId), "referralJobSiteId");
+            content.Add(new StreamContent(_resume.OpenReadStream(MaxResumeBytes, token)), "resume", _resume.Name);
+            using var response = await Api.PostAsync(href, content, token);
+            token.ThrowIfCancellationRequested();
+            if (!response.IsSuccessStatusCode)
+            {
+                _applicationError = response.StatusCode == HttpStatusCode.BadRequest
+                    ? () => Localizer["Application_Invalid"]
+                    : () => Localizer["Application_Failed"];
+                return;
+            }
+            _submitted = true;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Leaving the page cancels submission; only a confirmed response shows success.
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException)
+        {
+            if (!token.IsCancellationRequested)
+            {
+                Logger.LogWarning(exception, "Application submission failed.");
+                _applicationError = () => Localizer["Application_Failed"];
+            }
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested) _submitting = false;
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        _pageCancellation?.Cancel();
+        _pageCancellation?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

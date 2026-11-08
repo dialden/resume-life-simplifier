@@ -81,7 +81,7 @@ else
         }
         else
         {
-            <div class="list-columns" aria-hidden="true"><span>@Localizer["Postings_SelectColumn"]</span><span>@Localizer["Posting_Status"]</span></div>
+            <div class="list-columns" aria-hidden="true"><span>@Localizer["Postings_SelectColumn"]</span></div>
             <ul class="posting-list" aria-label="@Localizer["Postings_ListLabel"]">
                 @foreach (var posting in _page.Items)
                 {
@@ -112,15 +112,21 @@ else
                                 }
                             </span>
                             <span class="posting-status" data-testid="posting-status-@posting.Id">@Localizer[$"PostingStatus_{posting.Status}"]</span>
-                            <span class="row-action" aria-hidden="true">@Localizer["Postings_ViewDetails"]<MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" /></span>
                         </a>
-                        @if (posting.PublicListingUrl is not null)
-                        {
-                            <a class="row-action" data-testid="public-listing-link-@posting.Id"
-                               href="@posting.PublicListingUrl" target="_blank" rel="noopener noreferrer">
-                                @Localizer["PublicListing_LinkLabel"]
+                        <div class="posting-row-actions">
+                            <a class="action-link posting-details-action" href="@($"/postings/{posting.Id}")">
+                                @Localizer["Postings_ViewDetails"]
+                                <MudIcon Icon="@Icons.Material.Outlined.ArrowForward" />
                             </a>
-                        }
+                            @if (posting.PublicListingUrl is not null)
+                            {
+                                <a class="action-link posting-public-action" data-testid="public-listing-link-@posting.Id"
+                                   href="@posting.PublicListingUrl" target="_blank" rel="noopener noreferrer">
+                                    @Localizer["PublicListing_LinkLabel"]
+                                    <MudIcon Icon="@Icons.Material.Outlined.OpenInNew" />
+                                </a>
+                            }
+                        </div>
                     </li>
                 }
             </ul>
