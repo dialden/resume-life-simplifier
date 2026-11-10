@@ -9,6 +9,11 @@ RUN mkdir /tmp/installplaywright && \
     pwsh ./bin/Debug/net10.0/playwright.ps1 install-deps
 
 USER root
+# Render PDF and DOCX resumes in the real worker hosted by acceptance tests.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libreoffice-writer poppler-utils fonts-liberation && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install Flyway database migration tool
 RUN wget -qO /tmp/flyway-commandline-13.11.1-linux-x64.tar.gz https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/13.11.1/flyway-commandline-13.11.1-linux-x64.tar.gz && \
     tar -xvzf /tmp/flyway-commandline-13.11.1-linux-x64.tar.gz -C /tmp && \

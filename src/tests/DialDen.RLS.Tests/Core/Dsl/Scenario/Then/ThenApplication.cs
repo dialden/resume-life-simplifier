@@ -55,6 +55,32 @@ public sealed class ThenApplication<TResponse, TVerification>
         return this;
     }
 
+    public ThenApplication<TResponse, TVerification> IsAwaitingInformationExtraction()
+    {
+        _checks.Add((_, application) =>
+        {
+            application.ExtractionStatus.ShouldBe("Pending");
+            return Task.CompletedTask;
+        });
+        return this;
+    }
+
+    public ThenApplication<TResponse, TVerification> EventuallyHasFailedExtraction()
+    {
+        _checks.Add((submission, application) => submission.EventuallyHasFailedExtraction(application));
+        return this;
+    }
+
+    public ThenApplication<TResponse, TVerification> EventuallyHasExtractedContactInformation(
+        string? name = null, string? email = null, string? phoneNumber = null,
+        string? postalAddress = null, string? linkedInUrl = null)
+    {
+        var expected = new ExtractedContactInformation(name, email, phoneNumber, postalAddress, linkedInUrl);
+        _checks.Add((submission, application) =>
+            submission.EventuallyHasExtractedContactInformation(application, expected));
+        return this;
+    }
+
     public ThenApplication<TResponse, TVerification> WasReferredBy(string jobSiteId)
     {
         _checks.Add((_, application) =>

@@ -112,6 +112,32 @@ The real-system test environment inherits the normal Jobillico configuration,
 including its production endpoint and credentials. Stubbed tests use the generic
 WireMock job sites instead.
 
+## Ollama
+
+The development image includes LibreOffice Writer, Poppler (`pdfinfo` and
+`pdftoppm`) and Liberation fonts for resume rendering in the real Worker.
+Rebuild the development container after changing these image dependencies.
+
+Compose runs `ollama-init` to cache `qwen2.5vl:7b` in the `ollama_data`
+volume before starting `ollama`. The Ollama service requires an NVIDIA GPU
+with Docker GPU support. It is available at `http://ollama:11434/` inside
+the Compose network and `http://localhost:11434/` from the host.
+
+The dev container waits for Ollama to become healthy. Its health check uses
+`ollama list` to verify that the server responds; it does not load the model
+or run inference. The Ollama image does not include `curl`, so a health check
+that invokes `curl` fails even when the server is running.
+
+To inspect startup failures from the host:
+
+```sh
+docker inspect ollama-service --format '{{json .State.Health}}'
+docker logs --tail 60 ollama-service
+```
+
+After changing the health check, reopen or rebuild the dev container to apply
+the Compose configuration. The cached model is preserved in its named volume.
+
 ## WireMock job-site stub
 
 The `wiremock-job-site` Compose service backs the acceptance-test job-site
@@ -120,6 +146,25 @@ test Worker calls the same service at `http://wiremock-job-site/`. From the
 host, the service is available at `http://localhost:9095/`. The URL can be
 overridden with `RLS_TEST_JobSites__WireMockUrl`. Rebuild or recreate the
 devcontainer after changing Compose services.
+
+## WireMock Ollama server
+
+The separate `wiremock-ollama` service replaces only the Ollama server for
+acceptance tests. The Worker, messaging, document rendering and persistence are
+not replaced. Tests configure `/api/chat` responses through its admin API using
+`RLS_TEST_ResumeAnalysis__WireMockUrl` (default `http://wiremock-ollama/`).
+From the host, the server is available at `http://localhost:9096/`.
+
+Compose sets `RLS_WORKER_Ollama__Endpoint=http://ollama:11434/` and
+`RLS_WORKER_Ollama__Model=qwen2.5vl:7b`. The external-server-stubbed environment
+overrides only the endpoint through
+`STUBBED_EXT_SYSTEMS_RLS_WORKER_Ollama__Endpoint=http://wiremock-ollama/`.
+The Worker registers the OllamaSharp adapter and consumes durable
+`ApplicationReceived` events. In-process acceptance environments isolate both
+the event topic and extraction queue; the real Worker is used in each environment.
+Scenario setup resets the resume-analysis server to a successful empty result
+unless a Given step configures contacts or a long response delay. Delayed requests
+are cancelled by test Worker restart on the next reset, or by environment disposal.
 
 ## Launch configuration
 

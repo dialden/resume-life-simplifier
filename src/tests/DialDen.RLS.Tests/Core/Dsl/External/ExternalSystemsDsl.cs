@@ -1,4 +1,5 @@
 using DialDen.RLS.Tests.Core.Dsl.External.JobSites;
+using DialDen.RLS.Tests.Core.Dsl.External.ResumeAnalysis;
 
 namespace DialDen.RLS.Tests.Core.Dsl;
 
@@ -6,9 +7,11 @@ namespace DialDen.RLS.Tests.Core.Dsl;
 public class ExternalSystemsDsl
 {
     public JobSitesDsl JobSites { get; }
+    public ResumeAnalysisDsl ResumeAnalysis { get; }
 
-    public ExternalSystemsDsl(JobSitesDsl jobSites)
+    public ExternalSystemsDsl(JobSitesDsl jobSites, ResumeAnalysisDsl resumeAnalysis)
     {
         JobSites = jobSites;
+        ResumeAnalysis = resumeAnalysis;
     }
 }

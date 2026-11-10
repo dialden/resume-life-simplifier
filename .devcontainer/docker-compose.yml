@@ -8,6 +8,10 @@ services:
         condition: service_healthy
       wiremock-job-site:
         condition: service_healthy
+      wiremock-ollama:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
     volumes:
       - ../:/workspaces/resume-life-simplifier
       # The chat catalog and conversation databases live in separate directories.
@@ -55,6 +59,10 @@ services:
       REAL_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       STUBBED_EXT_SYSTEMS_RLS_WORKER_ConnectionStrings__RLS: Host=${PGHOST:?Required};Port=${PGPORT:?Required};Database=${RLS_TEST_DATABASE:?Required};Username=${POSTGRES_USER:?Required};Password=${POSTGRES_PASSWORD:?Required}
       RLS_TEST_JobSites__WireMockUrl: http://wiremock-job-site/
+      RLS_TEST_ResumeAnalysis__WireMockUrl: http://wiremock-ollama/
+      RLS_WORKER_Ollama__Endpoint: http://ollama:11434/
+      RLS_WORKER_Ollama__Model: qwen2.5vl:7b
+      STUBBED_EXT_SYSTEMS_RLS_WORKER_Ollama__Endpoint: http://wiremock-ollama/
       RLS_WORKER_JobSites__Type: real
       RLS_WORKER_Jobillico__Endpoint: ${JOBILLICO_ENDPOINT:?Required}
       RLS_WORKER_Jobillico__UseProduction: "true"
@@ -87,10 +95,82 @@ services:
       timeout: 5s
       retries: 10
 
+# ---------------------------------------------------------------------------
+  # Ollama Initializer (Runs first, pulls the model into the volume, then exits)
+  # ---------------------------------------------------------------------------
+  ollama-init:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["sh", "-c", "ollama serve & sleep 2 && ollama pull qwen2.5vl:7b"]
+
+  # ---------------------------------------------------------------------------
+  # Main Ollama Service (Boots up once the model is guaranteed to be cached)
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    volumes:
+      - ollama_data:/root/.ollama
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s  # Only needs a brief window for the server process to bind to port 11434
+      
+# ---------------------------------------------------------------------------
+  # Open WebUI (ChatGPT-style browser interface)
+  # ---------------------------------------------------------------------------
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_AUTH=false  # Set to true if you want login authentication
+    volumes:
+      - open_webui_data:/app/backend/data
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+
+
   wiremock-job-site:
     image: sheyenrath/wiremock.net
     ports:
       - "9095:80"
+    command: --verbose
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - 'exec 3<>/dev/tcp/127.0.0.1/80 && printf "GET /__admin/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && IFS= read -r response <&3 && [[ "$$response" == *"200 OK"* ]]'
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  wiremock-ollama:
+    image: sheyenrath/wiremock.net
+    ports:
+      - "9096:80"
     command: --verbose
     healthcheck:
       test:
@@ -110,3 +190,5 @@ volumes:
   gh-config:
   gcloud-config:
   postgres-data:
+  ollama_data:
+  open_webui_data:

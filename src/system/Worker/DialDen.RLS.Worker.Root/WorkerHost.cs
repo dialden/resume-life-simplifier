@@ -24,7 +24,10 @@ public static class WorkerHost
 
         builder.Services
             .AddRLSCore()
-            .AddRLSInfrastructure(builder.Configuration, bus => bus.AddRLSConsumers())
+            .AddRLSInfrastructure(
+                builder.Configuration,
+                bus => bus.AddRLSConsumers(),
+                options => options.UseTransactionalMessaging = true)
             .AddRLSWorker()
             .AddConfiguredJobSites(builder.Configuration);
 

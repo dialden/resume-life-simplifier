@@ -40,6 +40,18 @@ public sealed class WhenApplyToPosting : BaseWhen<VoidValue, ApplicationSubmissi
         return this;
     }
 
+    public WhenApplyToPosting WithUnreadableResume()
+    {
+        _resume = "%PDF-1.4\nunreadable document\n%%EOF"u8.ToArray();
+        return this;
+    }
+
+    public WhenApplyToPosting WithResumePages(int pages)
+    {
+        _resume = SampleResume.CreateWordDocument(pages);
+        return this;
+    }
+
     public WhenApplyToPosting ReferredBy(string jobSiteId)
     {
         _referralJobSiteId = jobSiteId;

@@ -18,27 +18,39 @@ namespace DialDen.RLS.Infrastructure.DependencyInjection;
 
 public static class InfrastructureServiceCollectionExtensions
 {
-    /// <summary>
-    /// Registers the infrastructure of a process that only requests work from others: its commands are
-    /// written to the outbox, and a process consuming them delivers them.
-    /// </summary>
-    public static IServiceCollection AddRLSInfrastructure(
-        this IServiceCollection services,
-        IConfiguration configuration) =>
-        services.AddRLSInfrastructure(configuration, addConsumers: null);
+    private static IServiceCollection AddRLSResumeExtraction(this IServiceCollection services)
+    {
+        services.AddOptions<OllamaOptions>().BindConfiguration(OllamaOptions.SectionName)
+            .Validate(options => options.Endpoint is { IsAbsoluteUri: true }
+                && options.Endpoint.Scheme is "http" or "https",
+                "Ollama:Endpoint must be an absolute HTTP or HTTPS URL.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Model), "Ollama:Model is required.");
+        services.AddTransient<ResumePageImageRenderer>();
+        services.AddHttpClient<IResumeContactExtraction, OllamaResumeContactExtraction>((provider, client) =>
+        {
+            client.BaseAddress = provider.GetRequiredService<IOptions<OllamaOptions>>().Value.Endpoint;
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        });
+        return services;
+    }
 
     /// <summary>
-    /// Registers the infrastructure of a process consuming commands. It also delivers the outbox commands.
-    /// Each consumed command is processed at most once, in the same transaction as the changes it makes.
-    /// Set useConsumerOutbox to false for processes that only consume transient, nontransactional
-    /// notifications; those processes do not deliver the database outbox either.
+    /// Registers driven adapters and messaging. Transactional messaging enables consumer inbox/outbox,
+    /// bounded retries and durable outbox delivery; otherwise consumers are nontransactional.
     /// </summary>
     public static IServiceCollection AddRLSInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
-        Action<IBusRegistrationConfigurator>? addConsumers,
-        bool useConsumerOutbox = true)
+        Action<IBusRegistrationConfigurator> addConsumers,
+        Action<InfrastructureOptions>? configure = null)
     {
+        ArgumentNullException.ThrowIfNull(addConsumers);
+        var infrastructure = new InfrastructureOptions();
+        configure?.Invoke(infrastructure);
+        var useConsumerOutbox = infrastructure.UseTransactionalMessaging;
+
+        services.AddRLSResumeExtraction();
+
         services.AddDbContext<RLSContext>((serviceProvider, options) =>
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -50,8 +62,10 @@ public static class InfrastructureServiceCollectionExtensions
         });
         services.AddScoped<IPostingsArchive, EntityFrameworkPostingsArchive>();
         services.AddScoped<IJobSitePublications, EntityFrameworkJobSitePublications>();
+        services.AddScoped<IJobSitePublicationRequests, OutboxJobSitePublicationRequests>();
         services.AddScoped<IJobSitesCatalog, EntityFrameworkJobSitesCatalog>();
         services.AddScoped<IApplicationsArchive, EntityFrameworkApplicationsArchive>();
+        services.AddScoped<IApplicationReceipts, OutboxApplicationReceipts>();
         services.AddSingleton<IPublicListingAddress>(serviceProvider =>
             new ConfiguredPublicListingAddress(
                 serviceProvider.GetRequiredService<IConfiguration>()));
@@ -70,29 +84,30 @@ public static class InfrastructureServiceCollectionExtensions
                 outbox.UsePostgres();
                 outbox.UseBusOutbox(busOutbox =>
                 {
-                    if (addConsumers is null || !useConsumerOutbox)
+                    if (!useConsumerOutbox)
                     {
                         busOutbox.DisableDeliveryService();
                     }
                 });
                 outbox.QueryDelay = TimeSpan.FromMilliseconds(250);
             });
-            if (addConsumers is not null)
+            if (useConsumerOutbox)
             {
-                if (useConsumerOutbox)
+                bus.AddConfigureEndpointsCallback((context, _, endpoint) =>
                 {
-                    bus.AddConfigureEndpointsCallback((context, _, endpoint) =>
-                    {
-                        // Retries our own transient failures, then moves the command to the error queue.
-                        endpoint.UseMessageRetry(retry => retry.Intervals(
-                            TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5)));
-                        endpoint.UseEntityFrameworkOutbox<RLSContext>(context);
-                    });
-                }
-                addConsumers(bus);
+                    // Retries our own transient failures, then moves the command to the error queue.
+                    endpoint.UseMessageRetry(retry => retry.Intervals(
+                        TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5)));
+                    endpoint.UseEntityFrameworkOutbox<RLSContext>(context);
+                });
             }
+            addConsumers(bus);
             bus.UsingPostgres((context, transport) =>
             {
+                var messaging = context.GetRequiredService<IOptions<MessagingOptions>>().Value;
+                transport.Message<ApplicationReceived>(message => message.SetEntityName(messaging.ApplicationReceivedTopic));
+                transport.Message<Fault<ApplicationReceived>>(message =>
+                    message.SetEntityName($"{messaging.ApplicationReceivedTopic}-fault"));
                 var options = context.GetRequiredService<IOptions<SqlTransportOptions>>().Value;
                 var connection = new NpgsqlConnectionStringBuilder(options.ConnectionString);
                 if (connection.Host?.StartsWith("/", StringComparison.Ordinal) == true)

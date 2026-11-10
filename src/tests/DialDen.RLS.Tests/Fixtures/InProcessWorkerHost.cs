@@ -1,6 +1,8 @@
 using DialDen.RLS.Worker.Root;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using MassTransit;
 
 namespace DialDen.RLS.Tests.Fixtures;
 
@@ -31,6 +33,11 @@ public sealed class InProcessWorkerHost : IDisposable
                 configuration
                     .AddEnvironmentVariables(_environmentVariablesPrefix + WorkerHost.EnvironmentVariablesPrefix)
                     .AddInMemoryCollection(_settings));
+            builder.Services.Configure<MassTransitHostOptions>(options =>
+            {
+                options.ConsumerStopTimeout = TimeSpan.FromSeconds(1);
+                options.StopTimeout = TimeSpan.FromSeconds(5);
+            });
             var host = builder.Build();
             host.StartAsync().GetAwaiter().GetResult();
             _host = host;
@@ -42,5 +49,6 @@ public sealed class InProcessWorkerHost : IDisposable
         if (_host == null) return;
         _host.StopAsync().GetAwaiter().GetResult();
         _host.Dispose();
+        _host = null;
     }
 }

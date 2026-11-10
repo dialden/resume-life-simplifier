@@ -9,6 +9,8 @@ public static class WorkerBusRegistrationConfiguratorExtensions
         ArgumentNullException.ThrowIfNull(bus);
 
         bus.AddConsumer<PublishPostingOnJobSiteConsumer, PublishPostingOnJobSiteConsumerDefinition>();
+        bus.AddConsumer<ExtractApplicationInformationConsumer, ExtractApplicationInformationConsumerDefinition>();
+        bus.AddConsumer<RecordInformationExtractionFailureConsumer, RecordInformationExtractionFailureConsumerDefinition>();
 
         return bus;
     }

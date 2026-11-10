@@ -23,5 +23,7 @@ public sealed class WhenStage
 
     public WhenApplyToPosting ApplyToPosting() => new(_app, _scenario, _setup);
 
+    public WhenResumeAnalysisCompletes ResumeAnalysisCompletes() => new(_app, _scenario, _setup);
+
     public WhenListPostings ListPostings() => new(_app, _scenario, _setup);
 }

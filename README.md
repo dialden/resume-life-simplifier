@@ -149,6 +149,12 @@ forwards committed commands to the durable PostgreSQL queue
 `rls-job-site-publication`; pending outbox work is retried and survives restarts.
 Publishing without external destinations creates no job-site publication commands.
 
+Core creates each pending job-site publication and its `JobSitePublicationRequest`,
+staging persistence through `IJobSitePublications` and requesting dispatch through
+`IJobSitePublicationRequests` before saving the posting. The EF publication adapter
+only persists records; the separate outbox adapter maps Core requests to transport
+commands and resolves queue routing. Core has no MassTransit dependencies.
+
 ### Public job-posting URL configuration
 
 The public UI origin is supplied independently of the application's listening
@@ -191,6 +197,91 @@ and referrals, and download résumés. The API exposes submission through
 `GET /postings/{id}/applications/{applicationId}` and
 `GET /postings/{id}/applications/{applicationId}/resume`. Draft and unknown
 postings do not accept applications. Apply migrations before starting the API.
+
+Application review responses include `extractionStatus`: new applications start
+as `Pending`, while applications predating this feature are `NotProcessed`.
+The applicants page displays a separate resume-information section with
+“Extracting information…”, “Not processed”, or the completed extraction result.
+Core announces each new application
+by creating an `ApplicationReceipt` and passing it through `IApplicationReceipts`
+before saving it. Infrastructure reserves
+the application identifier from the existing PostgreSQL sequence and queues an
+`ApplicationReceived` event containing only application and posting identifiers.
+The archive save commits the application and outbox event together. The Worker
+consumes that durable event and extracts the resume's contact information.
+
+The Core extraction use case calls `IResumeContactExtraction` and completes only
+pending applications. Extracted contacts are stored in five separate nullable text
+columns and exposed
+through `extractedContacts` in review responses; submitted name/email are not updated.
+A conditional save prevents duplicate processing from overwriting a completed
+result. An all-null contact result still represents a completed extraction.
+The persistence adapter reconstructs that result using the extraction status,
+so an empty completed result remains distinct from an unprocessed resume.
+Both hosts register domain use cases through `AddRLSCore` and driven adapters
+through the host-neutral `AddRLSInfrastructure` extension. Worker-specific
+composition is declared directly in `WorkerHost` in Worker.Root.
+The extraction consumer uses the existing
+transactional inbox/outbox and bounded message retries, with one extraction
+in flight per Worker instance. Completion publishes `ApplicationChanged` through
+the same transactional outbox as the persisted result. The API forwards this as
+an SSE refresh hint, and the applicants page rereads applications without navigation
+or reloading. The existing app-wide notification connection is shared with posting
+screens. Stream readiness also triggers a refresh to recover changes missed during
+initial loading; unavailable updates show a localized warning while retaining the
+last displayed information.
+Extraction gets one initial attempt and three retries (after 200 ms, 1 second and
+5 seconds). Exhausted failures move the original event to the extraction error
+queue and publish MassTransit's `Fault<ApplicationReceived>`. A separate durable
+failure consumer records `Failed` and publishes `ApplicationChanged` in its own
+transaction, so the failure outcome is not rolled back with the failed extraction.
+The applicants page updates in place with a localized failure explanation; there
+is no recruiter retry action. Submitted details and the original resume remain
+available. Conditional updates protect completed/failed outcomes from duplicates
+or late fault messages. Provider errors, unreadable documents and resumes above
+20 pages follow this failure path.
+
+`Messaging:ApplicationReceivedTopic` (default `rls-application-received`) must match
+between the API publisher and Worker. `Messaging:ResumeExtractionQueue` (default
+`rls-resume-extraction`) identifies the durable Worker subscription. Acceptance
+environments use separate topics and queues so real and stubbed workers cannot
+process one another's applications.
+Fault topics use the receipt topic's `-fault` suffix, and failure subscriptions use
+the extraction queue's `-failures` suffix, preserving that same isolation.
+Apply migration V15 before running the updated Worker to allow the `Failed` status.
+
+Infrastructure includes a resume page renderer using LibreOffice for DOCX-to-PDF
+conversion and Poppler for PDF inspection and JPEG rendering. It rejects documents
+over 20 pages instead of truncating them, renders each page to at most 1600 pixels
+on its longest edge, and limits each image to 5 MiB. Rendering has a two-minute
+deadline and each subprocess a 30-second deadline. Each document uses a separate
+temporary directory and LibreOffice profile, cleaned up after success or failure.
+Both the Worker and development container images include the required tools and
+Liberation fonts.
+
+`AddRLSInfrastructure` registers the OllamaSharp implementation of
+`IResumeContactExtraction`, including the renderer. When resolved, it requires an HTTP(S)
+`Ollama:Endpoint` and defaults `Ollama:Model` to `qwen2.5vl:7b`. All rendered pages
+are sent together with a structured JSON response schema for the five contact
+fields. Inference has a five-minute deadline after rendering; invalid or incomplete
+responses fail explicitly rather than becoming empty successful results.
+Acceptance tests use the real Worker, renderer and client against WireMock, not
+real-model inference or accuracy evaluation. The resume-analysis Given step
+configures contact results and can delay the server response to observe pending
+extraction; other scenarios default to a successful result with no contacts.
+`HasNotCompletedAnalysis` uses a one-hour WireMock delay, longer than the client's
+five-minute inference deadline and the pending-state assertion budget. This is a
+practical timing bound, not an explicit release signal. The next scenario reset
+restores normal responses and restarts the in-process test Worker to cancel
+outstanding analysis; environment disposal also cancels it. Test Worker shutdown
+cancels consumers after one second rather than waiting for the delayed response.
+
+Registrations are shared, but unused adapters are not instantiated. The API does
+not require Ollama settings. Both hosts supply their own consumer-registration
+callbacks. The API uses nontransactional messaging; the Worker enables
+`InfrastructureOptions.UseTransactionalMessaging` for consumer inbox/outbox,
+bounded retries and durable outbox delivery. Ollama options are validated when
+extraction is resolved rather than at host startup.
 
 The recorded intake source is `Client website`. A separate job-site referral is
 recorded when the query parameter identifies a publication for that posting.

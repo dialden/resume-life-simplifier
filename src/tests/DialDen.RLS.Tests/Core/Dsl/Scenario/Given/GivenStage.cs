@@ -33,6 +33,13 @@ public class GivenStage
         return step;
     }
 
+    public GivenResumeAnalysis ResumeAnalysis()
+    {
+        var step = new GivenResumeAnalysis(this);
+        _steps.Add(step);
+        return step;
+    }
+
     public GivenJobSite JobSite(string jobSiteId)
     {
         var step = new GivenJobSite(this, jobSiteId);
@@ -45,6 +52,7 @@ public class GivenStage
     internal async Task Setup()
     {
         await _app.ExternalSystems.JobSites.Reset();
+        await _app.ExternalSystems.ResumeAnalysis.Reset();
         foreach (var step in _steps)
         {
             await step.Execute(_app);

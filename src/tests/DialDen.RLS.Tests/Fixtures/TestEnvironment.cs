@@ -7,6 +7,7 @@ using DialDen.RLS.Tests.Core.Drivers.RLS.API;
 using DialDen.RLS.Tests.Core.Drivers.RLS.UI;
 using DialDen.RLS.Tests.Core.Dsl;
 using DialDen.RLS.Tests.Core.Dsl.External.JobSites;
+using DialDen.RLS.Tests.Core.Dsl.External.ResumeAnalysis;
 using DialDen.RLS.Tests.Core.Dsl.UseCases;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +38,9 @@ public abstract class TestEnvironment
             // Each environment's worker consumes its own queue, so it only answers with its own external systems.
             var settings = new Dictionary<string, string?>
             {
-                ["Messaging:JobSitePublicationQueue"] = JobSitePublicationQueue
+                ["Messaging:JobSitePublicationQueue"] = JobSitePublicationQueue,
+                ["Messaging:ApplicationReceivedTopic"] = ApplicationReceivedTopic,
+                ["Messaging:ResumeExtractionQueue"] = $"{ApplicationReceivedTopic}-extraction"
             };
             _workerHost = new InProcessWorkerHost(
                 ConfigurationEnvironmentVariablesPrefix,
@@ -114,6 +117,17 @@ public abstract class TestEnvironment
     protected abstract string ConfigurationEnvironmentVariablesPrefix { get; }
 
     protected abstract string JobSitePublicationQueue { get; }
+
+    protected abstract string ApplicationReceivedTopic { get; }
+
+    protected void RestartWorker()
+    {
+        if (_workerHost is null)
+            throw new InvalidOperationException(
+                "Cancelling delayed resume analysis requires the in-process worker test host.");
+        _workerHost.Dispose();
+        _workerHost.Start();
+    }
 
     protected virtual void Dispose(bool disposing)
     {
@@ -216,6 +230,7 @@ public abstract class TestEnvironment
         services.AddScoped<GoToRLS>();
         services.AddScoped<UseCaseContext>();
         services.AddScoped<JobSitesDsl>();
+        services.AddScoped<ResumeAnalysisDsl>();
         ConfigureTestServices(services);
     }
 }

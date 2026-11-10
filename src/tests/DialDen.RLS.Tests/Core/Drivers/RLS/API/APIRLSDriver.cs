@@ -22,6 +22,10 @@ public class APIRLSDriver : IRLSDriver
     public Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ListApplications(int postingId)
         => _apiClient.Applications.List(postingId);
 
+    public Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ObserveViewedApplications(
+        int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout) =>
+        _apiClient.Applications.Observe(postingId, isExpected, timeout);
+
     public Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId)
         => _apiClient.Applications.DownloadResume(postingId, applicationId);
 

@@ -71,6 +71,12 @@ public class UIClient : IDisposable
             : Result<PostingPage, SystemError>.Failure(SystemError.Of($"Posting {id} is not displayed."));
     }
 
+    public Result<ApplicantsPage, SystemError> DisplayedApplicantsPage(int id) =>
+        _page is not null && new Uri(_page.Url).AbsolutePath == $"/postings/{id}/applicants"
+            ? Result<ApplicantsPage, SystemError>.Success(new ApplicantsPage(_page))
+            : Result<ApplicantsPage, SystemError>.Failure(SystemError.Of(
+                $"Applicants for posting {id} are not displayed."));
+
     public Result<VoidValue, SystemError> CheckSharedLiveUpdates()
     {
         var requests = Volatile.Read(ref _notificationStreamRequests);

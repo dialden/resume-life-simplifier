@@ -3,7 +3,7 @@ using MassTransit;
 
 namespace DialDen.RLS.API.Notifications;
 
-public sealed class PostingChangedConsumer(SseConnectionManager connections)
+public sealed class BroadcastPostingRefreshConsumer(SseConnectionManager connections)
     : IConsumer<PostingChanged>
 {
     public Task Consume(ConsumeContext<PostingChanged> context)

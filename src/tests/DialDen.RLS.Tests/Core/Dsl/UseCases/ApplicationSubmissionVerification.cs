@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using DialDen.RLS.Tests.Core.Drivers.RLS;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using Shouldly;
@@ -9,6 +10,45 @@ public sealed class ApplicationSubmissionVerification(
     VoidValue response, UseCaseContext context, IRLSDriver driver,
     int postingId, string email, byte[] resume) : ResponseVerification<VoidValue>(response, context)
 {
+    public async Task EventuallyHasFailedExtraction(ApplicationResponse application)
+    {
+        var elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            var result = await driver.ListApplications(postingId);
+            result.IsSuccess.ShouldBeTrue(result.IsFailure ? result.Error.ToString() : null);
+            var current = result.Value.Single(item => item.Id == application.Id);
+            if (current.ExtractionStatus != "Pending" || elapsed.Elapsed >= TimeSpan.FromSeconds(30))
+            {
+                current.ExtractionStatus.ShouldBe("Failed");
+                return;
+            }
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
+    }
+
+    public async Task EventuallyHasExtractedContactInformation(
+        ApplicationResponse application, ExtractedContactInformation expected)
+    {
+        var timeout = TimeSpan.FromSeconds(30);
+        var elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            var result = await driver.ListApplications(postingId);
+            result.IsSuccess.ShouldBeTrue(result.IsFailure ? result.Error.ToString() : null);
+            var current = result.Value.Single(item => item.Id == application.Id);
+            if (current.ExtractionStatus == "Completed" || elapsed.Elapsed >= timeout)
+            {
+                current.ExtractionStatus.ShouldBe("Completed");
+                current.ExtractedContacts.ShouldBe(expected);
+                return;
+            }
+            if (current.ExtractionStatus == "Failed")
+                throw new ShouldAssertException("Resume information extraction failed instead of completing.");
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
+    }
+
     public async Task<ApplicationResponse> FindForPosting(string idAlias)
     {
         var id = ResolvePostingId(idAlias);

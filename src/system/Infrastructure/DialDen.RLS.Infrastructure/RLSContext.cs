@@ -66,6 +66,14 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
         application.Property(entity => entity.Resume).HasColumnName("resume").IsRequired();
         application.Property(entity => entity.Source).HasColumnName("source").IsRequired();
         application.Property(entity => entity.ReferralJobSiteId).HasColumnName("referral_job_site_id");
+        application.Property(entity => entity.ExtractionStatus).HasColumnName("extraction_status")
+            .HasConversion<string>().IsConcurrencyToken();
+        application.Ignore(entity => entity.ExtractedContacts);
+        application.Property(entity => entity.ExtractedName).HasColumnName("extracted_name");
+        application.Property(entity => entity.ExtractedEmail).HasColumnName("extracted_email");
+        application.Property(entity => entity.ExtractedPhoneNumber).HasColumnName("extracted_phone_number");
+        application.Property(entity => entity.ExtractedPostalAddress).HasColumnName("extracted_postal_address");
+        application.Property(entity => entity.ExtractedLinkedInUrl).HasColumnName("extracted_linkedin_url");
         application.HasOne<Posting>().WithMany().HasForeignKey(entity => entity.PostingId);
     }
 }

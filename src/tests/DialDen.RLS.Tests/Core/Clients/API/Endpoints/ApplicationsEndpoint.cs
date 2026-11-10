@@ -6,6 +6,19 @@ namespace DialDen.RLS.Tests.Core.Clients.API.Endpoints;
 
 public sealed class ApplicationsEndpoint(HttpClient httpClient)
 {
+    public async Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> Observe(
+        int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout)
+    {
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            var result = await List(postingId);
+            if (result.IsFailure || isExpected(result.Value) || elapsed.Elapsed >= timeout)
+                return result;
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
+    }
+
     public async Task<Result<VoidValue, SystemError>> Submit(
         int postingId, string name, string email, byte[] resume, string? referralJobSiteId)
     {
