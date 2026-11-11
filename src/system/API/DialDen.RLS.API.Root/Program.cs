@@ -1,5 +1,6 @@
 using DialDen.RLS.API;
 using DialDen.RLS.API.DependencyInjection;
+using DialDen.RLS.Abstractions.Applications;
 using DialDen.RLS.Abstractions.Postings;
 using DialDen.RLS.DependencyInjection;
 using DialDen.RLS.Infrastructure.DependencyInjection;
@@ -19,14 +20,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingStatus>());
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<JobSitePublicationStatus>());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<InformationExtractionStatus>());
 });
 builder.Services
     .AddRLSApi()
     .AddRLSCore()
     .AddRLSInfrastructure(
         builder.Configuration,
-        bus => bus.AddRLSNotificationConsumers(),
-        useConsumerOutbox: false);
+        bus => bus.AddRLSNotificationConsumers());
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 {
     policy.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])

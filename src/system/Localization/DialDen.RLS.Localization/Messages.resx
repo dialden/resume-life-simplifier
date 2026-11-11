@@ -645,5 +645,15 @@
   <data name="Applicants_Description" xml:space="preserve"><comment>UI text</comment><value>Review applicant details, application sources and résumés in one place.</value></data>
   <data name="Applicants_BackToPosting" xml:space="preserve"><comment>UI text</comment><value>Back to posting</value></data>
   <data name="Applicants_EmptyHelp" xml:space="preserve"><comment>UI text</comment><value>Applications submitted for this posting will appear here.</value></data>
+  <data name="Applications_ResumeInformation" xml:space="preserve"><comment>UI text</comment><value>Resume information</value></data>
+  <data name="Applications_ExtractionPending" xml:space="preserve"><comment>UI text</comment><value>Extracting information…</value></data>
+  <data name="Applications_ExtractionNotProcessed" xml:space="preserve"><comment>UI text</comment><value>Not processed</value></data>
+  <data name="Applications_ExtractionCompleted" xml:space="preserve"><comment>UI text</comment><value>Information extracted</value></data>
+  <data name="Applications_ExtractionFailed" xml:space="preserve"><comment>UI text</comment><value>Information extraction failed</value></data>
+  <data name="Applications_ExtractionFailedHelp" xml:space="preserve"><comment>UI text</comment><value>We could not extract information from this resume. The application and original resume are still available for review.</value></data>
+  <data name="Applications_NoExtractedContacts" xml:space="preserve"><comment>UI text</comment><value>No contact information was found in this resume.</value></data>
+  <data name="Applications_ExtractedPhoneNumber" xml:space="preserve"><comment>UI text</comment><value>Phone number</value></data>
+  <data name="Applications_ExtractedPostalAddress" xml:space="preserve"><comment>UI text</comment><value>Postal address</value></data>
+  <data name="Applications_ExtractedLinkedInUrl" xml:space="preserve"><comment>UI text</comment><value>LinkedIn profile</value></data>
   <data name="Posting_PublicListingHelp" xml:space="preserve"><comment>UI text</comment><value>See the published job and application form as applicants see them.</value></data>
 </root>

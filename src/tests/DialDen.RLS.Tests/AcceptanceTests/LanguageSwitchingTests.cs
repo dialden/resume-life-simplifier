@@ -17,7 +17,8 @@ public class LanguageSwitchingTests
     [Fact]
     public async Task CanSwitchBetweenFrenchAndEnglishWithoutReloading()
     {
-        var homePage = await _testEnvironment.InteractWithUI().OpenHomePage();
+        await using var interaction = _testEnvironment.InteractWithUI();
+        var homePage = await interaction.OpenHomePage();
 
         await homePage.SelectLanguage("en");
         (await homePage.ReadWorkspaceTitle()).ShouldBe("Your career workspace");

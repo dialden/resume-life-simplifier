@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using DialDen.RLS.Tests.Core.Clients.API;
 using DialDen.RLS.Tests.Core.Clients.API.Endpoints;
 using DialDen.RLS.Tests.Core.Clients.UI;
@@ -7,21 +6,22 @@ using DialDen.RLS.Tests.Core.Drivers.RLS.API;
 using DialDen.RLS.Tests.Core.Drivers.RLS.UI;
 using DialDen.RLS.Tests.Core.Dsl;
 using DialDen.RLS.Tests.Core.Dsl.External.JobSites;
+using DialDen.RLS.Tests.Core.Dsl.External.ResumeAnalysis;
 using DialDen.RLS.Tests.Core.Dsl.UseCases;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 
 namespace DialDen.RLS.Tests.Fixtures;
-public abstract class TestEnvironment
+public abstract class TestEnvironment : IAsyncDisposable
 {
     private readonly IHttpHost _apiHost;
     private readonly IHttpHost _uiHost;
     private readonly InProcessWorkerHost? _workerHost;
+    private readonly ExternalWorkerHost? _externalWorkerHost;
     private readonly object _startLock = new();
     private RLSConfiguration? _configuration;
-    private IServiceScope _scope = null!;
-    private readonly ConcurrentBag<IServiceScope> _scenarioScopes = new();
+    private ServiceProvider _serviceProvider = null!;
     private bool disposedValue;
 
     /// <summary>Only available once the API host has been started by <see cref="InteractWithSystemThrough"/>.</summary>
@@ -37,7 +37,9 @@ public abstract class TestEnvironment
             // Each environment's worker consumes its own queue, so it only answers with its own external systems.
             var settings = new Dictionary<string, string?>
             {
-                ["Messaging:JobSitePublicationQueue"] = JobSitePublicationQueue
+                ["Messaging:JobSitePublicationQueue"] = JobSitePublicationQueue,
+                ["Messaging:ApplicationReceivedTopic"] = ApplicationReceivedTopic,
+                ["Messaging:ResumeExtractionQueue"] = $"{ApplicationReceivedTopic}-extraction"
             };
             _workerHost = new InProcessWorkerHost(
                 ConfigurationEnvironmentVariablesPrefix,
@@ -49,14 +51,9 @@ public abstract class TestEnvironment
         {
             _apiHost = new ExternalHttpHost(hosting.APIUrl);
             _uiHost = new ExternalHttpHost(hosting.UIUrl);
+            _externalWorkerHost = new ExternalWorkerHost(hosting.WorkerContainer);
         }
         InitializeTestsServiceProvider();
-    }
-
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -71,8 +68,7 @@ public abstract class TestEnvironment
     {
         StartHostsFor(channel);
         // One scope per scenario, so each scenario gets its own UseCaseContext (alias -> unique value map)
-        var scenarioScope = _scope.ServiceProvider.CreateScope();
-        _scenarioScopes.Add(scenarioScope);
+        var scenarioScope = _serviceProvider.CreateAsyncScope();
         var sp = scenarioScope.ServiceProvider;
         IRLSDriver driver = channel switch
         {
@@ -84,15 +80,14 @@ public abstract class TestEnvironment
         var ctfUseCaseFactory = ActivatorUtilities.CreateInstance<UseCaseFactory<IRLSDriver>>(sp, driver);
         var externalSystems = ActivatorUtilities.CreateInstance<ExternalSystemsDsl>(sp);
         var rls = ActivatorUtilities.CreateInstance<RLSDsl>(sp, ctfUseCaseFactory);
-        return ActivatorUtilities.CreateInstance<UseCaseDsl>(sp, rls, externalSystems);
+        return new UseCaseDsl(rls, externalSystems, scenarioScope);
     }
 
-    public UIClient InteractWithUI()
+    public UIInteraction InteractWithUI()
     {
         StartHostsFor(Channel.UI);
-        var scenarioScope = _scope.ServiceProvider.CreateScope();
-        _scenarioScopes.Add(scenarioScope);
-        return scenarioScope.ServiceProvider.GetRequiredService<UIClient>();
+        var scenarioScope = _serviceProvider.CreateAsyncScope();
+        return new UIInteraction(scenarioScope.ServiceProvider.GetRequiredService<UIClient>(), scenarioScope);
     }
 
     /// <summary>
@@ -115,18 +110,27 @@ public abstract class TestEnvironment
 
     protected abstract string JobSitePublicationQueue { get; }
 
-    protected virtual void Dispose(bool disposing)
+    protected abstract string ApplicationReceivedTopic { get; }
+
+    protected async Task RestartWorker()
+    {
+        if (_workerHost is null)
+        {
+            await _externalWorkerHost!.Restart();
+            return;
+        }
+        _workerHost.Dispose();
+        _workerHost.Start();
+    }
+
+    public async ValueTask DisposeAsync()
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                foreach (var scenarioScope in _scenarioScopes) scenarioScope.Dispose();
-                _scope.Dispose();
-                _uiHost.Dispose();
-                _apiHost.Dispose();
-                _workerHost?.Dispose();
-            }
+            await _serviceProvider.DisposeAsync();
+            _uiHost.Dispose();
+            _apiHost.Dispose();
+            _workerHost?.Dispose();
             disposedValue = true;
         }
     }
@@ -173,9 +177,8 @@ public abstract class TestEnvironment
     {
         var services = new ServiceCollection();
         ConfigureTestServicesInternal(services);
-        var serviceProvider = services.BuildServiceProvider();
-        _scope = serviceProvider.CreateScope();
-        ConfigureTests(_scope.ServiceProvider);
+        _serviceProvider = services.BuildServiceProvider();
+        ConfigureTests(_serviceProvider);
     }
 
     protected IConfiguration GetTestsConfiguration()
@@ -216,6 +219,7 @@ public abstract class TestEnvironment
         services.AddScoped<GoToRLS>();
         services.AddScoped<UseCaseContext>();
         services.AddScoped<JobSitesDsl>();
+        services.AddScoped<ResumeAnalysisDsl>();
         ConfigureTestServices(services);
     }
 }

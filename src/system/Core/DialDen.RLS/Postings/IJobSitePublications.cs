@@ -1,18 +1,12 @@
-using DialDen.RLS.Abstractions.Postings;
-
 namespace DialDen.RLS.Postings;
 
 public interface IJobSitePublications
 {
     /// <summary>
-    /// Requests publishing the posting on each job site. The requests become durable only when
-    /// <see cref="IPostingsArchive.Save"/> succeeds, so call this before saving the published posting.
+    /// Stages a pending publication. It becomes durable only when
+    /// <see cref="IPostingsArchive.Save"/> succeeds.
     /// </summary>
-    Task Request(
-        Posting posting,
-        IReadOnlyList<JobSite> jobSites,
-        Uri publicListingUrl,
-        CancellationToken cancellationToken);
+    Task Add(JobSitePublication publication, CancellationToken cancellationToken);
 
     Task<JobSitePublication?> Find(int postingId, string jobSiteId, CancellationToken cancellationToken);
 

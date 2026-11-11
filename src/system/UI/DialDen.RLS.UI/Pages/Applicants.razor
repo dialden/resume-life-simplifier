@@ -4,9 +4,11 @@
 @using System.Net
 @using DialDen.RLS.Abstractions.Postings
 @using DialDen.RLS.Abstractions.Applications
+@using DialDen.RLS.UI.Notifications
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject HttpClient Api
+@inject NotificationService Notifications
 @inject IStringLocalizer<Messages> Localizer
 @inject ILogger<Applicants> Logger
 
@@ -30,6 +32,10 @@ else if (_posting is null || _applications is null)
 }
 else
 {
+    @if (_liveUpdatesUnavailable)
+    {
+        <MudAlert Severity="Severity.Warning" role="status">@Localizer["LiveUpdates_Unavailable"]</MudAlert>
+    }
     <div class="page-heading">
         <div>
             <p class="eyebrow">@Localizer["Applicants_Title"]</p>
@@ -84,6 +90,65 @@ else
                        href="@ResumeAddress(application.Id)" download>
                         <MudIcon Icon="@Icons.Material.Outlined.FileDownload" />@Localizer["Applications_Download"]
                     </a>
+                    <section class="applicant-extraction" aria-labelledby="@($"extraction-heading-{application.Id}")">
+                        <h4 id="@($"extraction-heading-{application.Id}")">@Localizer["Applications_ResumeInformation"]</h4>
+                        <div class="applicant-extraction-status" role="status">
+                            @if (application.ExtractionStatus == InformationExtractionStatus.Pending)
+                            {
+                                <span aria-hidden="true"><MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" /></span>
+                            }
+                            <span data-testid="application-extraction-status">@ExtractionStatusText(application.ExtractionStatus)</span>
+                        </div>
+                        @if (application.ExtractionStatus == InformationExtractionStatus.Failed)
+                        {
+                            <p class="applicant-extraction-empty">@Localizer["Applications_ExtractionFailedHelp"]</p>
+                        }
+                        @if (application.ExtractionStatus == InformationExtractionStatus.Completed
+                            && application.ExtractedContacts is { } contacts)
+                        {
+                            <dl class="applicant-fields applicant-extracted-fields" data-testid="application-extracted-contacts">
+                                @if (contacts.Name is not null)
+                                {
+                                    <div>
+                                        <dt>@Localizer["Application_Name"]</dt>
+                                        <dd data-testid="extracted-name">@contacts.Name</dd>
+                                    </div>
+                                }
+                                @if (contacts.Email is not null)
+                                {
+                                    <div>
+                                        <dt>@Localizer["Application_Email"]</dt>
+                                        <dd data-testid="extracted-email">@contacts.Email</dd>
+                                    </div>
+                                }
+                                @if (contacts.PhoneNumber is not null)
+                                {
+                                    <div>
+                                        <dt>@Localizer["Applications_ExtractedPhoneNumber"]</dt>
+                                        <dd data-testid="extracted-phone-number">@contacts.PhoneNumber</dd>
+                                    </div>
+                                }
+                                @if (contacts.PostalAddress is not null)
+                                {
+                                    <div>
+                                        <dt>@Localizer["Applications_ExtractedPostalAddress"]</dt>
+                                        <dd data-testid="extracted-postal-address">@contacts.PostalAddress</dd>
+                                    </div>
+                                }
+                                @if (contacts.LinkedInUrl is not null)
+                                {
+                                    <div>
+                                        <dt>@Localizer["Applications_ExtractedLinkedInUrl"]</dt>
+                                        <dd data-testid="extracted-linkedin-url">@contacts.LinkedInUrl</dd>
+                                    </div>
+                                }
+                            </dl>
+                            @if (contacts is { Name: null, Email: null, PhoneNumber: null, PostalAddress: null, LinkedInUrl: null })
+                            {
+                                <p class="applicant-extraction-empty">@Localizer["Applications_NoExtractedContacts"]</p>
+                            }
+                        }
+                    </section>
                 </article>
             }
         </div>
@@ -99,19 +164,21 @@ else
     private Link? _resumeLink;
     private Func<string>? _error;
     private CancellationTokenSource? _pageCancellation;
+    private Task? _observation;
+    private bool _liveUpdatesUnavailable;
 
     private string PostingAddress => $"/postings/{Id.ToString(CultureInfo.InvariantCulture)}";
 
     protected override async Task OnParametersSetAsync()
     {
-        _pageCancellation?.Cancel();
-        _pageCancellation?.Dispose();
+        await StopObserving();
         _pageCancellation = new CancellationTokenSource();
         var token = _pageCancellation.Token;
         _posting = null;
         _applications = null;
         _resumeLink = null;
         _error = null;
+        _liveUpdatesUnavailable = false;
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
@@ -135,12 +202,13 @@ else
             var posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>(ApiJsonSerializerOptions.Default, token)
                 ?? throw new System.Text.Json.JsonException("The API returned no posting.");
             var applicationsHref = applicationsLink.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
-            var applications = await Api.GetFromJsonAsync<ApplicationResponse[]>(applicationsHref, token)
+            var applications = await Api.GetFromJsonAsync<ApplicationResponse[]>(applicationsHref, ApiJsonSerializerOptions.Default, token)
                 ?? throw new System.Text.Json.JsonException("The API returned no applications.");
             token.ThrowIfCancellationRequested();
             _posting = posting;
             _applications = applications;
             _resumeLink = resumeLink;
+            _observation = Observe(applicationsHref, token);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -156,6 +224,84 @@ else
         }
     }
 
+    private async Task Observe(string applicationsHref, CancellationToken token)
+    {
+        using var subscription = Notifications.Subscribe();
+        try
+        {
+            await foreach (var signal in subscription.Signals.ReadAllAsync(token))
+            {
+                if (signal == NotificationSignal.Unavailable)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (!token.IsCancellationRequested)
+                        {
+                            _liveUpdatesUnavailable = true;
+                            StateHasChanged();
+                        }
+                    });
+                    continue;
+                }
+
+                var applications = await Api.GetFromJsonAsync<ApplicationResponse[]>(
+                    applicationsHref, ApiJsonSerializerOptions.Default, token)
+                    ?? throw new System.Text.Json.JsonException("The API returned no applications.");
+                await InvokeAsync(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        _applications = applications;
+                        _liveUpdatesUnavailable = false;
+                        StateHasChanged();
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Navigation or disposal ends the observation.
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException
+            or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
+        {
+            Logger.LogWarning(exception, "Live applicant updates stopped.");
+            await InvokeAsync(() =>
+            {
+                if (!token.IsCancellationRequested)
+                {
+                    _liveUpdatesUnavailable = true;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (Exception exception)
+        {
+            await DispatchExceptionAsync(exception);
+        }
+    }
+
+    private async Task StopObserving()
+    {
+        var cancellation = _pageCancellation;
+        var observation = _observation;
+        _pageCancellation = null;
+        _observation = null;
+        if (cancellation is null)
+            return;
+
+        cancellation.Cancel();
+        try
+        {
+            if (observation is not null)
+                await observation;
+        }
+        finally
+        {
+            cancellation.Dispose();
+        }
+    }
+
     private string ResumeAddress(int applicationId)
     {
         var link = _resumeLink ?? throw new InvalidOperationException("The résumé action was not loaded.");
@@ -165,11 +311,18 @@ else
         return new Uri(baseAddress, href).AbsoluteUri;
     }
 
-    public ValueTask DisposeAsync()
+    private string ExtractionStatusText(InformationExtractionStatus status) => status switch
+    {
+        InformationExtractionStatus.Pending => Localizer["Applications_ExtractionPending"],
+        InformationExtractionStatus.Completed => Localizer["Applications_ExtractionCompleted"],
+        InformationExtractionStatus.Failed => Localizer["Applications_ExtractionFailed"],
+        InformationExtractionStatus.NotProcessed => Localizer["Applications_ExtractionNotProcessed"],
+        _ => throw new InvalidOperationException($"Unknown information extraction status: {status}.")
+    };
+
+    public async ValueTask DisposeAsync()
     {
         Dispose();
-        _pageCancellation?.Cancel();
-        _pageCancellation?.Dispose();
-        return ValueTask.CompletedTask;
+        await StopObserving();
     }
 }

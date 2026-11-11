@@ -143,6 +143,7 @@ public sealed class CommitStage
         var wireMockName = $"rls-wiremock-{Guid.NewGuid():N}";
         var workerName = $"rls-worker-{Guid.NewGuid():N}";
         var queue = $"rls-commit-publications-{Guid.NewGuid():N}";
+        var applicationTopic = $"rls-commit-applications-{Guid.NewGuid():N}";
         var containers = new List<string>();
         await Run("docker", ["network", "create", network]);
         try
@@ -158,6 +159,17 @@ public sealed class CommitStage
                 ?? throw new InvalidOperationException("STUBBED_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS is required.");
             workerEnvironment["RLS_WORKER_ConnectionStrings__RLS"] = connectionString;
             workerEnvironment["RLS_WORKER_Messaging__JobSitePublicationQueue"] = queue;
+            workerEnvironment["RLS_WORKER_Messaging__ApplicationReceivedTopic"] = applicationTopic;
+            workerEnvironment["RLS_WORKER_Messaging__ResumeExtractionQueue"] = $"{applicationTopic}-extraction";
+            if (!workerEnvironment.TryGetValue("RLS_WORKER_Ollama__Endpoint", out var ollamaEndpoint) ||
+                !Uri.TryCreate(ollamaEndpoint, UriKind.Absolute, out var ollamaUri) ||
+                ollamaUri.Scheme is not ("http" or "https"))
+            {
+                throw new InvalidOperationException(
+                    "STUBBED_EXT_SYSTEMS_RLS_WORKER_Ollama__Endpoint must be an absolute HTTP or HTTPS URL.");
+            }
+            workerEnvironment["RLS_WORKER_MassTransit__ConsumerStopTimeout"] = "00:00:01";
+            workerEnvironment["RLS_WORKER_MassTransit__StopTimeout"] = "00:00:05";
             workerEnvironment["RLS_WORKER_JobSites__Type"] = "stubbed";
             foreach (var key in workerEnvironment.Keys
                 .Where(key => key.StartsWith("RLS_WORKER_JobSites__Sites__", StringComparison.Ordinal)
@@ -166,6 +178,7 @@ public sealed class CommitStage
                 workerEnvironment[key] = $"http://{wireMockName}/";
             }
             apiEnvironment["RLS_API_Messaging__JobSitePublicationQueue"] = queue;
+            apiEnvironment["RLS_API_Messaging__ApplicationReceivedTopic"] = applicationTopic;
 
             await StartContainer(workerImage, null, null, workerEnvironment, network, containers, workerName);
             await StartContainer(apiImage, 8080, apiPort, apiEnvironment, network, containers);
@@ -189,7 +202,8 @@ public sealed class CommitStage
                     ["RLS_TEST_Hosting__Mode"] = "External",
                     ["RLS_TEST_Hosting__APIUrl"] = apiUrl,
                     ["RLS_TEST_Hosting__UIUrl"] = uiUrl,
-                    ["RLS_TEST_JobSites__WireMockUrl"] = wireMockUrl
+                    ["RLS_TEST_JobSites__WireMockUrl"] = wireMockUrl,
+                    ["RLS_TEST_Hosting__WorkerContainer"] = workerName
                 });
         }
         catch
@@ -241,9 +255,20 @@ public sealed class CommitStage
         string[] portArguments = containerPort is not null && hostPort is not null
             ? ["--publish", $"127.0.0.1:{hostPort}:{containerPort}"]
             : [];
+        var hostArguments = await DatabaseHostArguments();
+        if (environment.TryGetValue("RLS_WORKER_Ollama__Endpoint", out var ollamaEndpoint))
+        {
+            var host = new Uri(ollamaEndpoint).Host;
+            if (Uri.CheckHostName(host) == UriHostNameType.Dns)
+            {
+                var addresses = await Dns.GetHostAddressesAsync(host);
+                hostArguments = [.. hostArguments, "--add-host",
+                    $"{host}:{addresses.First(a => a.AddressFamily == AddressFamily.InterNetwork)}"];
+            }
+        }
         await Run("docker", ["create", "--name", name,
         "--network", network, .. portArguments,
-        .. await DatabaseHostArguments(), .. environmentArguments, image], environment);
+        .. hostArguments, .. environmentArguments, image], environment);
         containers.Add(name);
         await Run("docker", ["start", name]);
     }

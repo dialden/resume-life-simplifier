@@ -1,4 +1,5 @@
 using DialDen.RLS.Tests.Core.Drivers.JobSites;
+using DialDen.RLS.Tests.Core.Drivers.ResumeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RestEase;
@@ -13,8 +14,25 @@ public class StubbedExternalSystemsTestEnvironment : TestEnvironment
 
     protected override string JobSitePublicationQueue => "rls-job-site-publication-stubbed";
 
+    protected override string ApplicationReceivedTopic => "rls-application-received-stubbed";
+
     protected override void ConfigureTestServices(IServiceCollection services)
     {
+        var ollamaWireMockUrl = GetTestsConfiguration()["ResumeAnalysis:WireMockUrl"] ?? "http://wiremock-ollama/";
+        if (!Uri.TryCreate(ollamaWireMockUrl, UriKind.Absolute, out var ollamaWireMockUri))
+        {
+            throw new InvalidOperationException(
+                $"ResumeAnalysis:WireMockUrl is not a valid absolute URL: '{ollamaWireMockUrl}'.");
+        }
+        services.AddHttpClient("WireMockOllamaAdmin", client => client.BaseAddress = ollamaWireMockUri);
+        services.AddSingleton<IResumeAnalysisDriver>(provider =>
+        {
+            var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("WireMockOllamaAdmin");
+            return new WireMockResumeAnalysisDriver(
+                new RestClient(client).For<IWireMockAdminApi>(),
+                RestartWorker);
+        });
+
         var wireMockUrl = GetTestsConfiguration()["JobSites:WireMockUrl"] ?? "http://wiremock-job-site/";
         if (!Uri.TryCreate(wireMockUrl, UriKind.Absolute, out var wireMockUri))
         {

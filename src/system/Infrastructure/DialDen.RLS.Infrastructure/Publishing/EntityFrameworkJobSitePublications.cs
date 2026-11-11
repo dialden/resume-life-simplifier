@@ -1,38 +1,14 @@
 using DialDen.RLS.Abstractions.Postings;
-using DialDen.RLS.Messaging.Contracts;
 using DialDen.RLS.Postings;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace DialDen.RLS.Infrastructure.Publishing;
 
-internal sealed class EntityFrameworkJobSitePublications(
-    RLSContext context,
-    ISendEndpointProvider sendEndpointProvider,
-    IOptions<MessagingOptions> messagingOptions) : IJobSitePublications
+internal sealed class EntityFrameworkJobSitePublications(RLSContext context) : IJobSitePublications
 {
-    public async Task Request(
-        Posting posting,
-        IReadOnlyList<JobSite> jobSites,
-        Uri publicListingUrl,
-        CancellationToken cancellationToken)
+    public async Task Add(JobSitePublication publication, CancellationToken cancellationToken)
     {
-        if (jobSites.Count == 0)
-        {
-            return;
-        }
-
-        // The bus outbox stores these commands in the context, so they commit with the next save.
-        var endpoint = await sendEndpointProvider.GetSendEndpoint(
-            new Uri($"queue:{messagingOptions.Value.JobSitePublicationQueue}"));
-        foreach (var jobSite in jobSites)
-        {
-            context.JobSitePublications.Add(
-                new JobSitePublication(posting.Id, jobSite.Id, JobSitePublicationStatus.Pending));
-            await endpoint.Send(
-                new PublishPostingOnJobSite(posting.Id, jobSite.Id, publicListingUrl), cancellationToken);
-        }
+        await context.JobSitePublications.AddAsync(publication, cancellationToken);
     }
 
     public async Task<JobSitePublication?> Find(int postingId, string jobSiteId, CancellationToken cancellationToken)

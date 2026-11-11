@@ -12,6 +12,12 @@ public abstract class LocalizedComponentBase : ComponentBase, IDisposable
         Language.LanguageChanged += OnLanguageChanged;
     }
 
+    protected override bool ShouldRender()
+    {
+        LanguageState.Apply(Language.Current);
+        return base.ShouldRender();
+    }
+
     private void OnLanguageChanged()
     {
         _ = InvokeAsync(() =>

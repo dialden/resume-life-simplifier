@@ -36,8 +36,9 @@ internal static class SampleResume
         return Encoding.ASCII.GetBytes(document.ToString());
     }
 
-    public static byte[] CreateWordDocument()
+    public static byte[] CreateWordDocument(int pageCount = 1)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageCount, 1);
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
         {
@@ -53,9 +54,11 @@ internal static class SampleResume
                   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
                 </Relationships>
                 """);
-            WriteEntry(zip, "word/document.xml", """
+            var paragraphs = string.Join("", Enumerable.Range(0, pageCount).Select(page =>
+                $"""<w:p>{(page == 0 ? "" : "<w:r><w:br w:type=\"page\"/></w:r>")}<w:r><w:t>Alex Example</w:t></w:r></w:p>"""));
+            WriteEntry(zip, "word/document.xml", $$"""
                 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-                  <w:body><w:p><w:r><w:t>Alex Example</w:t></w:r></w:p></w:body>
+                  <w:body>{{paragraphs}}</w:body>
                 </w:document>
                 """);
         }

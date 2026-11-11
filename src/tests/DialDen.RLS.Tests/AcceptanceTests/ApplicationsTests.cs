@@ -15,6 +15,144 @@ public class ApplicationsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task RecruitersCanReviewContactInformationExtractedFromResumes(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis()
+                .FindsName("Alex Resume")
+                .FindsEmail("resume@example.com")
+                .FindsPhoneNumber("+1 202-555-0142")
+                .FindsPostalAddress("123 Example Street, Example City")
+                .FindsLinkedInUrl("https://www.linkedin.com/in/example-candidate")
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyHasExtractedContactInformation(
+                        name: "Alex Resume",
+                        email: "resume@example.com",
+                        phoneNumber: "+1 202-555-0142",
+                        postalAddress: "123 Example Street, Example City",
+                        linkedInUrl: "https://www.linkedin.com/in/example-candidate");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ReviewedApplicationsUpdateWhenResumeAnalysisCompletes(
+        Channel channel, [CombinatorialValues(null, "resume@example.com")] string? extractedEmail)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().HasNotCompletedAnalysis()
+            .And().Application()
+            .When().ResumeAnalysisCompletes().FindsEmail(extractedEmail)
+            .Then().ShouldSucceed()
+                .And().ReviewedApplications().UpdatesToExtractedEmail(extractedEmail);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ReviewedApplicationsUpdateWhenResumeAnalysisFails(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().HasNotCompletedAnalysis()
+            .And().Application()
+            .When().ResumeAnalysisCompletes().WithFailure()
+            .Then().ShouldSucceed()
+                .And().ReviewedApplications().UpdatesToFailedExtraction();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ResumeAnalysisStopsAfterBoundedRetries(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().HasNotCompletedAnalysis()
+            .And().Application()
+            .When().ResumeAnalysisCompletes().WithFailure()
+            .Then().ShouldSucceed()
+                .And().ReviewedApplications().UpdatesToFailedExtraction().AfterAnalysisAttempts(4);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ApplicationsRemainAvailableWhenResumeAnalysisIsUnavailable(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().IsUnavailable()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyHasFailedExtraction()
+                    .HasSubmittedResume();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task UnreadableResumesHaveFailedExtraction(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .When().ApplyToPosting().WithUnreadableResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyHasFailedExtraction();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ResumesAboveTheExtractionPageLimitHaveFailedExtraction(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .When().ApplyToPosting().WithResumePages(21)
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyHasFailedExtraction();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ResumesAtTheExtractionPageLimitCanBeAnalyzed(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .When().ApplyToPosting().WithResumePages(20)
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyHasExtractedContactInformation();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task NewlyReceivedApplicationsAreAwaitingInformationExtraction(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().HasNotCompletedAnalysis()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .IsAwaitingInformationExtraction();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ResumeAnalysisCanCompleteWithoutFindingContactInformation(Channel channel)
+    {
+        await _testEnvironment.Scenario(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyHasExtractedContactInformation(
+                        name: null, email: null, phoneNumber: null,
+                        postalAddress: null, linkedInUrl: null);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task ApplicationsAreAvailableForReviewOnTheCorrectPosting(Channel channel)
     {
         await _testEnvironment.Scenario(channel)

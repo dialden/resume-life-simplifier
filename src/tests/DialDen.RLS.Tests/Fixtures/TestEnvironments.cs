@@ -4,7 +4,7 @@ using Npgsql;
 namespace DialDen.RLS.Tests.Fixtures;
 
 /// <summary>Returns the test environment for the requested external system, creating each one lazily and once.</summary>
-public class TestEnvironments : IDisposable, IAsyncLifetime
+public class TestEnvironments : IAsyncLifetime
 {
     private readonly Lazy<TestEnvironment> _real = new(() => new RealExternalSystemsTestEnvironment());
     private readonly Lazy<TestEnvironment> _stubbed = new(() => new StubbedExternalSystemsTestEnvironment());
@@ -52,12 +52,6 @@ public class TestEnvironments : IDisposable, IAsyncLifetime
         }
     }
 
-    public Task DisposeAsync()
-    {
-        Dispose();
-        return Task.CompletedTask;
-    }
-
     //TODO: Add support to control parallel execution of test environments
     public TestEnvironment For(ExternalSystems externalSystem) => externalSystem switch
     {
@@ -66,9 +60,9 @@ public class TestEnvironments : IDisposable, IAsyncLifetime
         _ => throw new ArgumentOutOfRangeException(nameof(externalSystem))
     };
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
-        if (_real.IsValueCreated) _real.Value.Dispose();
-        if (_stubbed.IsValueCreated) _stubbed.Value.Dispose();
+        if (_real.IsValueCreated) await _real.Value.DisposeAsync();
+        if (_stubbed.IsValueCreated) await _stubbed.Value.DisposeAsync();
     }
 }

@@ -21,6 +21,8 @@ public static class CoreServiceCollectionExtensions
         services.AddScoped<IRegisterJobSites, RegisterJobSites>();
         services.AddScoped<IPublishOnJobSite, PublishOnJobSite>();
         services.AddScoped<IApplications, Applications>();
+        services.AddScoped<IExtractApplicationInformation, ExtractApplicationInformation>();
+        services.AddScoped<IRecordInformationExtractionFailure, RecordInformationExtractionFailure>();
 
         return services;
     }

@@ -24,5 +24,7 @@ public class RLSDsl
 
     public ApplyToPosting ApplyToPosting() => _useCaseFactory.Create<ApplyToPosting>();
 
+    public CompleteResumeAnalysis CompleteResumeAnalysis() => _useCaseFactory.Create<CompleteResumeAnalysis>();
+
     public ListPostings ListPostings() => _useCaseFactory.Create<ListPostings>();
 }

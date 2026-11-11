@@ -4,6 +4,7 @@ using DialDen.RLS.Worker.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MassTransit;
 
 namespace DialDen.RLS.Worker.Root;
 
@@ -24,9 +25,14 @@ public static class WorkerHost
 
         builder.Services
             .AddRLSCore()
-            .AddRLSInfrastructure(builder.Configuration, bus => bus.AddRLSConsumers())
+            .AddRLSInfrastructure(
+                builder.Configuration,
+                bus => bus.AddRLSConsumers(),
+                options => options.UseTransactionalMessaging = true)
             .AddRLSWorker()
             .AddConfiguredJobSites(builder.Configuration);
+
+        builder.Services.AddOptions<MassTransitHostOptions>().BindConfiguration("MassTransit");
 
         return builder;
     }

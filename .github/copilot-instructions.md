@@ -46,6 +46,19 @@
   in-memory implementations in production registration.
 - Some layers are still scaffolding. Follow these intended boundaries when
   implementing features; missing wiring is not permission to bypass them.
+- Keep domain actions, state transitions, and business invariants in Core domain
+  entities or domain services; use cases orchestrate them. Archives are for
+  reading and saving entities, not operation-specific commands or business
+  decisions. Load a tracked entity when it must change, invoke its domain action,
+  then save it. Infrastructure may handle persistence mechanics such as
+  concurrency, but must not duplicate domain rules or manually copy domain state
+  into persistence fields.
+
+## Database persistence
+
+- Do not store application data as JSON in database columns, including `json`,
+  `jsonb`, or JSON serialized into text columns. Model fields with explicit typed
+  columns and related tables where appropriate.
 
 ## UI design and polish
 
@@ -96,6 +109,14 @@
 - Acceptance tests are coupled to observable system behavior, not implementation
   details. Refactoring internals without changing behavior should not require
   rewriting acceptance scenarios.
+- Keep each scenario's assertions focused on the behavior named by the test.
+  Do not repeat checks owned by other scenarios unless they are necessary to
+  establish this scenario's outcome. Cover distinct guarantees in separate
+  scenarios rather than expanding an unrelated assertion chain.
+- Apply the same focus inside shared verification helpers: do not hide unrelated
+  business assertions in them. Keep prerequisite success checks needed to make
+  observations reliable, and use default test data for values irrelevant to the
+  behavior being verified.
 - Express scenarios in natural domain language through the existing
   [DSL](../src/tests/DialDen.RLS.Tests/Core/Dsl/). Keep HTTP calls, browser
   interactions, selectors, and other mechanics in the appropriate

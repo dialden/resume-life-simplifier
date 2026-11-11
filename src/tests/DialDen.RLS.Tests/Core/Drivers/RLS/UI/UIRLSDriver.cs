@@ -35,6 +35,15 @@ public class UIRLSDriver : IRLSDriver
         return await page.ReadApplications();
     }
 
+    public Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ObserveViewedApplications(
+        int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout)
+    {
+        var page = _uiClient.DisplayedApplicantsPage(postingId);
+        return page.IsSuccess
+            ? page.Value.ObserveApplications(isExpected, timeout)
+            : Task.FromResult(Result<IReadOnlyList<ApplicationResponse>, SystemError>.Failure(page.Error));
+    }
+
     public async Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId)
     {
         var page = await _uiClient.OpenPosting(postingId);

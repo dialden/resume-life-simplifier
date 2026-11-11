@@ -645,5 +645,15 @@
   <data name="Applicants_Description" xml:space="preserve"><comment>UI text</comment><value>Consultez les coordonnées, les sources des candidatures et les CV au même endroit.</value></data>
   <data name="Applicants_BackToPosting" xml:space="preserve"><comment>UI text</comment><value>Retour à l'offre</value></data>
   <data name="Applicants_EmptyHelp" xml:space="preserve"><comment>UI text</comment><value>Les candidatures reçues pour cette offre apparaîtront ici.</value></data>
+  <data name="Applications_ResumeInformation" xml:space="preserve"><comment>UI text</comment><value>Informations du CV</value></data>
+  <data name="Applications_ExtractionPending" xml:space="preserve"><comment>UI text</comment><value>Extraction des informations…</value></data>
+  <data name="Applications_ExtractionNotProcessed" xml:space="preserve"><comment>UI text</comment><value>Non traité</value></data>
+  <data name="Applications_ExtractionCompleted" xml:space="preserve"><comment>UI text</comment><value>Informations extraites</value></data>
+  <data name="Applications_ExtractionFailed" xml:space="preserve"><comment>UI text</comment><value>Échec de l'extraction des informations</value></data>
+  <data name="Applications_ExtractionFailedHelp" xml:space="preserve"><comment>UI text</comment><value>Nous n'avons pas pu extraire les informations de ce CV. La candidature et le CV original restent disponibles pour consultation.</value></data>
+  <data name="Applications_NoExtractedContacts" xml:space="preserve"><comment>UI text</comment><value>Aucune coordonnée n'a été trouvée dans ce CV.</value></data>
+  <data name="Applications_ExtractedPhoneNumber" xml:space="preserve"><comment>UI text</comment><value>Numéro de téléphone</value></data>
+  <data name="Applications_ExtractedPostalAddress" xml:space="preserve"><comment>UI text</comment><value>Adresse postale</value></data>
+  <data name="Applications_ExtractedLinkedInUrl" xml:space="preserve"><comment>UI text</comment><value>Profil LinkedIn</value></data>
   <data name="Posting_PublicListingHelp" xml:space="preserve"><comment>UI text</comment><value>Consultez l'offre publiée et le formulaire tels qu'ils sont présentés aux candidats.</value></data>
 </root>

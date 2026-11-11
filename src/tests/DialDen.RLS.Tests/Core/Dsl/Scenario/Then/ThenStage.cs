@@ -14,6 +14,8 @@ public class ThenStage<TSuccessResponse, TSuccessVerification>
 
     internal UseCaseDsl App { get; }
 
+    internal Task ExecuteAndDispose(Func<Task> execute) => App.ExecuteAndDispose(execute);
+
     public ThenSuccess<TSuccessResponse, TSuccessVerification> ShouldSucceed() => new(this);
 
     public ThenFailure<TSuccessResponse, TSuccessVerification> ShouldFail() => new(this);

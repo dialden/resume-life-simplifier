@@ -6,12 +6,21 @@ namespace DialDen.RLS.API.DependencyInjection;
 public static class ApiBusRegistrationConfiguratorExtensions
 {
     public static IBusRegistrationConfigurator AddRLSNotificationConsumers(
-        this IBusRegistrationConfigurator bus)
+    this IBusRegistrationConfigurator bus)
     {
-        bus.AddConsumer<PostingChangedConsumer>()
+    var endpointName = $"rls-api-notifications-{Guid.NewGuid():N}";
+
+        bus.AddConsumer<BroadcastPostingRefreshConsumer>()
             .Endpoint(endpoint =>
             {
-                endpoint.Name = $"rls-api-notifications-{Guid.NewGuid():N}";
+                endpoint.Name = endpointName;
+                endpoint.Temporary = true;
+            });
+
+        bus.AddConsumer<BroadcastApplicationRefreshConsumer>()
+            .Endpoint(endpoint =>
+            {
+                endpoint.Name = endpointName;
                 endpoint.Temporary = true;
             });
 

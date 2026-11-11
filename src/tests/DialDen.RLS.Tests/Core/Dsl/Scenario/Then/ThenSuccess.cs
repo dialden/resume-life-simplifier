@@ -15,7 +15,7 @@ public class ThenSuccess<TSuccessResponse, TSuccessVerification>
 
     public ThenSuccessAnd<TSuccessResponse, TSuccessVerification> And() => new(_stage);
 
-    public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
+    public TaskAwaiter GetAwaiter() => _stage.ExecuteAndDispose(Execute).GetAwaiter();
 
     private async Task Execute()
     {

@@ -7,7 +7,8 @@ using DialDen.RLS.Postings;
 namespace DialDen.RLS.JobApplications;
 
 internal sealed class Applications(
-    IApplicationsArchive archive, IPostingsArchive postings, IJobSitePublications publications) : IApplications
+    IApplicationsArchive archive, IPostingsArchive postings, IJobSitePublications publications,
+    IApplicationReceipts receipts) : IApplications
 {
     private const int MaxResumeBytes = 5 * 1024 * 1024;
     private const string Source = "Client website";
@@ -38,8 +39,10 @@ internal sealed class Applications(
             ? null
             : await publications.Find(request.PostingId, request.ReferralJobSiteId, cancellationToken);
         var application = new Application(
-            0, request.PostingId, request.Name.Trim(), request.Email.Trim(),
-            pdf ? "resume.pdf" : "resume.docx", request.Resume, Source, referral?.JobSiteId);
+            await archive.NextId(cancellationToken), request.PostingId, request.Name.Trim(), request.Email.Trim(),
+            pdf ? "resume.pdf" : "resume.docx", request.Resume, Source, referral?.JobSiteId,
+            InformationExtractionStatus.Pending);
+        await receipts.Record(new ApplicationReceipt(application.Id, application.PostingId), cancellationToken);
         return await archive.Add(application, cancellationToken);
     }
 
@@ -49,14 +52,16 @@ internal sealed class Applications(
             return null;
         var applications = await archive.List(postingId, cancellationToken);
         return applications.Select(application => new ApplicationResponse(
-            application.Id, application.Name, application.Email, application.Source, application.ReferralJobSiteId)).ToArray();
+            application.Id, application.Name, application.Email, application.Source, application.ReferralJobSiteId,
+            application.ExtractionStatus, application.ExtractedContacts)).ToArray();
     }
 
     public async Task<ApplicationResponse?> Find(int postingId, int applicationId, CancellationToken cancellationToken)
     {
         var application = await archive.Find(postingId, applicationId, cancellationToken);
         return application is null ? null : new ApplicationResponse(
-            application.Id, application.Name, application.Email, application.Source, application.ReferralJobSiteId);
+            application.Id, application.Name, application.Email, application.Source, application.ReferralJobSiteId,
+            application.ExtractionStatus, application.ExtractedContacts);
     }
 
     public async Task<ResumeResponse?> Resume(int postingId, int applicationId, CancellationToken cancellationToken)

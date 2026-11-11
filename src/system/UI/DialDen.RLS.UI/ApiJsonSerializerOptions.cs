@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DialDen.RLS.Abstractions.Applications;
 using DialDen.RLS.Abstractions.Postings;
 
 namespace DialDen.RLS.UI;
@@ -11,7 +12,8 @@ internal static class ApiJsonSerializerOptions
         Converters =
         {
             new JsonStringEnumConverter<PostingStatus>(),
-            new JsonStringEnumConverter<JobSitePublicationStatus>()
+            new JsonStringEnumConverter<JobSitePublicationStatus>(),
+            new JsonStringEnumConverter<InformationExtractionStatus>()
         }
     };
 }
