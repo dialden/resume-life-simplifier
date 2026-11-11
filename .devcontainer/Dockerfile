@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/dotnet:2-10.0-noble
+FROM mcr.microsoft.com/devcontainers/dotnet:10.0
 
 # Install playwright dependencies (MAKE SURE TO KEEP PLAYWRIGHT VERSIONS IN SYNC WITH .NET PROJECTS)
 RUN mkdir /tmp/installplaywright && \
