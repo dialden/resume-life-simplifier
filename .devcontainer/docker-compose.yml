@@ -1,3 +1,26 @@
+x-ollama-common: &ollama-common
+  image: ollama/ollama:latest
+  restart: unless-stopped
+  ports:
+    - "11434:11434"
+  environment:
+    - OLLAMA_HOST=0.0.0.0:11434
+  volumes:
+    - ollama_data:/root/.ollama
+  networks:
+    default:
+      aliases:
+        - ollama
+  depends_on:
+    ollama-init:
+      condition: service_completed_successfully
+  healthcheck:
+    test: ["CMD", "ollama", "list"]
+    interval: 10s
+    timeout: 5s
+    retries: 3
+    start_period: 15s
+
 services:
   dev:
     build:
@@ -10,8 +33,12 @@ services:
         condition: service_healthy
       wiremock-ollama:
         condition: service_healthy
-      ollama:
+      ollama-cpu:
         condition: service_healthy
+        required: false
+      ollama-gpu:
+        condition: service_healthy
+        required: false
     volumes:
       - ../:/workspaces/resume-life-simplifier
       # The chat catalog and conversation databases live in separate directories.
@@ -28,7 +55,7 @@ services:
       - -c
       - exec sleep infinity
     env_file:
-      - path: .env.local
+      - path: devcontainer.env
         required: false
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?Required}
@@ -108,18 +135,13 @@ services:
   # ---------------------------------------------------------------------------
   # Main Ollama Service (Boots up once the model is guaranteed to be cached)
   # ---------------------------------------------------------------------------
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    volumes:
-      - ollama_data:/root/.ollama
-    depends_on:
-      ollama-init:
-        condition: service_completed_successfully
+  ollama-cpu:
+    <<: *ollama-common
+    profiles: ["cpu"]
+
+  ollama-gpu:
+    <<: *ollama-common
+    profiles: ["gpu"]
     deploy:
       resources:
         reservations:
@@ -127,12 +149,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 15s  # Only needs a brief window for the server process to bind to port 11434
       
 # ---------------------------------------------------------------------------
   # Open WebUI (ChatGPT-style browser interface)
@@ -148,8 +164,12 @@ services:
     volumes:
       - open_webui_data:/app/backend/data
     depends_on:
-      ollama:
+      ollama-cpu:
         condition: service_healthy
+        required: false
+      ollama-gpu:
+        condition: service_healthy
+        required: false
 
 
 

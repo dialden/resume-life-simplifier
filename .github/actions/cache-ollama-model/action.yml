@@ -1,0 +1,47 @@
+name: Cache Ollama model
+description: Restore the Ollama model into the dev-container Compose volume.
+
+runs:
+  using: composite
+  steps:
+    - name: Restore Ollama model cache
+      id: cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.temp }}/rls-ollama-models
+        key: ollama-qwen2.5vl-7b-v1-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Prepare Ollama model volume
+      shell: bash
+      env:
+        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        MODEL_CACHE: ${{ runner.temp }}/rls-ollama-models
+      run: |
+        set -euo pipefail
+        compose=(docker compose --project-directory "$GITHUB_WORKSPACE/.devcontainer" -f "$GITHUB_WORKSPACE/.devcontainer/docker-compose.yml")
+        config="$("${compose[@]}" config --format json)"
+        project="$(jq -er '.name' <<< "$config")"
+        volume="$(jq -er '.volumes.ollama_data.name' <<< "$config")"
+        docker volume create --label "com.docker.compose.project=$project" \
+          --label "com.docker.compose.volume=ollama_data" "$volume" >/dev/null
+
+        if [[ "$CACHE_HIT" == "true" ]]; then
+          container="$(docker create --mount "type=volume,source=$volume,target=/root/.ollama" ollama/ollama:latest)"
+          trap 'docker rm "$container" >/dev/null' EXIT
+          docker cp "$MODEL_CACHE" "$container:/root/.ollama/models"
+          echo "Restored Ollama model files into the Compose volume."
+        else
+          "${compose[@]}" run --rm --no-deps ollama-init
+          mkdir -p "$MODEL_CACHE"
+          container="$(docker create --mount "type=volume,source=$volume,target=/root/.ollama,readonly" ollama/ollama:latest)"
+          trap 'docker rm "$container" >/dev/null' EXIT
+          docker cp "$container:/root/.ollama/models/." "$MODEL_CACHE/"
+          echo "Downloaded Ollama model files for caching."
+        fi
+
+    - name: Save Ollama model cache
+      if: steps.cache.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ runner.temp }}/rls-ollama-models
+        key: ${{ steps.cache.outputs.cache-primary-key }}

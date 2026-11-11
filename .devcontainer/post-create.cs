@@ -17,8 +17,8 @@ try
     Console.WriteLine();
 
     await RunStepAsync(
-        "[1/5] Creating the local environment file if missing...",
-        ".devcontainer/create-local-env.cs");
+        "[1/5] Creating the devcontainer environment file if missing...",
+        ".devcontainer/create-devcontainer-env.cs");
     await RunStepAsync(
         "[2/5] Migrating development and test databases...",
         "ops/database/migrate.cs");

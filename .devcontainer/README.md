@@ -1,10 +1,15 @@
 # Development container setup
 
 VS Code waits for [post-create.cs](./post-create.cs) to finish before attaching
-to a newly created container. Setup creates an empty [.env.local](./.env.local)
+to a newly created container. Setup creates an empty [devcontainer.env](./devcontainer.env)
 if missing, preserving any existing contents, then migrates the development and test databases,
 generates UI settings and API/UI launch profiles, and configures the local
 PostgreSQL connection in VS Code.
+
+[devcontainer.env](./devcontainer.env) is Git-ignored and supplies environment
+variables only to the `dev` service. It does not configure Compose itself.
+If upgrading an existing checkout, rename `.env.local` to `devcontainer.env`
+before rebuilding to retain your local settings.
 
 Wait for **RLS setup complete. You can start working and debugging now.** in the
 container setup output before starting the debugger. Then select **API + Worker + UI** in
@@ -98,7 +103,7 @@ the Worker's registrations run. No fixture override selects the provider.
 `RLS_WORKER_Jobillico__Endpoint` (currently `https://www.jobillico.com/api/push`).
 Real Jobillico publishing additionally requires `RLS_WORKER_Jobillico__Username`,
 `RLS_WORKER_Jobillico__Password`, `RLS_WORKER_Jobillico__RecruiterId`, and
-`RLS_WORKER_Jobillico__LocationId` in the Git-ignored [.env.local](./.env.local).
+`RLS_WORKER_Jobillico__LocationId` in the Git-ignored [devcontainer.env](./devcontainer.env).
 Post-creation setup creates this file empty if absent; it is not distributed through Git.
 Add your values and rebuild the container to load them. Creating or editing the
 file after container startup does not change the running container's environment.
@@ -119,15 +124,46 @@ The development image includes LibreOffice Writer, Poppler (`pdfinfo` and
 Rebuild the development container after changing these image dependencies.
 
 Compose runs `ollama-init` to cache `qwen2.5vl:7b` in the `ollama_data`
-volume before starting `ollama`. The Ollama service requires an NVIDIA GPU
-with Docker GPU support. It is available at `http://ollama:11434/` inside
+volume before starting the selected Ollama service. Set `COMPOSE_PROFILES=gpu`
+(default, requires NVIDIA Docker GPU support) or `COMPOSE_PROFILES=cpu` in
+[.env](./.env). Select exactly one: both services bind the same host port.
+This setting cannot be selected through [devcontainer.env](./devcontainer.env),
+which is a service environment file, not a Compose configuration source.
+Both profiles are available at `http://ollama:11434/` inside
 the Compose network and `http://localhost:11434/` from the host.
+GitHub Actions sets `COMPOSE_PROFILES=cpu` on the runner, overriding the
+tracked `.env` value for its dev-container runs.
+The commit, release and save-money workflows cache the Ollama model files in
+GitHub Actions and restore them into the Compose volume before startup. A cache
+miss downloads the model; only trusted main-branch runs save a cache. The jobs
+set `COMPOSE_PROJECT_NAME` so the cache and dev container use the same volume.
+The cache contains models only, not Ollama credentials or resume dumps. GitHub's default
+repository cache limit is 10 GB, and the model is roughly 6 GB. Cache entries
+are immutable and expire after inactivity; bump the version in the cache action's
+key when the model or tag changes to prevent repeatedly downloading updated layers.
 The model context window is configured by `OLLAMA_NUM_CTX` in [.env](./.env)
 and passed as `Ollama:NumCtx` on each inference request. The dev-container
-value is 65536; adjust it to fit the available GPU memory.
+value is 65536; adjust it to fit the available GPU or system memory.
+CPU inference can be much slower and may exceed the Worker's five-minute
+inference timeout.
+
+Both `dev` and `ollama-webui` wait for the selected service to be healthy.
+Their dependency on the inactive profile is optional; Compose may report that
+dependency as disabled. This requires Docker Compose 2.20 or newer.
+When switching profiles, stop the old Ollama container before rebuilding the
+dev container to avoid a port conflict or duplicate `ollama` network aliases.
+From the host, in this directory, run:
+
+```sh
+docker compose --profile cpu --profile gpu stop ollama-cpu ollama-gpu
+```
+
+For the first rebuild after upgrading from the old single-service configuration,
+stop the old `ollama` container as well. The shared `ollama_data` volume preserves
+the downloaded model; do not remove volumes when switching profiles.
 
 To inspect the exact prompts and rendered JPEG images sent to Ollama, add both
-settings to the Git-ignored [.env.local](./.env.local), then rebuild the dev
+settings to the Git-ignored [devcontainer.env](./devcontainer.env), then rebuild the dev
 container:
 
 ```dotenv
@@ -160,9 +196,11 @@ that invokes `curl` fails even when the server is running.
 To inspect startup failures from the host:
 
 ```sh
-docker inspect ollama-service --format '{{json .State.Health}}'
-docker logs --tail 60 ollama-service
+docker compose ps
+docker compose logs --tail 60 ollama-gpu
 ```
+
+Use `ollama-cpu` instead when running the CPU profile.
 
 After changing the health check, reopen or rebuild the dev container to apply
 the Compose configuration. The cached model is preserved in its named volume.

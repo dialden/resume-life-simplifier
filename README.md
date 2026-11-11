@@ -383,7 +383,7 @@ not posting data. XML text is escaped safely, including special characters.
 The local posting ID is sent as `srefnumber`; it is not an exactly-once guarantee.
 
 For manual testing in the devcontainer, set these in the Git-ignored
-[.env.local](.devcontainer/.env.local), then rebuild the container:
+[devcontainer.env](.devcontainer/devcontainer.env), then rebuild the container:
 
 ```sh
 RLS_WORKER_Jobillico__Username=<your-username>
