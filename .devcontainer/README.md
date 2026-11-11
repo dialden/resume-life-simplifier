@@ -122,6 +122,9 @@ Compose runs `ollama-init` to cache `qwen2.5vl:7b` in the `ollama_data`
 volume before starting `ollama`. The Ollama service requires an NVIDIA GPU
 with Docker GPU support. It is available at `http://ollama:11434/` inside
 the Compose network and `http://localhost:11434/` from the host.
+The model context window is configured by `OLLAMA_NUM_CTX` in [.env](./.env)
+and passed as `Ollama:NumCtx` on each inference request. The dev-container
+value is 65536; adjust it to fit the available GPU memory.
 
 The dev container waits for Ollama to become healthy. Its health check uses
 `ollama list` to verify that the server responds; it does not load the model

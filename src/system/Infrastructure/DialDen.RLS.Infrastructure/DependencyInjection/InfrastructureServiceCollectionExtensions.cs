@@ -24,7 +24,8 @@ public static class InfrastructureServiceCollectionExtensions
             .Validate(options => options.Endpoint is { IsAbsoluteUri: true }
                 && options.Endpoint.Scheme is "http" or "https",
                 "Ollama:Endpoint must be an absolute HTTP or HTTPS URL.")
-            .Validate(options => !string.IsNullOrWhiteSpace(options.Model), "Ollama:Model is required.");
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Model), "Ollama:Model is required.")
+            .Validate(options => options.NumCtx > 0, "Ollama:NumCtx must be greater than zero.");
         services.AddTransient<ResumePageImageRenderer>();
         services.AddHttpClient<IResumeContactExtraction, OllamaResumeContactExtraction>((provider, client) =>
         {

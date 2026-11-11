@@ -62,6 +62,7 @@ services:
       RLS_TEST_ResumeAnalysis__WireMockUrl: http://wiremock-ollama/
       RLS_WORKER_Ollama__Endpoint: http://ollama:11434/
       RLS_WORKER_Ollama__Model: qwen2.5vl:7b
+      RLS_WORKER_Ollama__NumCtx: ${OLLAMA_NUM_CTX:?Required}
       STUBBED_EXT_SYSTEMS_RLS_WORKER_Ollama__Endpoint: http://wiremock-ollama/
       RLS_WORKER_JobSites__Type: real
       RLS_WORKER_Jobillico__Endpoint: ${JOBILLICO_ENDPOINT:?Required}

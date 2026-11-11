@@ -36,7 +36,12 @@ internal sealed class OllamaResumeContactExtraction(
             Model = options.Value.Model,
             Stream = false,
             Format = ResponseSchema,
-            Options = new RequestOptions { Temperature = 0, NumPredict = 1024 },
+            Options = new RequestOptions
+            {
+                Temperature = 0,
+                NumPredict = 1024,
+                NumCtx = options.Value.NumCtx
+            },
             Messages =
             [
                 new Message(ChatRole.System, """
