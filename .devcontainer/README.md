@@ -231,7 +231,8 @@ The Worker registers the OllamaSharp adapter and consumes durable
 the event topic and extraction queue; the real Worker is used in each environment.
 Scenario setup resets the resume-analysis server to a successful empty result
 unless a Given step configures contacts or a long response delay. Delayed requests
-are cancelled by test Worker restart on the next reset, or by environment disposal.
+are cancelled by test Worker restart on the next reset. The in-process Worker also
+stops on environment disposal; external Workers are managed by their host.
 
 ## Launch configuration
 
@@ -281,6 +282,8 @@ Compose maps it to the container variable `RLS_TEST_Hosting__Mode`:
 - `External`: set both `RLS_TEST_Hosting__APIUrl` and
   `RLS_TEST_Hosting__UIUrl` to absolute HTTP or HTTPS URLs. Tests do not start or
   stop these servers. Configure the external UI to target the external API.
+  Resume-analysis scenarios that release a delayed response also require
+  `RLS_TEST_Hosting__WorkerContainer` and Docker access to restart that Worker.
 
 Compose passes these settings into the dev container. Rebuild the container
 after editing the file. Hosting mode is independent of stubbed versus real

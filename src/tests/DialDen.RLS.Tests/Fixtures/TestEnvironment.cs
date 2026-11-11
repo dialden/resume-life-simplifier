@@ -18,6 +18,7 @@ public abstract class TestEnvironment : IAsyncDisposable
     private readonly IHttpHost _apiHost;
     private readonly IHttpHost _uiHost;
     private readonly InProcessWorkerHost? _workerHost;
+    private readonly ExternalWorkerHost? _externalWorkerHost;
     private readonly object _startLock = new();
     private RLSConfiguration? _configuration;
     private ServiceProvider _serviceProvider = null!;
@@ -50,6 +51,7 @@ public abstract class TestEnvironment : IAsyncDisposable
         {
             _apiHost = new ExternalHttpHost(hosting.APIUrl);
             _uiHost = new ExternalHttpHost(hosting.UIUrl);
+            _externalWorkerHost = new ExternalWorkerHost(hosting.WorkerContainer);
         }
         InitializeTestsServiceProvider();
     }
@@ -110,11 +112,13 @@ public abstract class TestEnvironment : IAsyncDisposable
 
     protected abstract string ApplicationReceivedTopic { get; }
 
-    protected void RestartWorker()
+    protected async Task RestartWorker()
     {
         if (_workerHost is null)
-            throw new InvalidOperationException(
-                "Cancelling delayed resume analysis requires the in-process worker test host.");
+        {
+            await _externalWorkerHost!.Restart();
+            return;
+        }
         _workerHost.Dispose();
         _workerHost.Start();
     }

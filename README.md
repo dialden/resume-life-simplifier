@@ -272,9 +272,10 @@ extraction; other scenarios default to a successful result with no contacts.
 `HasNotCompletedAnalysis` uses a one-hour WireMock delay, longer than the client's
 five-minute inference deadline and the pending-state assertion budget. This is a
 practical timing bound, not an explicit release signal. The next scenario reset
-restores normal responses and restarts the in-process test Worker to cancel
-outstanding analysis; environment disposal also cancels it. Test Worker shutdown
-cancels consumers after one second rather than waiting for the delayed response.
+restores normal responses and restarts the test Worker to cancel outstanding
+analysis. The in-process Worker is also stopped on environment disposal. Test
+Worker shutdown cancels consumers after one second rather than waiting for the
+delayed response.
 
 Registrations are shared, but unused adapters are not instantiated. The API does
 not require Ollama settings. Both hosts supply their own consumer-registration
@@ -610,9 +611,14 @@ set to its reachable WireMock URL. Tests configure the admin URL separately with
 but may differ across networks. No test-only Worker composition is needed.
 The commit stage builds API, UI and Worker images and runs acceptance/smoke tests
 against their containers in External hosting mode. Each run creates a private
-Docker network and WireMock container, configures the Worker as `stubbed`, and
-uses an isolated publication queue shared by API and Worker. Tests reach WireMock
-through its published host port; the Worker uses its Docker-network address.
+Docker network and job-site WireMock container, configures the Worker as
+`stubbed`, and uses isolated messaging shared by API and Worker. The tests and
+Worker also use the existing Ollama WireMock service; its address is resolved
+for the Worker's private network. The test harness restarts the Worker container
+when releasing delayed analysis; `RLS_TEST_Hosting__WorkerContainer` identifies
+that container, and Docker must be accessible to the test process. The pipeline
+sets short MassTransit shutdown timeouts so in-flight analysis is cancelled
+before restart.
 Startup checks cover WireMock, API, UI and the Worker's job-site registration.
 Containers and the network are removed after the run, including on test failure.
 `--push-images` publishes all three application images after tests pass.

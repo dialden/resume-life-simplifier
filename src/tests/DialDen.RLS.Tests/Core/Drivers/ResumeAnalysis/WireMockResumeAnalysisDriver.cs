@@ -6,7 +6,7 @@ using WireMock.Client;
 namespace DialDen.RLS.Tests.Core.Drivers.ResumeAnalysis;
 
 public sealed class WireMockResumeAnalysisDriver(
-    IWireMockAdminApi adminApi, Action restartWorker) : IResumeAnalysisDriver
+    IWireMockAdminApi adminApi, Func<Task> restartWorker) : IResumeAnalysisDriver
 {
     private bool _hasDelayedResponse;
 
@@ -23,9 +23,9 @@ public sealed class WireMockResumeAnalysisDriver(
             Request = new RequestModel { Path = "/api/chat", Methods = ["POST"] },
             Response = new ResponseModel { StatusCode = 503 }
         });
-        _hasDelayedResponse = false;
         if (restart)
-            restartWorker();
+            await restartWorker();
+        _hasDelayedResponse = false;
     }
 
     public async Task ResetAndReturnNoContactsByDefault()
@@ -66,8 +66,8 @@ public sealed class WireMockResumeAnalysisDriver(
                 Body = body
             }
         });
-        _hasDelayedResponse = holdResponse;
         if (restart)
-            restartWorker();
+            await restartWorker();
+        _hasDelayedResponse = holdResponse;
     }
 }

@@ -5,6 +5,7 @@ public sealed class HostingConfiguration
     public HostingMode Mode { get; set; } = HostingMode.InProcess;
     public string APIUrl { get; set; } = "";
     public string UIUrl { get; set; } = "";
+    public string WorkerContainer { get; set; } = "";
 
     public void Validate()
     {
