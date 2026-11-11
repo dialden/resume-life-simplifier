@@ -7,4 +7,5 @@ internal sealed class OllamaOptions
     public Uri? Endpoint { get; set; }
     public string Model { get; set; } = "qwen2.5vl:7b";
     public int NumCtx { get; set; } = 2048;
+    public string? DumpDirectory { get; set; }
 }

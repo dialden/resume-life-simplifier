@@ -126,6 +126,32 @@ The model context window is configured by `OLLAMA_NUM_CTX` in [.env](./.env)
 and passed as `Ollama:NumCtx` on each inference request. The dev-container
 value is 65536; adjust it to fit the available GPU memory.
 
+To inspect the exact prompts and rendered JPEG images sent to Ollama, add both
+settings to the Git-ignored [.env.local](./.env.local), then rebuild the dev
+container:
+
+```dotenv
+RLS_WORKER_Ollama__DumpDirectory=/tmp/rls-ollama-dumps
+RLS_WORKER_Logging__LogLevel__DialDen=Debug
+```
+
+Use these Worker configuration keys, not `OLLAMA_DUMP_DIRECTORY` or
+`OLLAMA_EXTRACTION_LOG_LEVEL`: service `env_file` values are passed into the
+container, not used for Compose `${...}` interpolation. These keys are deliberately
+absent from Compose's `environment` section so local values are not overridden.
+The `DialDen` category prefix enables Debug logging for application code,
+including extraction. Avoid dotted category names in environment keys: the
+container startup shell can discard them before the Worker starts.
+Dumping is disabled unless both settings enable it. Each inference
+attempt writes a unique directory containing `request.json` (messages, model,
+schema, options and ordered image filenames) and the original `page-*.jpg` bytes
+sent to the model. The JSON references the image files instead of duplicating
+their base64 contents. On Unix, each attempt directory is accessible only to its
+owner. These files contain sensitive personal data: do not commit or share them.
+Cleanup is manual; retries create separate dumps, and `/tmp` is not persistent
+across container recreation. Dump-write failures fail the attempt rather than
+silently skipping diagnostics. Disable the directory setting after debugging.
+
 The dev container waits for Ollama to become healthy. Its health check uses
 `ollama list` to verify that the server responds; it does not load the model
 or run inference. The Ollama image does not include `curl`, so a health check
