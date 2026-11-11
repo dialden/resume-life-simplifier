@@ -71,7 +71,7 @@ public sealed class ThenPublicListing<TResponse, TVerification>
         return this;
     }
 
-    public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
+    public TaskAwaiter GetAwaiter() => _stage.ExecuteAndDispose(Execute).GetAwaiter();
 
     private async Task Execute()
     {

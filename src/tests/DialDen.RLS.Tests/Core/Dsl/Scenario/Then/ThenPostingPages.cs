@@ -29,7 +29,7 @@ public sealed class ThenPostingPages<TResponse, TVerification>
         return this;
     }
 
-    public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
+    public TaskAwaiter GetAwaiter() => _stage.ExecuteAndDispose(Execute).GetAwaiter();
 
     public ThenPostingPages<TResponse, TVerification> HasPostingJobSitePublication(
         string alias, string jobSiteId, string expectedStatus)

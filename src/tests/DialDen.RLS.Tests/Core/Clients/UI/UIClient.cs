@@ -5,7 +5,7 @@ using Microsoft.Playwright.TestAdapter;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI;
 
-public class UIClient : IDisposable
+public class UIClient : IAsyncDisposable
 {
     private readonly IPlaywright _playwright;
     private readonly RLSConfiguration _configuration;
@@ -86,9 +86,14 @@ public class UIClient : IDisposable
                 $"Expected one shared notification stream across navigation, but opened {requests}."));
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _browser?.CloseAsync().GetAwaiter().GetResult();
+        if (_browser is not null)
+        {
+            await _browser.CloseAsync();
+            _browser = null;
+            _page = null;
+        }
     }
 
     public Result<PostingsPage, SystemError> DisplayedPostingsPage()

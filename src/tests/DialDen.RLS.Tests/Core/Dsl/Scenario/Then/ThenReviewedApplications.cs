@@ -29,7 +29,7 @@ public sealed class ThenReviewedApplications<TResponse, TVerification>(
         return this;
     }
 
-    public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
+    public TaskAwaiter GetAwaiter() => stage.ExecuteAndDispose(Execute).GetAwaiter();
 
     private async Task Execute()
     {

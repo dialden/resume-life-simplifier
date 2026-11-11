@@ -43,7 +43,7 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
         return this;
     }
 
-    public TaskAwaiter GetAwaiter() => Execute().GetAwaiter();
+    public TaskAwaiter GetAwaiter() => _stage.ExecuteAndDispose(Execute).GetAwaiter();
 
     public ThenPosting<TSuccessResponse, TSuccessVerification> HasDescription(string description)
     {

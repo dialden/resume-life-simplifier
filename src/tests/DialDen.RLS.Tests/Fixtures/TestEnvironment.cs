@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using DialDen.RLS.Tests.Core.Clients.API;
 using DialDen.RLS.Tests.Core.Clients.API.Endpoints;
 using DialDen.RLS.Tests.Core.Clients.UI;
@@ -14,15 +13,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 
 namespace DialDen.RLS.Tests.Fixtures;
-public abstract class TestEnvironment
+public abstract class TestEnvironment : IAsyncDisposable
 {
     private readonly IHttpHost _apiHost;
     private readonly IHttpHost _uiHost;
     private readonly InProcessWorkerHost? _workerHost;
     private readonly object _startLock = new();
     private RLSConfiguration? _configuration;
-    private IServiceScope _scope = null!;
-    private readonly ConcurrentBag<IServiceScope> _scenarioScopes = new();
+    private ServiceProvider _serviceProvider = null!;
     private bool disposedValue;
 
     /// <summary>Only available once the API host has been started by <see cref="InteractWithSystemThrough"/>.</summary>
@@ -56,12 +54,6 @@ public abstract class TestEnvironment
         InitializeTestsServiceProvider();
     }
 
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
     /// Interact with the system through the default channel (API).
     /// </summary>
@@ -74,8 +66,7 @@ public abstract class TestEnvironment
     {
         StartHostsFor(channel);
         // One scope per scenario, so each scenario gets its own UseCaseContext (alias -> unique value map)
-        var scenarioScope = _scope.ServiceProvider.CreateScope();
-        _scenarioScopes.Add(scenarioScope);
+        var scenarioScope = _serviceProvider.CreateAsyncScope();
         var sp = scenarioScope.ServiceProvider;
         IRLSDriver driver = channel switch
         {
@@ -87,15 +78,14 @@ public abstract class TestEnvironment
         var ctfUseCaseFactory = ActivatorUtilities.CreateInstance<UseCaseFactory<IRLSDriver>>(sp, driver);
         var externalSystems = ActivatorUtilities.CreateInstance<ExternalSystemsDsl>(sp);
         var rls = ActivatorUtilities.CreateInstance<RLSDsl>(sp, ctfUseCaseFactory);
-        return ActivatorUtilities.CreateInstance<UseCaseDsl>(sp, rls, externalSystems);
+        return new UseCaseDsl(rls, externalSystems, scenarioScope);
     }
 
-    public UIClient InteractWithUI()
+    public UIInteraction InteractWithUI()
     {
         StartHostsFor(Channel.UI);
-        var scenarioScope = _scope.ServiceProvider.CreateScope();
-        _scenarioScopes.Add(scenarioScope);
-        return scenarioScope.ServiceProvider.GetRequiredService<UIClient>();
+        var scenarioScope = _serviceProvider.CreateAsyncScope();
+        return new UIInteraction(scenarioScope.ServiceProvider.GetRequiredService<UIClient>(), scenarioScope);
     }
 
     /// <summary>
@@ -129,18 +119,14 @@ public abstract class TestEnvironment
         _workerHost.Start();
     }
 
-    protected virtual void Dispose(bool disposing)
+    public async ValueTask DisposeAsync()
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                foreach (var scenarioScope in _scenarioScopes) scenarioScope.Dispose();
-                _scope.Dispose();
-                _uiHost.Dispose();
-                _apiHost.Dispose();
-                _workerHost?.Dispose();
-            }
+            await _serviceProvider.DisposeAsync();
+            _uiHost.Dispose();
+            _apiHost.Dispose();
+            _workerHost?.Dispose();
             disposedValue = true;
         }
     }
@@ -187,9 +173,8 @@ public abstract class TestEnvironment
     {
         var services = new ServiceCollection();
         ConfigureTestServicesInternal(services);
-        var serviceProvider = services.BuildServiceProvider();
-        _scope = serviceProvider.CreateScope();
-        ConfigureTests(_scope.ServiceProvider);
+        _serviceProvider = services.BuildServiceProvider();
+        ConfigureTests(_serviceProvider);
     }
 
     protected IConfiguration GetTestsConfiguration()

@@ -575,6 +575,13 @@ are cleaned only once. Do not run simultaneous test runs against the same
 database. With external hosting, ensure the external API uses this same test
 database configuration.
 
+Fluent scenarios dispose their interaction scope asynchronously after the awaited
+assertion chain finishes, including when setup, actions or assertions fail.
+This closes each scenario's browser without stopping the shared hosts. Each
+interaction can be awaited only once. Direct UI interactions are caller-owned:
+use `await using var interaction = testEnvironment.InteractWithUI();` to close
+their browser at the end of the enclosing scope.
+
 With in-process hosting, each test environment also hosts the Worker, started
 before the API, with its own queue (`rls-job-site-publication-stubbed` or
 `-real`) so the environments never consume each other's commands. The Worker

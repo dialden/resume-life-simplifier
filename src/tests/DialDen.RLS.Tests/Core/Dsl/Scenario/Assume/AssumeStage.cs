@@ -11,10 +11,10 @@ public class AssumeStage
 
     public AssumeRunningAction RLS()
     {
-        return new AssumeRunningAction(async () =>
+        return new AssumeRunningAction(() => _app.ExecuteAndDispose(async () =>
         {
             (await _app.RLS.GoToRLS().Execute()).ShouldSucceed();
-        }, this);
+        }), this);
     }
 }
 
