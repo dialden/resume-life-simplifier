@@ -17,8 +17,7 @@ public abstract class TestEnvironment : IAsyncDisposable
 {
     private readonly IHttpHost _apiHost;
     private readonly IHttpHost _uiHost;
-    private readonly InProcessWorkerHost? _workerHost;
-    private readonly ExternalWorkerHost? _externalWorkerHost;
+    private readonly IWorkerHost _workerHost;
     private readonly object _startLock = new();
     private RLSConfiguration? _configuration;
     private ServiceProvider _serviceProvider = null!;
@@ -58,9 +57,9 @@ public abstract class TestEnvironment : IAsyncDisposable
         }
         else
         {
+            _workerHost = new ExternalWorkerHost();
             _apiHost = new ExternalHttpHost(hosting.APIUrl);
             _uiHost = new ExternalHttpHost(hosting.UIUrl);
-            _externalWorkerHost = new ExternalWorkerHost(hosting.WorkerContainer);
         }
         InitializeTestsServiceProvider();
     }
@@ -121,17 +120,6 @@ public abstract class TestEnvironment : IAsyncDisposable
 
     protected abstract string ApplicationReceivedTopic { get; }
 
-    protected async Task RestartWorker()
-    {
-        if (_workerHost is null)
-        {
-            await _externalWorkerHost!.Restart();
-            return;
-        }
-        _workerHost.Dispose();
-        _workerHost.Start();
-    }
-
     public async ValueTask DisposeAsync()
     {
         if (!disposedValue)
@@ -139,7 +127,7 @@ public abstract class TestEnvironment : IAsyncDisposable
             await _serviceProvider.DisposeAsync();
             _uiHost.Dispose();
             _apiHost.Dispose();
-            _workerHost?.Dispose();
+            _workerHost.Dispose();
             disposedValue = true;
         }
     }
@@ -167,7 +155,7 @@ public abstract class TestEnvironment : IAsyncDisposable
         {
             if (_configuration != null) return;
             // The worker registers the available job sites before the API offers them.
-            _workerHost?.Start();
+            _workerHost.Start();
             _apiHost.Start();
             _configuration = CreateConfiguration(_apiHost.Url);
         }

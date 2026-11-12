@@ -172,8 +172,6 @@ public sealed class CommitStage
             workerEnvironment["RLS_WORKER_Ollama__AllowInsecureAuthenticatedEndpoint"] = "true";
             workerEnvironment["RLS_WORKER_Ollama__IdentityMetadataEndpoint"] =
                 new Uri(ollamaUri, "/computeMetadata/v1/instance/service-accounts/default/identity").ToString();
-            workerEnvironment["RLS_WORKER_MassTransit__ConsumerStopTimeout"] = "00:00:01";
-            workerEnvironment["RLS_WORKER_MassTransit__StopTimeout"] = "00:00:05";
             workerEnvironment["RLS_WORKER_JobSites__Type"] = "stubbed";
             foreach (var key in workerEnvironment.Keys
                 .Where(key => key.StartsWith("RLS_WORKER_JobSites__Sites__", StringComparison.Ordinal)
@@ -206,8 +204,7 @@ public sealed class CommitStage
                     ["RLS_TEST_Hosting__Mode"] = "External",
                     ["RLS_TEST_Hosting__APIUrl"] = apiUrl,
                     ["RLS_TEST_Hosting__UIUrl"] = uiUrl,
-                    ["RLS_TEST_JobSites__WireMockUrl"] = wireMockUrl,
-                    ["RLS_TEST_Hosting__WorkerContainer"] = workerName
+                    ["RLS_TEST_JobSites__WireMockUrl"] = wireMockUrl
                 });
         }
         catch

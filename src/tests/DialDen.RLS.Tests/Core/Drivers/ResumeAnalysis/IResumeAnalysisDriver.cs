@@ -9,6 +9,4 @@ public interface IResumeAnalysisDriver
     Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse);
 
     Task FailsAnalysis();
-
-    Task<int> AnalysisAttempts();
 }

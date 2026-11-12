@@ -7,8 +7,6 @@ public sealed class ResumeAnalysisDsl(IResumeAnalysisDriver driver)
 {
     public Task FailsAnalysis() => driver.FailsAnalysis();
 
-    public Task<int> AnalysisAttempts() => driver.AnalysisAttempts();
-
     public Task Reset() => driver.ResetAndReturnNoContactsByDefault();
 
     public Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse) =>

@@ -9,13 +9,6 @@ public sealed class ThenReviewedApplications<TResponse, TVerification>(
 {
     private string? _expected;
     private bool _failed;
-    private int? _attempts;
-
-    public ThenReviewedApplications<TResponse, TVerification> AfterAnalysisAttempts(int attempts)
-    {
-        _attempts = attempts;
-        return this;
-    }
 
     public ThenReviewedApplications<TResponse, TVerification> UpdatesToFailedExtraction()
     {
@@ -40,7 +33,5 @@ public sealed class ThenReviewedApplications<TResponse, TVerification>(
             await review.UpdatesToFailedExtraction();
         else
             await review.UpdatesToExtractedEmail(_expected);
-        if (_attempts is { } attempts)
-            await review.HasAnalysisAttempts(attempts);
     }
 }

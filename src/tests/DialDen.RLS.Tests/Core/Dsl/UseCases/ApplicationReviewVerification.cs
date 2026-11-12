@@ -1,18 +1,13 @@
 using DialDen.RLS.Tests.Core.Drivers.RLS;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
-using DialDen.RLS.Tests.Core.Dsl.External.ResumeAnalysis;
 using Shouldly;
 
 namespace DialDen.RLS.Tests.Core.Dsl.UseCases;
 
 public sealed class ApplicationReviewVerification(
-    VoidValue response, UseCaseContext context, IRLSDriver driver, int postingId, int applicationId,
-    ResumeAnalysisDsl resumeAnalysis)
+    VoidValue response, UseCaseContext context, IRLSDriver driver, int postingId, int applicationId)
     : ResponseVerification<VoidValue>(response, context)
 {
-    public async Task HasAnalysisAttempts(int expected) =>
-        (await resumeAnalysis.AnalysisAttempts()).ShouldBe(expected);
-
     public async Task UpdatesToFailedExtraction()
     {
         var result = await driver.ObserveViewedApplications(

@@ -6,16 +6,12 @@ using WireMock.Client;
 namespace DialDen.RLS.Tests.Core.Drivers.ResumeAnalysis;
 
 public sealed class WireMockResumeAnalysisDriver(
-    IWireMockAdminApi adminApi, Func<Task> restartWorker) : IResumeAnalysisDriver
+    IWireMockAdminApi adminApi, string callbackHost) : IResumeAnalysisDriver, IAsyncDisposable
 {
-    private bool _hasDelayedResponse;
-
-    public async Task<int> AnalysisAttempts() =>
-        (await adminApi.GetRequestsAsync()).Count(entry => entry.Request?.Path == "/api/chat");
+    private PendingResumeAnalysisResponse? _pendingResponse;
 
     public async Task FailsAnalysis()
     {
-        var restart = _hasDelayedResponse;
         await adminApi.ResetMappingsAsync();
         await adminApi.ResetRequestsAsync();
         await ConfigureIdentityMetadata();
@@ -24,9 +20,7 @@ public sealed class WireMockResumeAnalysisDriver(
             Request = new RequestModel { Path = "/api/chat", Methods = ["POST"] },
             Response = new ResponseModel { StatusCode = 503 }
         });
-        if (restart)
-            await restartWorker();
-        _hasDelayedResponse = false;
+        await CompletePendingResponse(503, "");
     }
 
     public async Task ResetAndReturnNoContactsByDefault()
@@ -34,9 +28,14 @@ public sealed class WireMockResumeAnalysisDriver(
         await FindsContactInformation(new(null, null, null, null, null), holdResponse: false);
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        if (_pendingResponse is not null)
+            await ResetAndReturnNoContactsByDefault();
+    }
+
     public async Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse)
     {
-        var restart = _hasDelayedResponse && !holdResponse;
         await adminApi.ResetMappingsAsync();
         await adminApi.ResetRequestsAsync();
         await ConfigureIdentityMetadata();
@@ -52,6 +51,18 @@ public sealed class WireMockResumeAnalysisDriver(
             done = true,
             done_reason = "stop"
         });
+        await CompletePendingResponse(200, body);
+        if (holdResponse)
+        {
+            _pendingResponse = new PendingResumeAnalysisResponse();
+            var proxyUrl = await _pendingResponse.Start(callbackHost);
+            await adminApi.PostMappingAsync(new MappingModel
+            {
+                Request = new RequestModel { Path = "/api/chat", Methods = ["POST"] },
+                Response = new ResponseModel { ProxyUrl = proxyUrl }
+            });
+            return;
+        }
         await adminApi.PostMappingAsync(new MappingModel
         {
             Request = new RequestModel
@@ -62,15 +73,19 @@ public sealed class WireMockResumeAnalysisDriver(
             Response = new ResponseModel
             {
                 StatusCode = 200,
-                // Exceeds the client's inference deadline; scenario cleanup cancels the request.
-                Delay = holdResponse ? checked((int)TimeSpan.FromHours(1).TotalMilliseconds) : null,
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
                 Body = body
             }
         });
-        if (restart)
-            await restartWorker();
-        _hasDelayedResponse = holdResponse;
+    }
+
+    private async Task CompletePendingResponse(int statusCode, string body)
+    {
+        if (_pendingResponse is null)
+            return;
+        _pendingResponse.Complete(statusCode, body);
+        await _pendingResponse.DisposeAsync();
+        _pendingResponse = null;
     }
 
     private Task ConfigureIdentityMetadata() =>

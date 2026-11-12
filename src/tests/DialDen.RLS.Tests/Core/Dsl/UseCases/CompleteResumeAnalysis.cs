@@ -41,6 +41,6 @@ public sealed class CompleteResumeAnalysis(
         return new(
             Result.Success<SystemError>(), Context,
             (response, ctx) => new ApplicationReviewVerification(
-                response, ctx, Driver, postingId, application.Id, resumeAnalysis));
+                response, ctx, Driver, postingId, application.Id));
     }
 }

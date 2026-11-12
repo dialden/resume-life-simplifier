@@ -4,10 +4,6 @@ namespace DialDen.RLS.Tests.Core.Drivers.ResumeAnalysis;
 
 public sealed class RealResumeAnalysisDriver : IResumeAnalysisDriver
 {
-    public Task<int> AnalysisAttempts() =>
-        throw new InvalidOperationException(
-            "Observing resume-analysis attempts requires the stubbed external systems environment.");
-
     public Task FailsAnalysis() =>
         throw new InvalidOperationException(
             "Controlling resume-analysis failures requires the stubbed external systems environment.");

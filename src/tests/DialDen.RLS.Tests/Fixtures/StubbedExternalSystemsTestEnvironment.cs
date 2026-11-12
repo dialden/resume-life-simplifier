@@ -30,7 +30,7 @@ public class StubbedExternalSystemsTestEnvironment : TestEnvironment
             var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("WireMockOllamaAdmin");
             return new WireMockResumeAnalysisDriver(
                 new RestClient(client).For<IWireMockAdminApi>(),
-                RestartWorker);
+                GetTestsConfiguration()["ResumeAnalysis:CallbackHost"] ?? "localhost");
         });
 
         var wireMockUrl = GetTestsConfiguration()["JobSites:WireMockUrl"] ?? "http://wiremock-job-site/";

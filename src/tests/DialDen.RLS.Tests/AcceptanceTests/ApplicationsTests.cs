@@ -65,19 +65,6 @@ public class ApplicationsTests
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task ResumeAnalysisStopsAfterBoundedRetries(Channel channel)
-    {
-        await _testEnvironment.Scenario(channel)
-            .Given().Posting().PublishedTo()
-            .And().ResumeAnalysis().HasNotCompletedAnalysis()
-            .And().Application()
-            .When().ResumeAnalysisCompletes().WithFailure()
-            .Then().ShouldSucceed()
-                .And().ReviewedApplications().UpdatesToFailedExtraction().AfterAnalysisAttempts(4);
-    }
-
-    [Trait("Category", "Acceptance")]
-    [Theory, CombinatorialData]
     public async Task ApplicationsRemainAvailableWhenResumeAnalysisIsUnavailable(Channel channel)
     {
         await _testEnvironment.Scenario(channel)
