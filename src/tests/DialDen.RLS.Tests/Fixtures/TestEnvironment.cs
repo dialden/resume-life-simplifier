@@ -41,9 +41,18 @@ public abstract class TestEnvironment : IAsyncDisposable
                 ["Messaging:ApplicationReceivedTopic"] = ApplicationReceivedTopic,
                 ["Messaging:ResumeExtractionQueue"] = $"{ApplicationReceivedTopic}-extraction"
             };
+            var workerSettings = new Dictionary<string, string?>(settings);
+            if (ConfigurationEnvironmentVariablesPrefix == "STUBBED_EXT_SYSTEMS_")
+            {
+                var metadataServer = testsConfiguration["ResumeAnalysis:WireMockUrl"] ?? "http://wiremock-ollama/";
+                workerSettings["Ollama:IdentityTokenAudience"] = "https://test-resume-analysis.run.app";
+                workerSettings["Ollama:AllowInsecureAuthenticatedEndpoint"] = "true";
+                workerSettings["Ollama:IdentityMetadataEndpoint"] =
+                    new Uri(new Uri(metadataServer), "/computeMetadata/v1/instance/service-accounts/default/identity").ToString();
+            }
             _workerHost = new InProcessWorkerHost(
                 ConfigurationEnvironmentVariablesPrefix,
-                settings);
+                workerSettings);
             _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix, settings);
             _uiHost = new InProcessUIHttpHost(() => _apiHost.Url);
         }

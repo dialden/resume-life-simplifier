@@ -168,6 +168,10 @@ public sealed class CommitStage
                 throw new InvalidOperationException(
                     "STUBBED_EXT_SYSTEMS_RLS_WORKER_Ollama__Endpoint must be an absolute HTTP or HTTPS URL.");
             }
+            workerEnvironment["RLS_WORKER_Ollama__IdentityTokenAudience"] = "https://test-resume-analysis.run.app";
+            workerEnvironment["RLS_WORKER_Ollama__AllowInsecureAuthenticatedEndpoint"] = "true";
+            workerEnvironment["RLS_WORKER_Ollama__IdentityMetadataEndpoint"] =
+                new Uri(ollamaUri, "/computeMetadata/v1/instance/service-accounts/default/identity").ToString();
             workerEnvironment["RLS_WORKER_MassTransit__ConsumerStopTimeout"] = "00:00:01";
             workerEnvironment["RLS_WORKER_MassTransit__StopTimeout"] = "00:00:05";
             workerEnvironment["RLS_WORKER_JobSites__Type"] = "stubbed";

@@ -15,7 +15,7 @@
   "googleCloud": {
     "projectId": "resume-life-simplifier",
     "projectNumber": "790265296353",
-    "region": "northamerica-northeast1",
+    "region": "europe-west1",
     "registry": {
       "repository": "ghcr",
       "username": "CurlyFire",

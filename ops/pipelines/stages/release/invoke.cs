@@ -31,6 +31,7 @@ await stage.EnsureApplicationDatabasePermissions();
 await stage.EnsureRuntimeDatabaseConnection();
 await stage.EnsureRuntimeIdentities();
 await stage.EnsureWorkerJobSiteCredentials();
+await stage.EnsureOllama();
 await stage.DeployWorker();
 await stage.DeployApi();
 await stage.DeployUi();
@@ -51,11 +52,13 @@ public sealed class ReleaseStage
     private readonly ReleaseMigrations releaseMigrations;
     private readonly GoogleCloudIamClient googleCloudIamClient;
     private readonly CloudRunClient cloudRunClient;
+    private readonly GoogleCloudNetworkClient networkClient;
     private ImagesConfig? resolvedImages;
     private string? workerUsernameSecret;
     private string? workerPasswordSecret;
     private string? migrationsDirectory;
     private string? apiUrl;
+    private string? ollamaUrl;
 
     public ReleaseStage(string version, string environment)
     {
@@ -82,6 +85,7 @@ public sealed class ReleaseStage
         googleCloudClient = new GoogleCloudClient(processRunner, googleCloud);
         googleCloudIamClient = new GoogleCloudIamClient(processRunner, googleCloud);
         cloudRunClient = new CloudRunClient(processRunner, googleCloud);
+        networkClient = new GoogleCloudNetworkClient(processRunner, googleCloud);
         cloudSqlClient = new CloudSqlClient(processRunner, googleCloud);
         cloudSqlProxyClient = new CloudSqlProxyClient(processRunner, googleCloudClient);
         Write($"Starting release of version {version} to environment '{environment}' " +
@@ -217,6 +221,17 @@ public sealed class ReleaseStage
     public Task EnableDeploymentApis() =>
         googleCloudClient.EnableApis("run.googleapis.com", "cloudresourcemanager.googleapis.com");
 
+    public async Task EnsureOllama()
+    {
+        await googleCloudClient.EnableApis("compute.googleapis.com", "dns.googleapis.com");
+        await networkClient.EnsureNetwork();
+        var ollama = await googleCloudIamClient.EnsureServiceAccount($"rls-{environment}-llm");
+        var worker = $"rls-{environment}-wrk@{googleCloud.ProjectId}.iam.gserviceaccount.com";
+        var url = await cloudRunClient.DeployOllama($"rls-{environment}-ollama", ollama, worker, artifacts);
+        await networkClient.EnsureOllamaDns($"rls-{environment}-ollama", url);
+        ollamaUrl = url;
+    }
+
     public async Task DeployWorker()
     {
         var image = resolvedImages?.Worker
@@ -231,7 +246,9 @@ public sealed class ReleaseStage
         await cloudRunClient.DeployWorker($"rls-{environment}-worker", image, connectionName,
             $"rls-{environment}-wrk@{googleCloud.ProjectId}.iam.gserviceaccount.com",
             googleCloud.Jobillico ?? throw new InvalidOperationException("Jobillico configuration is missing."),
-            $"{connectionSecret}:{connectionVersion}", usernameSecret, passwordSecret, artifacts);
+            $"{connectionSecret}:{connectionVersion}", usernameSecret, passwordSecret,
+            ollamaUrl ?? throw new InvalidOperationException("Deploy Ollama and configure private DNS before the Worker."),
+            artifacts);
     }
 
     public async Task DeployApi()

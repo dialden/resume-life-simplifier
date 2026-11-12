@@ -4,6 +4,75 @@ namespace DialDen.RLS.Pipelines;
 
 public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfig config)
 {
+    public async Task<string> DeployOllama(string name, string serviceAccount, string workerServiceAccount,
+        string artifactsDirectory)
+    {
+        const string startup = """
+            set -eu
+            OLLAMA_HOST=127.0.0.1:11434 ollama serve &
+            server=$!
+            trap 'kill "$server" 2>/dev/null || true' EXIT
+            attempts=0
+            until OLLAMA_HOST=127.0.0.1:11434 ollama list >/dev/null 2>&1; do
+                if ! kill -0 "$server" 2>/dev/null; then
+                    echo "Ollama exited before becoming ready" >&2
+                    exit 1
+                fi
+                attempts=$((attempts + 1))
+                if [ "$attempts" -ge 60 ]; then
+                    echo "Ollama did not start within 60 seconds" >&2
+                    exit 1
+                fi
+                sleep 1
+            done
+            OLLAMA_HOST=127.0.0.1:11434 ollama pull qwen2.5vl:7b
+            kill "$server"
+            wait "$server" || true
+            trap - EXIT
+            exec ollama serve
+            """;
+        var flagsFile = Path.Combine(artifactsDirectory, "ollama-flags.json");
+        await File.WriteAllTextAsync(flagsFile, JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["--command"] = new[] { "/bin/sh" },
+            ["--args"] = new[] { "-c", startup },
+            ["--set-env-vars"] = new Dictionary<string, string>
+            {
+                ["OLLAMA_HOST"] = "0.0.0.0:8080",
+                ["OLLAMA_NUM_PARALLEL"] = "1"
+            }
+        }));
+        await processRunner.Run("gcloud",
+            ["run", "deploy", name, $"--project={config.ProjectId}", $"--region={config.Region}",
+                "--image=docker.io/ollama/ollama@sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592",
+                $"--service-account={serviceAccount}", $"--flags-file={flagsFile}",
+                "--execution-environment=gen2", "--port=8080", "--cpu=6", "--memory=24Gi",
+                "--gpu=1", "--gpu-type=nvidia-l4", "--no-gpu-zonal-redundancy",
+                "--no-cpu-throttling", "--no-use-http2", "--min-instances=0", "--max-instances=1",
+                "--concurrency=1", "--timeout=600", "--ingress=internal",
+                "--no-allow-unauthenticated", "--invoker-iam-check", "--deploy-health-check",
+                "--startup-probe=tcpSocket.port=8080,periodSeconds=10,timeoutSeconds=1,failureThreshold=180",
+                "--quiet"]);
+        await processRunner.Run("gcloud",
+            ["run", "services", "add-iam-policy-binding", name, $"--project={config.ProjectId}",
+                $"--region={config.Region}", $"--member=serviceAccount:{workerServiceAccount}",
+                "--role=roles/run.invoker", "--condition=None", "--quiet"]);
+
+        var description = await processRunner.Run("gcloud",
+            ["run", "services", "describe", name, $"--project={config.ProjectId}",
+                $"--region={config.Region}", "--format=json", "--quiet"], captureOutput: true);
+        await File.WriteAllTextAsync(Path.Combine(artifactsDirectory, "ollama.json"), description);
+        using var service = JsonDocument.Parse(description);
+        var url = service.RootElement.GetProperty("status").GetProperty("url").GetString();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var address) ||
+            address.Scheme != Uri.UriSchemeHttps || !address.Host.EndsWith(".run.app", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Cloud Run returned no valid HTTPS run.app URL for Ollama '{name}'.");
+        }
+        PipelineLog.Write($"Private Ollama service deployed: {url}");
+        return url;
+    }
+
     public async Task<string> DeployUi(string name, string image, string serviceAccount,
         string apiName, string apiUrl, string artifactsDirectory)
     {
@@ -113,7 +182,7 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
 
     public async Task<string> DeployWorker(string name, string image, string connectionName,
         string serviceAccount, JobillicoConfig jobSite, string connectionSecret,
-        string usernameSecret, string passwordSecret, string artifactsDirectory)
+        string usernameSecret, string passwordSecret, string ollamaUrl, string artifactsDirectory)
     {
         jobSite.Validate();
         var environment = new Dictionary<string, string>
@@ -123,7 +192,9 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
             ["RLS_WORKER_Jobillico__RecruiterId"] = jobSite.RecruiterId,
             ["RLS_WORKER_Jobillico__LocationId"] = jobSite.LocationId,
             ["RLS_WORKER_Jobillico__UseProduction"] = jobSite.UseProduction.ToString(),
-            ["RLS_WORKER_Messaging__JobSitePublicationQueue"] = "rls-job-site-publication"
+            ["RLS_WORKER_Messaging__JobSitePublicationQueue"] = "rls-job-site-publication",
+            ["RLS_WORKER_Ollama__Endpoint"] = ollamaUrl,
+            ["RLS_WORKER_Ollama__IdentityTokenAudience"] = ollamaUrl
         };
         var definition = new
         {
@@ -150,7 +221,12 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
                         annotations = new Dictionary<string, string>
                         {
                             ["run.googleapis.com/execution-environment"] = "gen2",
-                            ["run.googleapis.com/cloudsql-instances"] = connectionName
+                            ["run.googleapis.com/cloudsql-instances"] = connectionName,
+                            ["run.googleapis.com/network-interfaces"] = JsonSerializer.Serialize(new[]
+                            {
+                                new { network = GoogleCloudNetworkClient.Network, subnetwork = GoogleCloudNetworkClient.Subnet }
+                            }),
+                            ["run.googleapis.com/vpc-access-egress"] = "private-ranges-only"
                         }
                     },
                     spec = new

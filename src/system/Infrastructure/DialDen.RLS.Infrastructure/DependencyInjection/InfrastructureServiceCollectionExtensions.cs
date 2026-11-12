@@ -25,13 +25,32 @@ public static class InfrastructureServiceCollectionExtensions
                 && options.Endpoint.Scheme is "http" or "https",
                 "Ollama:Endpoint must be an absolute HTTP or HTTPS URL.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.Model), "Ollama:Model is required.")
-            .Validate(options => options.NumCtx > 0, "Ollama:NumCtx must be greater than zero.");
+            .Validate(options => options.NumCtx > 0, "Ollama:NumCtx must be greater than zero.")
+            .Validate(options => options.IdentityTokenAudience is null ||
+                Uri.TryCreate(options.IdentityTokenAudience, UriKind.Absolute, out var audience)
+                && audience.Scheme == Uri.UriSchemeHttps,
+                "Ollama:IdentityTokenAudience must be an absolute HTTPS URL when configured.")
+            .Validate(options => options.IdentityTokenAudience is null ||
+                options.Endpoint?.Scheme == Uri.UriSchemeHttps || options.AllowInsecureAuthenticatedEndpoint,
+                "Authenticated Ollama connections require HTTPS.")
+            .Validate(options => options.IdentityMetadataEndpoint is { IsAbsoluteUri: true }
+                && options.IdentityMetadataEndpoint.Scheme is "http" or "https"
+                && string.IsNullOrEmpty(options.IdentityMetadataEndpoint.Query)
+                && string.IsNullOrEmpty(options.IdentityMetadataEndpoint.Fragment),
+                "Ollama:IdentityMetadataEndpoint must be an absolute HTTP or HTTPS URL.");
         services.AddTransient<ResumePageImageRenderer>();
+        services.AddTransient<OllamaIdentityHandler>();
+        services.AddHttpClient("OllamaIdentityMetadata")
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+                UseProxy = false
+            });
         services.AddHttpClient<IResumeContactExtraction, OllamaResumeContactExtraction>((provider, client) =>
         {
             client.BaseAddress = provider.GetRequiredService<IOptions<OllamaOptions>>().Value.Endpoint;
             client.Timeout = Timeout.InfiniteTimeSpan;
-        });
+        }).AddHttpMessageHandler<OllamaIdentityHandler>();
         return services;
     }
 

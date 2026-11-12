@@ -7,7 +7,6 @@ public sealed class GivenResumeAnalysis(GivenStage stage) : BaseGiven(stage)
     private ExtractedContactInformation _contacts = new(null, null, null, null, null);
     private bool _holdResponse;
     private bool _fails;
-
     public GivenResumeAnalysis IsUnavailable()
     {
         _fails = true;

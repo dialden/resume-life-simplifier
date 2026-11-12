@@ -18,6 +18,7 @@ public sealed class WireMockResumeAnalysisDriver(
         var restart = _hasDelayedResponse;
         await adminApi.ResetMappingsAsync();
         await adminApi.ResetRequestsAsync();
+        await ConfigureIdentityMetadata();
         await adminApi.PostMappingAsync(new MappingModel
         {
             Request = new RequestModel { Path = "/api/chat", Methods = ["POST"] },
@@ -38,6 +39,7 @@ public sealed class WireMockResumeAnalysisDriver(
         var restart = _hasDelayedResponse && !holdResponse;
         await adminApi.ResetMappingsAsync();
         await adminApi.ResetRequestsAsync();
+        await ConfigureIdentityMetadata();
         var body = JsonSerializer.Serialize(new
         {
             model = "qwen2.5vl:7b",
@@ -70,4 +72,36 @@ public sealed class WireMockResumeAnalysisDriver(
             await restartWorker();
         _hasDelayedResponse = holdResponse;
     }
+
+    private Task ConfigureIdentityMetadata() =>
+        adminApi.PostMappingAsync(new MappingModel
+        {
+            Request = new RequestModel
+            {
+                Path = "/computeMetadata/v1/instance/service-accounts/default/identity",
+                Methods = ["GET"],
+                Params =
+                [
+                    new ParamModel
+                    {
+                        Name = "audience",
+                        Matchers = [new MatcherModel { Name = "ExactMatcher", Pattern = "https://test-resume-analysis.run.app" }]
+                    }
+                ],
+                Headers =
+                [
+                    new HeaderModel
+                    {
+                        Name = "Metadata-Flavor",
+                        Matchers = [new MatcherModel { Name = "ExactMatcher", Pattern = "Google" }]
+                    }
+                ]
+            },
+            Response = new ResponseModel
+            {
+                StatusCode = 200,
+                Headers = new Dictionary<string, object> { ["Metadata-Flavor"] = "Google" },
+                Body = "test-identity-token"
+            }
+        });
 }

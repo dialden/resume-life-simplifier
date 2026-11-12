@@ -45,7 +45,7 @@ var artifacts = Path.Combine(root, ".artifacts", "save-money", environment,
 Directory.CreateDirectory(artifacts);
 var runner = new ProcessRunner(root, artifacts);
 var prefix = $"rls-{environment}";
-Write($"Permanently removing {prefix} UI, API, Worker and database from " +
+Write($"Permanently removing {prefix} UI, API, Worker, Ollama and database from " +
     $"{config.ProjectId} ({config.Region}). Artifacts: {artifacts}");
 
 // Read every resource inventory before deleting anything; failed reads must not mean "absent".
@@ -69,6 +69,7 @@ foreach (var instance in instances.RootElement.EnumerateArray())
 await DeleteRunResource(["run", "services"], $"{prefix}-ui", services);
 await DeleteRunResource(["run", "services"], $"{prefix}-api", services);
 await DeleteRunResource(["beta", "run", "worker-pools"], $"{prefix}-worker", workers);
+await DeleteRunResource(["run", "services"], $"{prefix}-ollama", services);
 if (instanceExists)
 {
     await runner.Run("gcloud", ["sql", "instances", "patch", prefix,
@@ -85,14 +86,15 @@ var remainingServices = await ReadNames(["run", "services"]);
 var remainingWorkers = await ReadNames(["beta", "run", "worker-pools"]);
 using var remainingInstances = await ReadInstances();
 if (remainingServices.Contains($"{prefix}-ui") || remainingServices.Contains($"{prefix}-api") ||
+    remainingServices.Contains($"{prefix}-ollama") ||
     remainingWorkers.Contains($"{prefix}-worker") ||
     remainingInstances.RootElement.EnumerateArray().Any(instance =>
         instance.GetProperty("name").GetString() == prefix))
 {
     throw new InvalidOperationException("Environment resources remain after deletion. Inspect the run and retry.");
 }
-Write($"Save money completed for '{environment}'. UI, API, Worker and database are absent. " +
-    "Secrets, identities and shared registry are unchanged.");
+Write($"Save money completed for '{environment}'. UI, API, Worker, Ollama and database are absent. " +
+    "Secrets, identities, network, DNS and shared registry are unchanged.");
 
 async Task<HashSet<string>> ReadNames(string[] command)
 {
