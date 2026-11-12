@@ -9,6 +9,13 @@ public sealed class WhenResumeAnalysisCompletes(
 {
     private ExtractedContactInformation _contacts = new(null, null, null, null, null);
     private bool _fails;
+    private bool _interruptConnection;
+
+    public WhenResumeAnalysisCompletes AfterConnectionInterruption()
+    {
+        _interruptConnection = true;
+        return this;
+    }
 
     public WhenResumeAnalysisCompletes WithFailure()
     {
@@ -25,6 +32,8 @@ public sealed class WhenResumeAnalysisCompletes(
     protected override async Task<ExecutionResult<VoidValue, ApplicationReviewVerification>> Execute(UseCaseDsl app)
     {
         var analysis = app.RLS.CompleteResumeAnalysis().Finding(_contacts);
+        if (_interruptConnection)
+            analysis.AfterConnectionInterruption();
         if (_fails)
             analysis.WithFailure();
         return new(await analysis.Execute());

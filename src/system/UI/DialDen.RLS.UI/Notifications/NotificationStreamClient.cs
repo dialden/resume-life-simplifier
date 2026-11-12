@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using System.Net.Mime;
 namespace DialDen.RLS.UI.Notifications;
 
-public sealed class NotificationStreamClient(HttpClient api)
+public sealed class NotificationStreamClient(HttpClient api) : IDisposable
 {
+    public void Dispose() => api.Dispose();
+
     public async IAsyncEnumerable<NotificationSignal> ReadAsync(
         string href,
         [EnumeratorCancellation] CancellationToken cancellationToken)

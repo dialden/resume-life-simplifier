@@ -11,6 +11,13 @@ public sealed class CompleteResumeAnalysis(
 {
     private ExtractedContactInformation _contacts = new(null, null, null, null, null);
     private bool _fails;
+    private bool _interruptConnection;
+
+    public CompleteResumeAnalysis AfterConnectionInterruption()
+    {
+        _interruptConnection = true;
+        return this;
+    }
 
     public CompleteResumeAnalysis WithFailure()
     {
@@ -34,6 +41,12 @@ public sealed class CompleteResumeAnalysis(
         var application = applications.Value.Single();
         if (application.ExtractionStatus != "Pending")
             throw new InvalidOperationException("Resume analysis must still be pending before completion.");
+        if (_interruptConnection)
+        {
+            var interruption = await Driver.InterruptLiveUpdates();
+            if (interruption.IsFailure)
+                throw new InvalidOperationException($"Could not interrupt live updates: {interruption.Error}");
+        }
         if (_fails)
             await resumeAnalysis.FailsAnalysis();
         else

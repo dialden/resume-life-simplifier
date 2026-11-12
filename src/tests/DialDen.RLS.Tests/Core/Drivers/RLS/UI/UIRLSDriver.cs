@@ -35,6 +35,9 @@ public class UIRLSDriver : IRLSDriver
         return await page.ReadApplications();
     }
 
+    public Task<Result<VoidValue, SystemError>> InterruptLiveUpdates() =>
+        _uiClient.InterruptLiveUpdates();
+
     public Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ObserveViewedApplications(
         int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout)
     {

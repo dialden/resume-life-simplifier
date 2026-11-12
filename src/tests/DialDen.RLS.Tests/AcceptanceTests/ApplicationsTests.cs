@@ -51,6 +51,19 @@ public class ApplicationsTests
     }
 
     [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task ReviewedApplicationsRecoverLiveUpdatesAfterAConnectionInterruption()
+    {
+        await _testEnvironment.Scenario(Channel.UI)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().HasNotCompletedAnalysis()
+            .And().Application()
+            .When().ResumeAnalysisCompletes().AfterConnectionInterruption().FindsEmail("resume@example.com")
+            .Then().ShouldSucceed()
+                .And().ReviewedApplications().UpdatesToExtractedEmail("resume@example.com");
+    }
+
+    [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
     public async Task ReviewedApplicationsUpdateWhenResumeAnalysisFails(Channel channel)
     {

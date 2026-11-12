@@ -76,6 +76,7 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
     public async Task<string> DeployUi(string name, string image, string serviceAccount,
         string apiName, string apiUrl, string artifactsDirectory)
     {
+        var existingService = await ServiceExists(name);
         var environmentFile = Path.Combine(artifactsDirectory, "ui-environment.json");
         await File.WriteAllTextAsync(environmentFile,
             JsonSerializer.Serialize(new Dictionary<string, string> { ["API_BASE_URL"] = apiUrl }));
@@ -84,7 +85,8 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
                 $"--image={image}", $"--service-account={serviceAccount}",
                 "--execution-environment=gen2", "--port=80", "--cpu=1", "--memory=512Mi",
                 "--min-instances=0", "--max-instances=1", "--concurrency=80",
-                "--ingress=all", "--allow-unauthenticated", "--no-traffic",
+                "--ingress=all", "--allow-unauthenticated",
+                .. (existingService ? new[] { "--no-traffic" } : Array.Empty<string>()),
                 $"--env-vars-file={environmentFile}",
                 "--clear-secrets", "--clear-cloudsql-instances",
                 "--startup-probe=httpGet.path=/,httpGet.port=80,periodSeconds=5,timeoutSeconds=3,failureThreshold=24",
@@ -147,10 +149,12 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
     public async Task<string> DeployApi(string name, string image, string connectionName,
         string serviceAccount, string connectionSecret, string artifactsDirectory)
     {
+        var existingService = await ServiceExists(name);
         var environmentFile = Path.Combine(artifactsDirectory, "api-environment.json");
         await File.WriteAllTextAsync(environmentFile, JsonSerializer.Serialize(new Dictionary<string, string>
         {
             ["RLS_API_URLS"] = "http://+:8080",
+            ["RLS_API_Logging__LogLevel__Default"] = "Warning",
             ["RLS_API_Messaging__JobSitePublicationQueue"] = "rls-job-site-publication",
             ["ASPNETCORE_ENVIRONMENT"] = "Production",
             ["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true"
@@ -159,8 +163,9 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
             ["run", "deploy", name, $"--project={config.ProjectId}", $"--region={config.Region}",
                 $"--image={image}", $"--service-account={serviceAccount}",
                 "--execution-environment=gen2", "--port=8080", "--cpu=1", "--memory=512Mi",
-                "--min-instances=0", "--max-instances=1", "--concurrency=10", "--timeout=60",
-                "--ingress=all", "--allow-unauthenticated", "--no-traffic",
+                "--min-instances=0", "--max-instances=1", "--concurrency=10", "--timeout=3600",
+                "--ingress=all", "--allow-unauthenticated",
+                .. (existingService ? new[] { "--no-traffic" } : Array.Empty<string>()),
                 $"--set-cloudsql-instances={connectionName}", $"--env-vars-file={environmentFile}",
                 $"--set-secrets=RLS_API_ConnectionStrings__RLS={connectionSecret}",
                 "--startup-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=5,timeoutSeconds=3,failureThreshold=24",
@@ -176,7 +181,9 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
             throw new InvalidOperationException($"Cloud Run returned no valid HTTPS URL for API '{name}'.");
         }
         await File.WriteAllTextAsync(Path.Combine(artifactsDirectory, "api-url.txt"), url + "\n");
-        PipelineLog.Write($"API deployed without traffic pending UI configuration: {url}");
+        PipelineLog.Write(existingService
+            ? $"API deployed without traffic pending UI configuration: {url}"
+            : $"API created with initial traffic; UI configuration follows: {url}");
         return url;
     }
 
@@ -187,6 +194,7 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
         jobSite.Validate();
         var environment = new Dictionary<string, string>
         {
+            ["RLS_WORKER_Logging__LogLevel__Default"] = "Warning",
             ["RLS_WORKER_JobSites__Type"] = "real",
             ["RLS_WORKER_Jobillico__Endpoint"] = jobSite.Endpoint,
             ["RLS_WORKER_Jobillico__RecruiterId"] = jobSite.RecruiterId,
@@ -194,6 +202,7 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
             ["RLS_WORKER_Jobillico__UseProduction"] = jobSite.UseProduction.ToString(),
             ["RLS_WORKER_Messaging__JobSitePublicationQueue"] = "rls-job-site-publication",
             ["RLS_WORKER_Ollama__Endpoint"] = ollamaUrl,
+            ["RLS_WORKER_Ollama__NumCtx"] = "128000",
             ["RLS_WORKER_Ollama__IdentityTokenAudience"] = ollamaUrl
         };
         var definition = new
@@ -265,6 +274,15 @@ public sealed class CloudRunClient(ProcessRunner processRunner, GoogleCloudConfi
                 $"--region={config.Region}", "--format=json", "--quiet"], captureOutput: true);
         await File.WriteAllTextAsync(Path.Combine(artifactsDirectory, "worker.json"), description);
         return description;
+    }
+
+    private async Task<bool> ServiceExists(string name)
+    {
+        using var services = JsonDocument.Parse(await processRunner.Run("gcloud",
+            ["run", "services", "list", $"--project={config.ProjectId}", $"--region={config.Region}",
+                "--format=json", "--quiet"], captureOutput: true));
+        return services.RootElement.EnumerateArray().Any(service =>
+            service.GetProperty("metadata").GetProperty("name").GetString() == name);
     }
 
     private static object SecretEnvironment(string name, string reference)

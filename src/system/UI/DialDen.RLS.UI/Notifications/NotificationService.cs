@@ -54,26 +54,34 @@ public sealed class NotificationService(
         }
         try
         {
-            var entryPoint = await api.GetFromJsonAsync<RLSEntryPoint>("/", cancellationToken)
-                ?? throw new JsonException("The API returned no entry point.");
-            var link = entryPoint.Links.SingleOrDefault(
-                link => link is { Rel: "notifications", Method: "GET" })
-                ?? throw new InvalidOperationException("The API does not advertise a notification stream.");
-
-            await foreach (var signal in stream.ReadAsync(link.Href, cancellationToken))
+            while (!cancellationToken.IsCancellationRequested)
             {
-                Broadcast(signal);
+                try
+                {
+                    var entryPoint = await api.GetFromJsonAsync<RLSEntryPoint>("/", cancellationToken)
+                        ?? throw new JsonException("The API returned no entry point.");
+                    var link = entryPoint.Links.SingleOrDefault(
+                        link => link is { Rel: "notifications", Method: "GET" })
+                        ?? throw new InvalidOperationException("The API does not advertise a notification stream.");
+
+                    await foreach (var signal in stream.ReadAsync(link.Href, cancellationToken))
+                    {
+                        Broadcast(signal);
+                    }
+                }
+                catch (Exception exception) when (!cancellationToken.IsCancellationRequested &&
+                    exception is HttpRequestException or IOException or JsonException
+                        or InvalidOperationException or OperationCanceledException)
+                {
+                    logger.LogWarning(exception, "The shared notification stream stopped; reconnecting.");
+                    Broadcast(NotificationSignal.Unavailable);
+                }
+                await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // The application shell owns the connection lifetime.
-        }
-        catch (Exception exception) when (exception is HttpRequestException or IOException
-            or JsonException or InvalidOperationException or OperationCanceledException)
-        {
-            logger.LogWarning(exception, "The shared notification stream stopped.");
-            Broadcast(NotificationSignal.Unavailable);
         }
         finally
         {

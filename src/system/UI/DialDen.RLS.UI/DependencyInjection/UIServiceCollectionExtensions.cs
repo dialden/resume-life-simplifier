@@ -10,7 +10,11 @@ public static class UIServiceCollectionExtensions
     {
         services.AddLocalization();
         services.AddScoped<LanguageState>();
-        services.AddScoped<NotificationStreamClient>();
+        services.AddScoped(provider => new NotificationStreamClient(new HttpClient
+        {
+            BaseAddress = provider.GetRequiredService<HttpClient>().BaseAddress,
+            Timeout = Timeout.InfiniteTimeSpan
+        }));
         services.AddScoped<NotificationService>();
         return services;
     }

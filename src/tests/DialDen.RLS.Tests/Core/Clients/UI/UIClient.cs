@@ -52,6 +52,25 @@ public class UIClient : IAsyncDisposable
         var browserType = _playwright[PlaywrightSettingsProvider.BrowserName];
         _browser = await browserType.LaunchAsync();
         var page = await _browser.NewPageAsync(new BrowserNewPageOptions { BaseURL = _configuration.UIUrl });
+        await page.AddInitScriptAsync("""
+            const originalFetch = window.fetch.bind(window);
+            let notificationConnection;
+            window.fetch = (input, options) => {
+                const url = typeof input === "string" ? input : input.url;
+                if (new URL(url, location.href).pathname !== "/notifications/stream")
+                    return originalFetch(input, options);
+                const controller = new AbortController();
+                options?.signal?.addEventListener("abort", () => controller.abort(), { once: true });
+                notificationConnection = controller;
+                return originalFetch(input, { ...options, signal: controller.signal });
+            };
+            window.interruptTestNotificationConnection = () => {
+                if (!notificationConnection || notificationConnection.signal.aborted)
+                    return false;
+                notificationConnection.abort();
+                return true;
+            };
+            """);
         page.Request += (_, request) =>
         {
             if (new Uri(request.Url).AbsolutePath == "/notifications/stream")
@@ -84,6 +103,16 @@ public class UIClient : IAsyncDisposable
             ? Result.Success<SystemError>()
             : Result.Failure<SystemError>(SystemError.Of(
                 $"Expected one shared notification stream across navigation, but opened {requests}."));
+    }
+
+    public async Task<Result<VoidValue, SystemError>> InterruptLiveUpdates()
+    {
+        if (_page is null)
+            return Result.Failure<SystemError>(SystemError.Of("No browser page is open."));
+        var interrupted = await _page.EvaluateAsync<bool>("window.interruptTestNotificationConnection()");
+        return interrupted
+            ? Result.Success<SystemError>()
+            : Result.Failure<SystemError>(SystemError.Of("No active notification connection could be interrupted."));
     }
 
     public async ValueTask DisposeAsync()

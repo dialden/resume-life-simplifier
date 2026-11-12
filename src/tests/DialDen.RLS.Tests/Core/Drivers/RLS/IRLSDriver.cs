@@ -12,6 +12,7 @@ public interface IRLSDriver
     Task<Result<VoidValue, SystemError>> ApplyToPosting(
         int postingId, string name, string email, byte[] resume, string? referralJobSiteId);
     Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ListApplications(int postingId);
+    Task<Result<VoidValue, SystemError>> InterruptLiveUpdates();
     Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ObserveViewedApplications(
         int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout);
     Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId);

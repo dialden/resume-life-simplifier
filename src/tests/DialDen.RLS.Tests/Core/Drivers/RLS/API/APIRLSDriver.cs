@@ -22,6 +22,9 @@ public class APIRLSDriver : IRLSDriver
     public Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ListApplications(int postingId)
         => _apiClient.Applications.List(postingId);
 
+    public Task<Result<VoidValue, SystemError>> InterruptLiveUpdates() =>
+        throw new NotSupportedException("Simulating a browser connection interruption requires the UI channel.");
+
     public Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ObserveViewedApplications(
         int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout) =>
         _apiClient.Applications.Observe(postingId, isExpected, timeout);
