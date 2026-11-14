@@ -13,4 +13,13 @@ public sealed class RealResumeAnalysisDriver : IResumeAnalysisDriver
     public Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse) =>
         throw new InvalidOperationException(
             "Controlling resume-analysis responses requires the stubbed external systems environment.");
+
+    public Task FindsEducation(
+        ExtractedContactInformation contacts, IReadOnlyList<ExtractedEducation> education, bool holdResponse) =>
+        throw new InvalidOperationException(
+            "Controlling resume-analysis responses requires the stubbed external systems environment.");
+
+    public Task ReturnsInvalidEducation(ExtractedContactInformation contacts) =>
+        throw new InvalidOperationException(
+            "Controlling resume-analysis responses requires the stubbed external systems environment.");
 }

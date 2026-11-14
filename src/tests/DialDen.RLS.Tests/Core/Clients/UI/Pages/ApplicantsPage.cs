@@ -62,6 +62,21 @@ public sealed class ApplicantsPage(IPage page)
                     await ReadContact(contacts, "extracted-phone-number"),
                     await ReadContact(contacts, "extracted-postal-address"),
                     await ReadContact(contacts, "extracted-linkedin-url"));
+            var education = item.GetByTestId("application-extracted-education");
+            List<ExtractedEducation>? extractedEducation = null;
+            if (await education.CountAsync() != 0)
+            {
+                extractedEducation = [];
+                foreach (var entry in await education.GetByTestId("extracted-education-entry").AllAsync())
+                {
+                    extractedEducation.Add(new ExtractedEducation(
+                        await ReadContact(entry, "education-institution"),
+                        await ReadContact(entry, "education-qualification"),
+                        await ReadContact(entry, "education-field-of-study"),
+                        await ReadContact(entry, "education-start-date"),
+                        await ReadContact(entry, "education-end-date")));
+                }
+            }
             applications.Add(new ApplicationResponse(
                 id,
                 await item.GetByTestId("application-name").InnerTextAsync(),
@@ -69,7 +84,7 @@ public sealed class ApplicantsPage(IPage page)
                 source,
                 await item.GetByTestId("application-referral").CountAsync() == 0
                     ? null : await item.GetByTestId("application-referral").InnerTextAsync(),
-                extractionStatus, extractedContacts));
+                extractionStatus, extractedContacts, extractedEducation));
         }
         return Result<IReadOnlyList<ApplicationResponse>, SystemError>.Success(applications);
     }

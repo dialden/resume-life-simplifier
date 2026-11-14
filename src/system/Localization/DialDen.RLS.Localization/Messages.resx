@@ -656,6 +656,13 @@
   <data name="Applications_ExtractionFailed" xml:space="preserve"><comment>UI text</comment><value>Information extraction failed</value></data>
   <data name="Applications_ExtractionFailedHelp" xml:space="preserve"><comment>UI text</comment><value>We could not extract information from this resume. The application and original resume are still available for review.</value></data>
   <data name="Applications_NoExtractedContacts" xml:space="preserve"><comment>UI text</comment><value>No contact information was found in this resume.</value></data>
+  <data name="Applications_Education" xml:space="preserve"><comment>UI text</comment><value>Education and certifications</value></data>
+  <data name="Applications_NoExtractedEducation" xml:space="preserve"><comment>UI text</comment><value>No education or certifications were found in this resume.</value></data>
+  <data name="Applications_EducationInstitution" xml:space="preserve"><comment>UI text</comment><value>Institution</value></data>
+  <data name="Applications_EducationQualification" xml:space="preserve"><comment>UI text</comment><value>Qualification</value></data>
+  <data name="Applications_EducationFieldOfStudy" xml:space="preserve"><comment>UI text</comment><value>Field of study</value></data>
+  <data name="Applications_EducationStartDate" xml:space="preserve"><comment>UI text</comment><value>Start date</value></data>
+  <data name="Applications_EducationEndDate" xml:space="preserve"><comment>UI text</comment><value>End date</value></data>
   <data name="Applications_ExtractedPhoneNumber" xml:space="preserve"><comment>UI text</comment><value>Phone number</value></data>
   <data name="Applications_ExtractedPostalAddress" xml:space="preserve"><comment>UI text</comment><value>Postal address</value></data>
   <data name="Applications_ExtractedLinkedInUrl" xml:space="preserve"><comment>UI text</comment><value>LinkedIn profile</value></data>

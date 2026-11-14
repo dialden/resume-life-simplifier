@@ -32,6 +32,12 @@ internal sealed class EntityFrameworkApplicationsArchive(RLSContext context) : I
                         item.ExtractedPhoneNumber,
                         item.ExtractedPostalAddress,
                         item.ExtractedLinkedInUrl)
+                    : null,
+                item.ExtractionStatus == InformationExtractionStatus.Completed
+                    ? item.EducationHistory.OrderBy(entry => entry.Position)
+                        .Select(entry => new ExtractedEducation(
+                            entry.Institution, entry.Qualification, entry.FieldOfStudy, entry.StartDate, entry.EndDate))
+                        .ToArray()
                     : null))
             .ToArrayAsync(cancellationToken);
     }

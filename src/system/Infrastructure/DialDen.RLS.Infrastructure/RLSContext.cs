@@ -69,11 +69,27 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
         application.Property(entity => entity.ExtractionStatus).HasColumnName("extraction_status")
             .HasConversion<string>().IsConcurrencyToken();
         application.Ignore(entity => entity.ExtractedContacts);
+        application.Ignore(entity => entity.ExtractedEducation);
         application.Property(entity => entity.ExtractedName).HasColumnName("extracted_name");
         application.Property(entity => entity.ExtractedEmail).HasColumnName("extracted_email");
         application.Property(entity => entity.ExtractedPhoneNumber).HasColumnName("extracted_phone_number");
         application.Property(entity => entity.ExtractedPostalAddress).HasColumnName("extracted_postal_address");
         application.Property(entity => entity.ExtractedLinkedInUrl).HasColumnName("extracted_linkedin_url");
+        application.OwnsMany(entity => entity.EducationHistory, education =>
+        {
+            education.ToTable("application_education");
+            education.WithOwner().HasForeignKey("application_id");
+            education.Property<int>("id").HasColumnName("id").UseIdentityByDefaultColumn();
+            education.HasKey("id");
+            education.Property(entity => entity.Position).HasColumnName("position");
+            education.Property(entity => entity.Institution).HasColumnName("institution");
+            education.Property(entity => entity.Qualification).HasColumnName("qualification");
+            education.Property(entity => entity.FieldOfStudy).HasColumnName("field_of_study");
+            education.Property(entity => entity.StartDate).HasColumnName("start_date");
+            education.Property(entity => entity.EndDate).HasColumnName("end_date");
+        });
+        application.Navigation(entity => entity.EducationHistory)
+            .HasField("_educationHistory").UsePropertyAccessMode(PropertyAccessMode.Field);
         application.HasOne<Posting>().WithMany().HasForeignKey(entity => entity.PostingId);
     }
 }

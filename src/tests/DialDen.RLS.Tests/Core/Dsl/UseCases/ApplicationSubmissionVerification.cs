@@ -27,6 +27,16 @@ public sealed class ApplicationSubmissionVerification(
         }
     }
 
+    public async Task EventuallyHasFailedExtractionWithoutExtractedInformation(ApplicationResponse application)
+    {
+        await EventuallyHasFailedExtraction(application);
+        var result = await driver.ListApplications(postingId);
+        result.IsSuccess.ShouldBeTrue(result.IsFailure ? result.Error.ToString() : null);
+        var current = result.Value.Single(item => item.Id == application.Id);
+        current.ExtractedContacts.ShouldBeNull();
+        current.ExtractedEducation.ShouldBeNull();
+    }
+
     public async Task EventuallyHasExtractedContactInformation(
         ApplicationResponse application, ExtractedContactInformation expected)
     {
@@ -41,6 +51,27 @@ public sealed class ApplicationSubmissionVerification(
             {
                 current.ExtractionStatus.ShouldBe("Completed");
                 current.ExtractedContacts.ShouldBe(expected);
+                return;
+            }
+            if (current.ExtractionStatus == "Failed")
+                throw new ShouldAssertException("Resume information extraction failed instead of completing.");
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
+    }
+
+    public async Task EventuallyHasExtractedEducation(
+        ApplicationResponse application, IReadOnlyList<ExtractedEducation> expected)
+    {
+        var elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            var result = await driver.ListApplications(postingId);
+            result.IsSuccess.ShouldBeTrue(result.IsFailure ? result.Error.ToString() : null);
+            var current = result.Value.Single(item => item.Id == application.Id);
+            if (current.ExtractionStatus == "Completed" || elapsed.Elapsed >= TimeSpan.FromSeconds(30))
+            {
+                current.ExtractionStatus.ShouldBe("Completed");
+                current.ExtractedEducation.ShouldNotBeNull().ShouldBe(expected);
                 return;
             }
             if (current.ExtractionStatus == "Failed")

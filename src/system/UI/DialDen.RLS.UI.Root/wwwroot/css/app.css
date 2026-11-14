@@ -306,6 +306,11 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 .applicant-extracted-fields { padding-left: 0; margin-top: 20px; }
 .applicant-extracted-fields:empty { display: none; }
 .applicant-extraction-empty { margin: 16px 0 0; font-size: 0.85rem; color: var(--workspace-muted); }
+.applicant-education { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--workspace-border); }
+.applicant-education h5 { margin: 0; font-size: 0.85rem; color: var(--workspace-ink); }
+.applicant-education-list { display: grid; gap: 16px; margin: 16px 0 0; padding: 0; list-style: none; }
+.applicant-education-list > li { padding: 16px; border: 1px solid var(--workspace-border); border-radius: 8px; background: #fff; }
+.applicant-education-fields { padding-left: 0; }
 @media (max-width: 1100px) {
     .applicant-card { grid-template-columns: minmax(0, 1fr); }
     .applicant-download { grid-column: 1; grid-row: auto; justify-self: start; margin-left: 60px; }

@@ -3,7 +3,7 @@ using DialDen.RLS.Abstractions.Applications;
 namespace DialDen.RLS.JobApplications;
 
 internal sealed class ExtractApplicationInformation(
-    IApplicationsArchive archive, IResumeContactExtraction extraction) : IExtractApplicationInformation
+    IApplicationsArchive archive, IResumeInformationExtraction extraction) : IExtractApplicationInformation
 {
     public async Task<bool> Extract(int postingId, int applicationId, CancellationToken cancellationToken)
     {
@@ -13,9 +13,9 @@ internal sealed class ExtractApplicationInformation(
         if (application.ExtractionStatus != InformationExtractionStatus.Pending)
             return false;
 
-        var contacts = await extraction.Extract(
+        var information = await extraction.Extract(
             application.ResumeFileName, application.Resume, cancellationToken);
-        application.CompleteExtraction(contacts);
+        application.CompleteExtraction(information);
         return await archive.Save(application, cancellationToken);
     }
 }

@@ -148,6 +148,65 @@ else
                                 <p class="applicant-extraction-empty">@Localizer["Applications_NoExtractedContacts"]</p>
                             }
                         }
+                        @if (application.ExtractionStatus == InformationExtractionStatus.Completed
+                            && application.ExtractedEducation is { } education)
+                        {
+                            <section class="applicant-education" data-testid="application-extracted-education"
+                                     aria-labelledby="@($"education-heading-{application.Id}")">
+                                <h5 id="@($"education-heading-{application.Id}")">@Localizer["Applications_Education"]</h5>
+                                @if (education.Count == 0)
+                                {
+                                    <p class="applicant-extraction-empty">@Localizer["Applications_NoExtractedEducation"]</p>
+                                }
+                                else
+                                {
+                                    <ol class="applicant-education-list">
+                                        @foreach (var entry in education)
+                                        {
+                                            <li data-testid="extracted-education-entry">
+                                                <dl class="applicant-fields applicant-education-fields">
+                                                    @if (entry.Institution is not null)
+                                                    {
+                                                        <div>
+                                                            <dt>@Localizer["Applications_EducationInstitution"]</dt>
+                                                            <dd data-testid="education-institution">@entry.Institution</dd>
+                                                        </div>
+                                                    }
+                                                    @if (entry.Qualification is not null)
+                                                    {
+                                                        <div>
+                                                            <dt>@Localizer["Applications_EducationQualification"]</dt>
+                                                            <dd data-testid="education-qualification">@entry.Qualification</dd>
+                                                        </div>
+                                                    }
+                                                    @if (entry.FieldOfStudy is not null)
+                                                    {
+                                                        <div>
+                                                            <dt>@Localizer["Applications_EducationFieldOfStudy"]</dt>
+                                                            <dd data-testid="education-field-of-study">@entry.FieldOfStudy</dd>
+                                                        </div>
+                                                    }
+                                                    @if (entry.StartDate is not null)
+                                                    {
+                                                        <div>
+                                                            <dt>@Localizer["Applications_EducationStartDate"]</dt>
+                                                            <dd data-testid="education-start-date">@entry.StartDate</dd>
+                                                        </div>
+                                                    }
+                                                    @if (entry.EndDate is not null)
+                                                    {
+                                                        <div>
+                                                            <dt>@Localizer["Applications_EducationEndDate"]</dt>
+                                                            <dd data-testid="education-end-date">@entry.EndDate</dd>
+                                                        </div>
+                                                    }
+                                                </dl>
+                                            </li>
+                                        }
+                                    </ol>
+                                }
+                            </section>
+                        }
                     </section>
                 </article>
             }

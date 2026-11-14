@@ -6,6 +6,8 @@ public sealed class Application(
     int id, int postingId, string name, string email, string resumeFileName,
     byte[] resume, string source, string? referralJobSiteId, InformationExtractionStatus extractionStatus)
 {
+    private readonly List<EducationHistoryEntry> _educationHistory = [];
+
     public int Id { get; private set; } = id;
     public int PostingId { get; private set; } = postingId;
     public string Name { get; private set; } = name;
@@ -20,10 +22,15 @@ public sealed class Application(
     public string? ExtractedPhoneNumber { get; private set; }
     public string? ExtractedPostalAddress { get; private set; }
     public string? ExtractedLinkedInUrl { get; private set; }
+    public IReadOnlyList<EducationHistoryEntry> EducationHistory => _educationHistory;
     public ExtractedContactInformation? ExtractedContacts => ExtractionStatus == InformationExtractionStatus.Completed
         ? new ExtractedContactInformation(
             ExtractedName, ExtractedEmail, ExtractedPhoneNumber, ExtractedPostalAddress, ExtractedLinkedInUrl)
         : null;
+    public IReadOnlyList<ExtractedEducation>? ExtractedEducation =>
+        ExtractionStatus == InformationExtractionStatus.Completed
+            ? _educationHistory.OrderBy(entry => entry.Position).Select(entry => entry.ToExtractedEducation()).ToArray()
+            : null;
 
     public void FailExtraction()
     {
@@ -38,12 +45,18 @@ public sealed class Application(
         ExtractedLinkedInUrl = null;
     }
 
-    public void CompleteExtraction(ExtractedContactInformation contacts)
+    public void CompleteExtraction(ExtractedResumeInformation information)
     {
-        ArgumentNullException.ThrowIfNull(contacts);
+        ArgumentNullException.ThrowIfNull(information);
+        ArgumentNullException.ThrowIfNull(information.Contacts);
+        ArgumentNullException.ThrowIfNull(information.Education);
         if (ExtractionStatus != InformationExtractionStatus.Pending)
             throw new InvalidOperationException($"Information extraction for application {Id} is not pending.");
 
+        var contacts = information.Contacts;
+        _educationHistory.AddRange(information.Education.Select((entry, position) =>
+            new EducationHistoryEntry(position, entry.Institution, entry.Qualification, entry.FieldOfStudy,
+                entry.StartDate, entry.EndDate)));
         ExtractionStatus = InformationExtractionStatus.Completed;
         ExtractedName = contacts.Name;
         ExtractedEmail = contacts.Email;
