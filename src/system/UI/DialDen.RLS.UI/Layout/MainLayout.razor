@@ -22,8 +22,12 @@
     <div class="workspace-shell">
         <a class="skip-link" href="#main-content">@Localizer["Accessibility_SkipToContent"]</a>
         <aside class="workspace-sidebar" aria-label="@Localizer["Accessibility_Workspace"]">
-            <a class="brand" href="/">
-                <img class="brand-logo" src="@Brand.LogoPath" alt="@Brand.LogoAltText" />
+            <a class="brand" href="/" aria-label="@Brand.Name">
+                <img class="brand-logo brand-logo-full" src="@Brand.LogoPath" alt="@Brand.LogoAltText" />
+                <span class="brand-mobile-lockup">
+                    <img class="brand-logo-mark" src="@Brand.IconPath" alt="" aria-hidden="true" />
+                    <span class="brand-mobile-name">@Brand.Name</span>
+                </span>
             </a>
 
             <div class="nav-caption">@Localizer["Navigation_Workspace"]</div>

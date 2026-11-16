@@ -2,27 +2,27 @@ namespace DialDen.RLS.UI.Branding;
 
 public sealed class BrandTheme
 {
-    public string Name => "Les Jardins du Haut-Saint-Laurent";
-    public string LogoPath => "/branding/jardins-hsl.svg";
+    public string Name => "Côté-Jardins inc.";
+    public string LogoPath => "/branding/LOGO_COTE_JARDINS_STANDARD.svg";
     public string LogoAltText => Name;
-    public string IconPath => "/branding/jardins-hsl-mark.svg";
+    public string IconPath => "/branding/LOGO_COTE_JARDINS_FLEUR_STANDARD.svg";
     public string Primary => "#1169B2";
     public string PrimaryHover => "#0B568F";
     public string PrimarySoft => "#E7EFF5";
     public string Secondary => "#05426D";
     public string Accent => "#C79A0A";
-    public string AccentSoft => "#F3ECD1";
-    public string Background => "#F2F1E8";
-    public string Surface => "#FAF9F3";
-    public string SurfaceAlt => "#E6E4D8";
+    public string AccentSoft => "#FFF8E1";
+    public string Background => "#F7F9FC";
+    public string Surface => "#FFFFFF";
+    public string SurfaceAlt => "#F1F5F9";
     public string TextPrimary => "#193A50";
     public string TextSecondary => "#526875";
-    public string Border => "#D8D6CA";
-    public string SidebarBackground => "#F2F1E8";
+    public string Border => "#DCE3EA";
+    public string SidebarBackground => "#F7F9FC";
     public string SidebarText => "#05426D";
     public string SidebarMuted => "#536B78";
-    public string SidebarHover => "#E5E3D8";
-    public string SidebarActive => "#DCE7ED";
+    public string SidebarHover => "#EAF0F5";
+    public string SidebarActive => "#E3EDF5";
     public string SidebarActiveText => "#05426D";
     public string TopbarBackground => "#05426D";
     public string TopbarText => "#FFFFFF";

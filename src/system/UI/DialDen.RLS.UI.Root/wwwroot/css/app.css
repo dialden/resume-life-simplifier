@@ -4,7 +4,7 @@
 
 body {
     margin: 0;
-    background: #f2f1e8;
+    background: #f7f9fc;
     color: #193a50;
     font-family: Inter, "Segoe UI", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -61,9 +61,13 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
     flex-direction: column;
 }
 
-.brand { display: flex; align-items: center; min-height: 60px; padding: 0 8px; text-decoration: none; }
-.brand-logo { display: block; width: 100%; max-height: 60px; object-fit: contain; object-position: left center; }
-.nav-caption { margin: 52px 16px 14px; color: var(--brand-sidebar-muted); font-size: 0.65rem; font-weight: 650; letter-spacing: 0.16em; }
+.brand { display: flex; align-items: center; justify-content: center; min-height: 136px; padding: 8px; border: 1px solid var(--brand-border); border-radius: 16px; background: var(--brand-surface); box-shadow: 0 12px 28px color-mix(in srgb, var(--brand-secondary) 8%, transparent); text-decoration: none; }
+.brand-logo-full { display: block; width: 100%; max-height: 120px; object-fit: contain; object-position: center; }
+.brand-mobile-lockup { display: none; }
+@media (min-width: 761px) {
+    .brand { border-color: transparent; background: transparent; box-shadow: none; }
+}
+.nav-caption { margin: 32px 16px 14px; color: var(--brand-sidebar-muted); font-size: 0.65rem; font-weight: 650; letter-spacing: 0.16em; }
 .workspace-nav { display: flex; flex-direction: column; gap: 6px; }
 .workspace-nav-link { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 8px; color: var(--brand-sidebar-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; border: 1px solid transparent; }
 .workspace-nav-link .mud-icon-root { font-size: 21px; }
@@ -73,7 +77,23 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 .sidebar-note .mud-icon-root { color: var(--brand-accent); margin-bottom: 12px; }
 .sidebar-note p { color: var(--brand-sidebar-muted); font-size: 0.8rem; line-height: 1.8; }
 .sidebar-footer { border-top: 1px solid var(--brand-border); padding: 20px 12px 0; color: var(--brand-sidebar-muted); font-size: 0.7rem; }
-.workspace-main { margin-left: 248px; min-height: 100dvh; display: flex; flex-direction: column; min-width: 0; background: var(--brand-background); }
+.workspace-main {
+    margin-left: 248px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background-color: var(--brand-background);
+    background-image:
+        linear-gradient(
+            color-mix(in srgb, var(--brand-background) 76%, transparent),
+            color-mix(in srgb, var(--brand-background) 76%, transparent)
+        ),
+        url("/branding/jardins-hsl-mark.svg");
+    background-size: 100% 100%, min(64vw, 760px) auto;
+    background-position: 0 0, right -110px bottom -120px;
+    background-repeat: no-repeat;
+}
 .workspace-topbar { min-height: 80px; padding: 20px 44px; background: var(--brand-topbar-background); border-bottom: 1px solid var(--brand-topbar-background); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .topbar-title { font-size: 0.85rem; color: var(--brand-topbar-text); }
 .language-switcher .mud-button-text-primary { color: var(--brand-topbar-text); }
@@ -286,12 +306,20 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 
 @media (max-width: 760px) {
     .workspace-sidebar { position: static; width: 100%; padding: 20px; }
-    .brand { padding: 0; }
-    .brand-logo { max-width: 220px; max-height: 56px; }
+    .brand { justify-content: flex-start; min-height: 64px; padding: 8px 12px; }
+    .brand-logo-full { display: none; }
+    .brand-mobile-lockup { display: flex; align-items: center; gap: 12px; }
+    .brand-logo-mark { display: block; width: 46px; height: 46px; object-fit: contain; }
+    .brand-mobile-name { color: var(--brand-sidebar-text); font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
     .nav-caption, .sidebar-note, .sidebar-footer { display: none; }
     .workspace-nav { flex-direction: row; margin-top: 20px; gap: 10px; }
     .workspace-nav-link { padding: 10px 14px; font-size: 0.8rem; gap: 8px; }
-    .workspace-main { margin-left: 0; min-height: calc(100dvh - 140px); }
+    .workspace-main {
+        margin-left: 0;
+        min-height: calc(100dvh - 140px);
+        background-size: 100% 100%, min(100vw, 460px) auto;
+        background-position: 0 0, right -120px bottom -80px;
+    }
     .workspace-topbar { min-height: 58px; padding: 16px 24px; }
     .workspace-content { padding: 28px 24px 40px; }
     .workspace-footer { padding: 0 24px 24px; }
@@ -394,28 +422,24 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
     width: 8rem;
     height: 8rem;
     inset: 20vh 0 auto 0;
-    margin: 0 auto 0 auto;
+    margin: 0 auto;
+    object-fit: contain;
+    animation: loading-flower-spin 4.5s linear infinite;
 }
 
-    .loading-progress circle {
-        fill: none;
-        stroke: #e0e0e0;
-        stroke-width: 0.6rem;
-        transform-origin: 50% 50%;
-        transform: rotate(-90deg);
-    }
+@keyframes loading-flower-spin {
+    to { transform: rotate(360deg); }
+}
 
-        .loading-progress circle:last-child {
-            stroke: #1b6ec2;
-            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-            transition: stroke-dasharray 0.05s ease-in-out;
-        }
+@media (prefers-reduced-motion: reduce) {
+    .loading-progress { animation: none; }
+}
 
 .loading-progress-text {
     position: absolute;
     text-align: center;
     font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    inset: calc(20vh + 9rem) 0 auto 0;
 }
 
     .loading-progress-text:after {

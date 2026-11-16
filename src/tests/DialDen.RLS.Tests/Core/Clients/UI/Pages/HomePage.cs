@@ -24,9 +24,11 @@ public class HomePage : BasePage
 
     public Task<string> ReadWorkspaceTitle() => _page.Locator(".topbar-title").InnerTextAsync();
 
-    public Task<bool> IsBrandLogoVisible() => _page.Locator(".brand-logo").IsVisibleAsync();
+    public Task<bool> IsBrandLogoVisible() => _page.Locator(".brand-logo-full").IsVisibleAsync();
 
-    public Task<string?> ReadBrandLogoAltText() => _page.Locator(".brand-logo").GetAttributeAsync("alt");
+    public Task<string?> ReadBrandLogoPath() => _page.Locator(".brand-logo-full").GetAttributeAsync("src");
+
+    public Task<string?> ReadBrandLogoAltText() => _page.Locator(".brand-logo-full").GetAttributeAsync("alt");
 
     public Task<string?> ReadFaviconPath() => _page.Locator("link[rel='icon']").GetAttributeAsync("href");
 

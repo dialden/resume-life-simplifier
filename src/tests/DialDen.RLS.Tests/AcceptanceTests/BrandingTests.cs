@@ -22,9 +22,20 @@ public class BrandingTests
 
         (await homePage.GetError()).ShouldBeNull();
         (await homePage.IsBrandLogoVisible()).ShouldBeTrue();
-        (await homePage.ReadBrandLogoAltText()).ShouldBe("Les Jardins du Haut-Saint-Laurent");
-        (await homePage.ReadFaviconPath()).ShouldBe("/branding/jardins-hsl-mark.svg");
-        (await homePage.ReadSidebarBackgroundColor()).ShouldBe("rgb(242, 241, 232)");
+        (await homePage.ReadBrandLogoPath()).ShouldBe("/branding/LOGO_COTE_JARDINS_STANDARD.svg");
+        (await homePage.ReadBrandLogoAltText()).ShouldBe("Côté-Jardins inc.");
+        (await homePage.ReadFaviconPath()).ShouldBe("/branding/LOGO_COTE_JARDINS_FLEUR_STANDARD.svg");
+        (await homePage.ReadSidebarBackgroundColor()).ShouldBe("rgb(247, 249, 252)");
         (await homePage.ReadPrimaryButtonBackgroundColor()).ShouldBe("rgb(17, 105, 178)");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task ShowsCompanyFlowerBeforeApplicationStarts()
+    {
+        await using var interaction = _testEnvironment.InteractWithUI();
+
+        (await interaction.ReadLoadingLogoPathBeforeBlazorStarts())
+            .ShouldBe("/branding/LOGO_COTE_JARDINS_FLEUR_STANDARD.svg");
     }
 }
