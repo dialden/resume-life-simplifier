@@ -96,6 +96,7 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 }
 .workspace-topbar { min-height: 80px; padding: 20px 44px; background: var(--brand-topbar-background); border-bottom: 1px solid var(--brand-topbar-background); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .topbar-title { font-size: 0.85rem; color: var(--brand-topbar-text); }
+.language-switcher .mud-button-root { font-family: var(--brand-font-body); font-weight: 600; letter-spacing: 0; }
 .language-switcher .mud-button-text-primary { color: var(--brand-topbar-text); }
 .language-switcher .mud-button-text-primary:hover { background: color-mix(in srgb, var(--brand-topbar-text) 14%, transparent); }
 .workspace-label { display: flex; align-items: center; gap: 9px; font-size: 0.75rem; color: var(--brand-topbar-text); }
