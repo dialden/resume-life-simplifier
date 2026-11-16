@@ -7,5 +7,7 @@ public sealed class UIInteraction(UIClient client, AsyncServiceScope scope) : IA
 {
     public Task<HomePage> OpenHomePage() => client.OpenHomePage();
 
+    public Task<string?> ReadLoadingLogoPathBeforeBlazorStarts() => client.ReadLoadingLogoPathBeforeBlazorStarts();
+
     public ValueTask DisposeAsync() => scope.DisposeAsync();
 }

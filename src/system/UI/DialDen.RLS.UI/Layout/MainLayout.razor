@@ -3,75 +3,112 @@
 @implements IAsyncDisposable
 @inject DialDen.RLS.UI.Notifications.NotificationService Notifications
 @inject DialDen.RLS.UI.Language.LanguageState Language
+@inject DialDen.RLS.UI.Branding.BrandTheme Brand
 @inject IStringLocalizer<Messages> Localizer
 
-<MudThemeProvider Theme="_theme" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<HeadContent>
+    <PageTitle>@Brand.Name</PageTitle>
+    <meta name="theme-color" content="@Brand.TopbarBackground" />
+    <meta name="description" content="@Localizer["Layout_MetaDescription"]" />
+    <link rel="icon" type="image/svg+xml" href="@Brand.IconPath" />
+</HeadContent>
 
-<div class="workspace-shell">
-    <a class="skip-link" href="#main-content">@Localizer["Accessibility_SkipToContent"]</a>
-    <aside class="workspace-sidebar" aria-label="@Localizer["Accessibility_Workspace"]">
-        <a class="brand" href="/" aria-label="@Localizer["Accessibility_Home"]">
-            <span class="brand-mark" aria-hidden="true">
-                <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
-            </span>
-            <span class="brand-name">Resume Life<span>Simplifier</span></span>
-        </a>
+<div class="brand-theme-scope" style="@Brand.CssVariables">
+    <MudThemeProvider Theme="_theme" />
+    <MudPopoverProvider />
+    <MudDialogProvider />
+    <MudSnackbarProvider />
 
-        <div class="nav-caption">@Localizer["Navigation_Workspace"]</div>
-        <nav class="workspace-nav" aria-label="@Localizer["Accessibility_MainNavigation"]">
-            <NavLink href="/" Match="NavLinkMatch.All" class="workspace-nav-link">
-                <MudIcon Icon="@Icons.Material.Outlined.SpaceDashboard" />
-                <span>@Localizer["Navigation_Overview"]</span>
-            </NavLink>
-            <NavLink href="/postings" class="workspace-nav-link">
-                <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
-                <span>@Localizer["Navigation_JobPostings"]</span>
-            </NavLink>
-        </nav>
+    <div class="workspace-shell">
+        <a class="skip-link" href="#main-content">@Localizer["Accessibility_SkipToContent"]</a>
+        <aside class="workspace-sidebar" aria-label="@Localizer["Accessibility_Workspace"]">
+            <a class="brand" href="/" aria-label="@Brand.Name">
+                <img class="brand-logo brand-logo-full" src="@Brand.LogoPath" alt="@Brand.LogoAltText" />
+                <span class="brand-mobile-lockup">
+                    <img class="brand-logo-mark" src="@Brand.IconPath" alt="" aria-hidden="true" />
+                    <span class="brand-mobile-name">@Brand.Name</span>
+                </span>
+            </a>
 
-        <div class="sidebar-note">
-            <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" />
-            <p>@Localizer["Layout_SidebarNoteFirstLine"]<br />@Localizer["Layout_SidebarNoteSecondLine"]</p>
-        </div>
-        <div class="sidebar-footer">Resume Life Simplifier</div>
-    </aside>
+            <div class="nav-caption">@Localizer["Navigation_Workspace"]</div>
+            <nav class="workspace-nav" aria-label="@Localizer["Accessibility_MainNavigation"]">
+                <NavLink href="/" Match="NavLinkMatch.All" class="workspace-nav-link">
+                    <MudIcon Icon="@Icons.Material.Outlined.SpaceDashboard" />
+                    <span>@Localizer["Navigation_Overview"]</span>
+                </NavLink>
+                <NavLink href="/postings" class="workspace-nav-link">
+                    <MudIcon Icon="@Icons.Material.Outlined.WorkOutline" />
+                    <span>@Localizer["Navigation_JobPostings"]</span>
+                </NavLink>
+            </nav>
 
-    <div class="workspace-main">
-        <header class="workspace-topbar">
-            <span class="topbar-title">@Localizer["WorkspaceTitle"]</span>
-            <div class="language-switcher" role="group" aria-label="@Localizer["Accessibility_Language"]">
-                <MudButton data-testid="language-fr"
-                           Variant="@(Language.Current.TwoLetterISOLanguageName == "fr" ? Variant.Filled : Variant.Text)"
-                           Color="Color.Primary" Size="Size.Small"
-                           OnClick="@(() => Language.ChangeAsync("fr"))"
-                           aria-label="@Localizer["Language_SelectFrench"]">FR</MudButton>
-                <MudButton data-testid="language-en"
-                           Variant="@(Language.Current.TwoLetterISOLanguageName == "en" ? Variant.Filled : Variant.Text)"
-                           Color="Color.Primary" Size="Size.Small"
-                           OnClick="@(() => Language.ChangeAsync("en"))"
-                           aria-label="@Localizer["Language_SelectEnglish"]">EN</MudButton>
+            <div class="sidebar-note">
+                <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" />
+                <p>@Localizer["Layout_SidebarNoteFirstLine"]<br />@Localizer["Layout_SidebarNoteSecondLine"]</p>
             </div>
-            <span class="workspace-label">
-                <span class="workspace-dot" aria-hidden="true"></span>
-                @Localizer["Layout_PersonalWorkspace"]
-            </span>
-        </header>
-        <main id="main-content" class="workspace-content" tabindex="-1">
-            @Body
-        </main>
-        <footer class="workspace-footer">@Localizer["Layout_Footer"]</footer>
+            <div class="sidebar-footer">@Brand.Name</div>
+        </aside>
+
+        <div class="workspace-main">
+            <header class="workspace-topbar">
+                <span class="topbar-title">@Localizer["WorkspaceTitle"]</span>
+                <div class="language-switcher" role="group" aria-label="@Localizer["Accessibility_Language"]">
+                    <MudButton data-testid="language-fr"
+                               Variant="@(Language.Current.TwoLetterISOLanguageName == "fr" ? Variant.Filled : Variant.Text)"
+                               Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => Language.ChangeAsync("fr"))"
+                               aria-label="@Localizer["Language_SelectFrench"]">FR</MudButton>
+                    <MudButton data-testid="language-en"
+                               Variant="@(Language.Current.TwoLetterISOLanguageName == "en" ? Variant.Filled : Variant.Text)"
+                               Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => Language.ChangeAsync("en"))"
+                               aria-label="@Localizer["Language_SelectEnglish"]">EN</MudButton>
+                </div>
+                <span class="workspace-label">
+                    <span class="workspace-dot" aria-hidden="true"></span>
+                    @Localizer["Layout_PersonalWorkspace"]
+                </span>
+            </header>
+            <main id="main-content" class="workspace-content" tabindex="-1">
+                @Body
+            </main>
+            <footer class="workspace-footer">@Localizer["Layout_Footer"]</footer>
+        </div>
     </div>
 </div>
 
 @code {
     private readonly CancellationTokenSource _notificationsCancellation = new();
     private Task? _notifications;
+    private MudTheme _theme = null!;
 
     protected override void OnInitialized()
     {
+        _theme = new MudTheme
+        {
+            PaletteLight = new PaletteLight
+            {
+                Primary = Brand.Primary,
+                Secondary = Brand.Secondary,
+                Background = Brand.Background,
+                Surface = Brand.Surface,
+                TextPrimary = Brand.TextPrimary,
+                TextSecondary = Brand.TextSecondary,
+                AppbarBackground = Brand.TopbarBackground,
+                AppbarText = Brand.TopbarText
+            },
+            LayoutProperties = new LayoutProperties
+            {
+                DefaultBorderRadius = "10px"
+            },
+            Typography = new Typography
+            {
+                Default = new DefaultTypography
+                {
+                    FontFamily = [Brand.BodyFontFamily]
+                }
+            }
+        };
         Language.LanguageChanged += OnLanguageChanged;
         _notifications = ObserveNotifications();
     }
@@ -113,29 +150,4 @@
             _notificationsCancellation.Dispose();
         }
     }
-
-    private readonly MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary = "#0f766e",
-            Secondary = "#152b43",
-            Background = "#f4f6fa",
-            Surface = "#ffffff",
-            TextPrimary = "#182b43",
-            TextSecondary = "#5d6b7e",
-            AppbarBackground = "#ffffff"
-        },
-        LayoutProperties = new LayoutProperties
-        {
-            DefaultBorderRadius = "10px"
-        },
-        Typography = new Typography
-        {
-            Default = new DefaultTypography
-            {
-                FontFamily = ["Inter", "Segoe UI", "Arial", "sans-serif"]
-            }
-        }
-    };
 }

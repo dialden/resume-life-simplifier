@@ -31,6 +31,21 @@ public class UIClient : IAsyncDisposable
         return await new HomePage(_page).GoToHomePage();
     }
 
+    /// <summary>
+    /// Blocks Blazor startup so it cannot replace the loading screen before inspection.
+    /// Verifies the logo image loads and decodes, then returns its path; does not check animation.
+    /// </summary>
+    public async Task<string?> ReadLoadingLogoPathBeforeBlazorStarts()
+    {
+        var page = await CreatePage();
+        await page.RouteAsync("**/_framework/blazor.webassembly*", route => route.AbortAsync());
+        await page.GotoAsync(string.Empty, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var logo = page.Locator("#app .loading-progress");
+        await logo.WaitForAsync();
+        await logo.EvaluateAsync("img => img.decode()");
+        return await logo.GetAttributeAsync("src");
+    }
+
     public Uri PublicWebsiteBaseUrl => new(_configuration.UIUrl);
 
     public async Task<PublicListingPage> OpenPublicListing(Uri address)
