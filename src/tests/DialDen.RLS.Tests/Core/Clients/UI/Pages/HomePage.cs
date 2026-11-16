@@ -24,6 +24,20 @@ public class HomePage : BasePage
 
     public Task<string> ReadWorkspaceTitle() => _page.Locator(".topbar-title").InnerTextAsync();
 
+    public Task<bool> IsBrandLogoVisible() => _page.Locator(".brand-logo").IsVisibleAsync();
+
+    public Task<string?> ReadBrandLogoAltText() => _page.Locator(".brand-logo").GetAttributeAsync("alt");
+
+    public Task<string?> ReadFaviconPath() => _page.Locator("link[rel='icon']").GetAttributeAsync("href");
+
+    public Task<string> ReadSidebarBackgroundColor() =>
+        _page.Locator(".workspace-sidebar").EvaluateAsync<string>(
+            "element => getComputedStyle(element).backgroundColor");
+
+    public Task<string> ReadPrimaryButtonBackgroundColor() =>
+        _page.Locator(".language-switcher .mud-button-filled-primary").EvaluateAsync<string>(
+            "element => getComputedStyle(element).backgroundColor");
+
     public async Task<string> ReadDocumentLanguage() =>
         await _page.Locator("html").GetAttributeAsync("lang")
         ?? throw new InvalidOperationException("The document language was not set.");

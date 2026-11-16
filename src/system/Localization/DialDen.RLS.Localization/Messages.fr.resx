@@ -80,7 +80,7 @@
   </data>
   <data name="Accessibility_Home" xml:space="preserve">
     <comment>UI text</comment>
-    <value>Accueil de Resume Life Simplifier</value>
+    <value>Accueil</value>
   </data>
   <data name="Accessibility_MainNavigation" xml:space="preserve">
     <comment>UI text</comment>
@@ -117,6 +117,10 @@
   <data name="Layout_Footer" xml:space="preserve">
     <comment>UI text</comment>
     <value>Faites place à votre prochaine occasion.</value>
+  </data>
+  <data name="Layout_MetaDescription" xml:space="preserve">
+    <comment>UI text</comment>
+    <value>Gérez les offres d'emploi et les candidatures dans un seul espace de travail.</value>
   </data>
   <data name="Language_SelectFrench" xml:space="preserve">
     <comment>UI text</comment>
