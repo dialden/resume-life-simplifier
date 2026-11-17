@@ -40,6 +40,15 @@ public class HomePage : BasePage
         _page.Locator(".language-switcher .mud-button-filled-primary").EvaluateAsync<string>(
             "element => getComputedStyle(element).backgroundColor");
 
+    public Task<string> ReadPrimaryButtonFontFamily() =>
+        _page.Locator(".language-switcher .mud-button-filled-primary").EvaluateAsync<string>(
+            "element => getComputedStyle(element).fontFamily");
+
+    public Task<int> LoadInterFontsFor(string text) =>
+        _page.EvaluateAsync<int>(
+            "async text => (await document.fonts.load('16px Inter', text)).length",
+            text);
+
     public async Task<string> ReadDocumentLanguage() =>
         await _page.Locator("html").GetAttributeAsync("lang")
         ?? throw new InvalidOperationException("The document language was not set.");

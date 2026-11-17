@@ -40,10 +40,50 @@ public class UIClient : IAsyncDisposable
         var page = await CreatePage();
         await page.RouteAsync("**/_framework/blazor.webassembly*", route => route.AbortAsync());
         await page.GotoAsync(string.Empty, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        var logo = page.Locator("#app .loading-progress");
+        var logo = page.Locator("#app img");
         await logo.WaitForAsync();
         await logo.EvaluateAsync("img => img.decode()");
         return await logo.GetAttributeAsync("src");
+    }
+
+    public Task<string> ReadLoadingCompanyNameBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app .loading-progress-text").InnerTextAsync();
+    }
+
+    public Task<string> ReadLoadingLogoAnimationNameBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app img").EvaluateAsync<string>(
+            "image => getComputedStyle(image).animationName");
+    }
+
+    public Task<string> ReadLoadingScreenBackgroundColorBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app").EvaluateAsync<string>(
+            "element => getComputedStyle(element).backgroundColor");
+    }
+
+    public Task<string> ReadLoadingLogoFilterBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app img").EvaluateAsync<string>(
+            "image => getComputedStyle(image).filter");
+    }
+
+    public Task<bool> IsLoadingBarVisibleBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.GetByRole(AriaRole.Progressbar).IsVisibleAsync();
+    }
+
+    public Task<string> ReadLoadingBarAnimationNameBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app .loading-bar-indicator").EvaluateAsync<string>(
+            "indicator => getComputedStyle(indicator).animationName");
     }
 
     public Uri PublicWebsiteBaseUrl => new(_configuration.UIUrl);

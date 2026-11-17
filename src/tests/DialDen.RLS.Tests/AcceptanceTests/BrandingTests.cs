@@ -31,11 +31,47 @@ public class BrandingTests
 
     [Trait("Category", "Acceptance")]
     [Fact]
-    public async Task ShowsCompanyFlowerBeforeApplicationStarts()
+    public async Task UsesBrandFontForButtons()
+    {
+        await using var interaction = _testEnvironment.InteractWithUI();
+        var homePage = await interaction.OpenHomePage();
+
+        (await homePage.ReadPrimaryButtonFontFamily()).ShouldBe("Inter, sans-serif");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task LoadsBundledInterForLatinAndLatinExtendedText()
+    {
+        await using var interaction = _testEnvironment.InteractWithUI();
+        var homePage = await interaction.OpenHomePage();
+
+        (await homePage.LoadInterFontsFor("Côté-Jardins")).ShouldBe(1);
+        (await homePage.LoadInterFontsFor("Ā")).ShouldBe(1);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task ShowsSpinningBackdropFlowerAndCompanyNameBeforeApplicationStarts()
     {
         await using var interaction = _testEnvironment.InteractWithUI();
 
         (await interaction.ReadLoadingLogoPathBeforeBlazorStarts())
-            .ShouldBe("/branding/LOGO_COTE_JARDINS_FLEUR_STANDARD.svg");
+            .ShouldBe("/branding/jardins-hsl-mark.svg");
+        (await interaction.ReadLoadingCompanyNameBeforeBlazorStarts()).ShouldBe("Loading Côté-Jardins inc.");
+        (await interaction.ReadLoadingLogoAnimationNameBeforeBlazorStarts()).ShouldBe("loading-flower-spin");
+        (await interaction.ReadLoadingScreenBackgroundColorBeforeBlazorStarts()).ShouldBe("rgb(255, 255, 255)");
+        (await interaction.ReadLoadingLogoFilterBeforeBlazorStarts()).ShouldBe("brightness(0.35)");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Fact]
+    public async Task ShowsAnimatedLoadingBarBeforeApplicationStarts()
+    {
+        await using var interaction = _testEnvironment.InteractWithUI();
+        await interaction.ReadLoadingLogoPathBeforeBlazorStarts();
+
+        (await interaction.IsLoadingBarVisibleBeforeBlazorStarts()).ShouldBeTrue();
+        (await interaction.ReadLoadingBarAnimationNameBeforeBlazorStarts()).ShouldBe("loading-bar-progress");
     }
 }

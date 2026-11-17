@@ -2,11 +2,29 @@
     color-scheme: light;
 }
 
+@font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter/inter-latin-ext-wght-normal.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 body {
     margin: 0;
     background: #f7f9fc;
     color: #193a50;
-    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    font-family: Inter, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -96,7 +114,7 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 }
 .workspace-topbar { min-height: 80px; padding: 20px 44px; background: var(--brand-topbar-background); border-bottom: 1px solid var(--brand-topbar-background); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .topbar-title { font-size: 0.85rem; color: var(--brand-topbar-text); }
-.language-switcher .mud-button-root { font-family: var(--brand-font-body); font-weight: 600; letter-spacing: 0; }
+.language-switcher .mud-button-root { font-weight: 600; letter-spacing: 0; }
 .language-switcher .mud-button-text-primary { color: var(--brand-topbar-text); }
 .language-switcher .mud-button-text-primary:hover { background: color-mix(in srgb, var(--brand-topbar-text) 14%, transparent); }
 .workspace-label { display: flex; align-items: center; gap: 9px; font-size: 0.75rem; color: var(--brand-topbar-text); }
@@ -417,7 +435,7 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
         content: "An error has occurred."
     }
 
-.loading-progress {
+.loading-logo {
     position: absolute;
     display: block;
     width: 8rem;
@@ -433,7 +451,40 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .loading-progress { animation: none; }
+    .loading-logo,
+    .loading-bar-indicator { animation: none; }
+}
+
+#app:has(.loading-logo) {
+    min-height: 100dvh;
+    background: #fff;
+}
+
+.loading-logo { filter: brightness(0.35); }
+
+.loading-bar {
+    position: absolute;
+    inset: calc(20vh + 8.5rem) 0 auto 0;
+    width: min(10rem, 60vw);
+    height: 0.25rem;
+    margin-inline: auto;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e7eff5;
+}
+
+.loading-bar-indicator {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: inherit;
+    background: #1169b2;
+    animation: loading-bar-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes loading-bar-progress {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(350%); }
 }
 
 .loading-progress-text {
@@ -442,10 +493,6 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
     font-weight: bold;
     inset: calc(20vh + 9rem) 0 auto 0;
 }
-
-    .loading-progress-text:after {
-        content: var(--blazor-load-percentage-text, "Loading");
-    }
 
 code {
     color: #c02d76;
