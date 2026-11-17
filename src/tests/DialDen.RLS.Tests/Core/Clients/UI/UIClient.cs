@@ -40,10 +40,44 @@ public class UIClient : IAsyncDisposable
         var page = await CreatePage();
         await page.RouteAsync("**/_framework/blazor.webassembly*", route => route.AbortAsync());
         await page.GotoAsync(string.Empty, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        var logo = page.Locator("#app .loading-progress");
+        var logo = page.Locator("#app img");
         await logo.WaitForAsync();
         await logo.EvaluateAsync("img => img.decode()");
         return await logo.GetAttributeAsync("src");
+    }
+
+    public Task<string> ReadLoadingLogoAnimationNameBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app img").EvaluateAsync<string>(
+            "image => getComputedStyle(image).animationName");
+    }
+
+    public Task<string> ReadLoadingScreenBackgroundColorBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app").EvaluateAsync<string>(
+            "element => getComputedStyle(element).backgroundColor");
+    }
+
+    public Task<string> ReadLoadingLogoFilterBeforeBlazorStarts()
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        return page.Locator("#app img").EvaluateAsync<string>(
+            "image => getComputedStyle(image).filter");
+    }
+
+    public async Task<string> ReadLoadingPercentageBeforeBlazorStarts(int? percentage = null)
+    {
+        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
+        if (percentage is not null)
+        {
+            await page.EvaluateAsync(
+                """value => document.documentElement.style.setProperty('--blazor-load-percentage-text', `"${value}%"`)""",
+                percentage.Value);
+        }
+        return await page.Locator("#app .loading-percentage").EvaluateAsync<string>(
+            """element => getComputedStyle(element, "::after").content.replace(/^"|"$/g, '')""");
     }
 
     public Uri PublicWebsiteBaseUrl => new(_configuration.UIUrl);

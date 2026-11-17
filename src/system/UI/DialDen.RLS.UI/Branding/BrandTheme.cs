@@ -27,7 +27,8 @@ public sealed class BrandTheme
     public string TopbarBackground => "#05426D";
     public string TopbarText => "#FFFFFF";
     public string Focus => "#1169B2";
-    public string BodyFontFamily => "Inter, \"Segoe UI\", Arial, sans-serif";
+    public string BodyFontFamily => "Inter, sans-serif";
+    public string[] BodyFontFamilies => ["Inter", "sans-serif"];
     public string HeadingFontFamily => BodyFontFamily;
 
     public string CssVariables =>
