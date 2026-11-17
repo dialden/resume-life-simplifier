@@ -46,12 +46,6 @@ public class UIClient : IAsyncDisposable
         return await logo.GetAttributeAsync("src");
     }
 
-    public Task<string> ReadLoadingCompanyNameBeforeBlazorStarts()
-    {
-        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
-        return page.Locator("#app .loading-progress-text").InnerTextAsync();
-    }
-
     public Task<string> ReadLoadingLogoAnimationNameBeforeBlazorStarts()
     {
         var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
@@ -73,17 +67,17 @@ public class UIClient : IAsyncDisposable
             "image => getComputedStyle(image).filter");
     }
 
-    public Task<bool> IsLoadingBarVisibleBeforeBlazorStarts()
+    public async Task<string> ReadLoadingPercentageBeforeBlazorStarts(int? percentage = null)
     {
         var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
-        return page.GetByRole(AriaRole.Progressbar).IsVisibleAsync();
-    }
-
-    public Task<string> ReadLoadingBarAnimationNameBeforeBlazorStarts()
-    {
-        var page = _page ?? throw new InvalidOperationException("The startup loading screen has not been opened.");
-        return page.Locator("#app .loading-bar-indicator").EvaluateAsync<string>(
-            "indicator => getComputedStyle(indicator).animationName");
+        if (percentage is not null)
+        {
+            await page.EvaluateAsync(
+                """value => document.documentElement.style.setProperty('--blazor-load-percentage-text', `"${value}%"`)""",
+                percentage.Value);
+        }
+        return await page.Locator("#app .loading-percentage").EvaluateAsync<string>(
+            """element => getComputedStyle(element, "::after").content.replace(/^"|"$/g, '')""");
     }
 
     public Uri PublicWebsiteBaseUrl => new(_configuration.UIUrl);

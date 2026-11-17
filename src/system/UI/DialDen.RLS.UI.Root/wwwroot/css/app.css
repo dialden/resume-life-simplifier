@@ -451,8 +451,7 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .loading-logo,
-    .loading-bar-indicator { animation: none; }
+    .loading-logo { animation: none; }
 }
 
 #app:has(.loading-logo) {
@@ -462,36 +461,25 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 
 .loading-logo { filter: brightness(0.35); }
 
-.loading-bar {
+.loading-percentage {
     position: absolute;
     inset: calc(20vh + 8.5rem) 0 auto 0;
-    width: min(10rem, 60vw);
-    height: 0.25rem;
-    margin-inline: auto;
-    overflow: hidden;
-    border-radius: 999px;
-    background: #e7eff5;
+    text-align: center;
+    color: #05426d;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
-.loading-bar-indicator {
-    display: block;
-    width: 40%;
-    height: 100%;
-    border-radius: inherit;
-    background: #1169b2;
-    animation: loading-bar-progress 1.4s ease-in-out infinite;
-}
-
-@keyframes loading-bar-progress {
-    from { transform: translateX(-120%); }
-    to { transform: translateX(350%); }
+.loading-percentage::after {
+    content: var(--blazor-load-percentage-text, "0%");
 }
 
 .loading-progress-text {
     position: absolute;
     text-align: center;
     font-weight: bold;
-    inset: calc(20vh + 9rem) 0 auto 0;
+    inset: calc(20vh + 10rem) 0 auto 0;
 }
 
 code {

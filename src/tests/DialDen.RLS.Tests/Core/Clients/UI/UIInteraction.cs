@@ -9,17 +9,14 @@ public sealed class UIInteraction(UIClient client, AsyncServiceScope scope) : IA
 
     public Task<string?> ReadLoadingLogoPathBeforeBlazorStarts() => client.ReadLoadingLogoPathBeforeBlazorStarts();
 
-    public Task<string> ReadLoadingCompanyNameBeforeBlazorStarts() => client.ReadLoadingCompanyNameBeforeBlazorStarts();
-
     public Task<string> ReadLoadingLogoAnimationNameBeforeBlazorStarts() => client.ReadLoadingLogoAnimationNameBeforeBlazorStarts();
 
     public Task<string> ReadLoadingScreenBackgroundColorBeforeBlazorStarts() => client.ReadLoadingScreenBackgroundColorBeforeBlazorStarts();
 
     public Task<string> ReadLoadingLogoFilterBeforeBlazorStarts() => client.ReadLoadingLogoFilterBeforeBlazorStarts();
 
-    public Task<bool> IsLoadingBarVisibleBeforeBlazorStarts() => client.IsLoadingBarVisibleBeforeBlazorStarts();
-
-    public Task<string> ReadLoadingBarAnimationNameBeforeBlazorStarts() => client.ReadLoadingBarAnimationNameBeforeBlazorStarts();
+    public Task<string> ReadLoadingPercentageBeforeBlazorStarts(int? percentage = null) =>
+        client.ReadLoadingPercentageBeforeBlazorStarts(percentage);
 
     public ValueTask DisposeAsync() => scope.DisposeAsync();
 }

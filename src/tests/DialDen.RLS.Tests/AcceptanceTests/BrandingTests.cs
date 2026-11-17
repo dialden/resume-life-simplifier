@@ -52,13 +52,12 @@ public class BrandingTests
 
     [Trait("Category", "Acceptance")]
     [Fact]
-    public async Task ShowsSpinningBackdropFlowerAndCompanyNameBeforeApplicationStarts()
+    public async Task ShowsSpinningBackdropFlowerBeforeApplicationStarts()
     {
         await using var interaction = _testEnvironment.InteractWithUI();
 
         (await interaction.ReadLoadingLogoPathBeforeBlazorStarts())
             .ShouldBe("/branding/jardins-hsl-mark.svg");
-        (await interaction.ReadLoadingCompanyNameBeforeBlazorStarts()).ShouldBe("Loading Côté-Jardins inc.");
         (await interaction.ReadLoadingLogoAnimationNameBeforeBlazorStarts()).ShouldBe("loading-flower-spin");
         (await interaction.ReadLoadingScreenBackgroundColorBeforeBlazorStarts()).ShouldBe("rgb(255, 255, 255)");
         (await interaction.ReadLoadingLogoFilterBeforeBlazorStarts()).ShouldBe("brightness(0.35)");
@@ -66,12 +65,13 @@ public class BrandingTests
 
     [Trait("Category", "Acceptance")]
     [Fact]
-    public async Task ShowsAnimatedLoadingBarBeforeApplicationStarts()
+    public async Task ShowsLoadingPercentageBeforeApplicationStarts()
     {
         await using var interaction = _testEnvironment.InteractWithUI();
         await interaction.ReadLoadingLogoPathBeforeBlazorStarts();
 
-        (await interaction.IsLoadingBarVisibleBeforeBlazorStarts()).ShouldBeTrue();
-        (await interaction.ReadLoadingBarAnimationNameBeforeBlazorStarts()).ShouldBe("loading-bar-progress");
+        (await interaction.ReadLoadingPercentageBeforeBlazorStarts()).ShouldBe("0%");
+        (await interaction.ReadLoadingPercentageBeforeBlazorStarts(47)).ShouldBe("47%");
+        (await interaction.ReadLoadingPercentageBeforeBlazorStarts(100)).ShouldBe("100%");
     }
 }
