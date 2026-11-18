@@ -269,42 +269,8 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
             throw new InvalidOperationException("Refusing to drop a database not owned by this harness.");
         using (var connection = new NpgsqlConnection(connectionString))
             NpgsqlConnection.ClearPool(connection);
-        try
-        {
-            await ExecuteAsync($"DROP DATABASE IF EXISTS {Quote(name)}");
-        }
-        catch (PostgresException error) when (error.SqlState == PostgresErrorCodes.ObjectInUse)
-        {
-            string sessions;
-            try
-            {
-                sessions = await DescribeDatabaseSessionsAsync(name);
-            }
-            catch (NpgsqlException diagnosticError)
-            {
-                throw new AggregateException($"Could not inspect sessions for scenario database '{name}'.",
-                    error, diagnosticError);
-            }
-            throw new InvalidOperationException($"Could not drop scenario database '{name}'. Sessions: {sessions}.", error);
-        }
+        await ExecuteAsync($"DROP DATABASE IF EXISTS {Quote(name)}");
         _databases.TryRemove(name, out _);
-    }
-
-    private async Task<string> DescribeDatabaseSessionsAsync(string name)
-    {
-        await using var connection = new NpgsqlConnection(_adminConnectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand(
-            """
-            SELECT COALESCE(string_agg(
-                format('pid=%s type=%s state=%s wait=%s/%s',
-                    pid, backend_type, state, wait_event_type, wait_event), '; ' ORDER BY pid),
-                'none visible at diagnostic time')
-            FROM pg_stat_activity
-            WHERE datname = @name
-            """, connection);
-        command.Parameters.AddWithValue("name", name);
-        return (string)(await command.ExecuteScalarAsync())!;
     }
 
     private async ValueTask DisposeResourcesAsync()
