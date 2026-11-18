@@ -20,13 +20,13 @@ public sealed class PendingResumeAnalysisResponse : IAsyncDisposable
     private int _abortedRequests;
     private long _lastAbortMilliseconds = -1;
 
-    public PendingResumeAnalysisResponse()
+    public PendingResumeAnalysisResponse(string chatPath)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.UseKestrel(options => options.ListenAnyIP(0));
         _host = builder.Build();
-        _host.MapPost("/api/chat", async context =>
+        _host.MapPost(chatPath, async context =>
         {
             Interlocked.Increment(ref _requests);
             try
@@ -53,7 +53,8 @@ public sealed class PendingResumeAnalysisResponse : IAsyncDisposable
             ?? throw new InvalidOperationException("The pending resume-analysis host has no listening address.");
         var callback = new UriBuilder(address) { Host = callbackHost }.Uri;
         _output?.WriteLine($"Held resume-analysis callback listening at {callback.Host}:{callback.Port}.");
-        return callback.ToString();
+        // WireMock appends the incoming path, including its leading slash.
+        return callback.GetLeftPart(UriPartial.Authority);
     }
 
     public void Complete(int statusCode, string body)

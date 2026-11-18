@@ -170,7 +170,9 @@ To compare a timing-sensitive failure with and without concurrency, run the
 same test filter with `-- xUnit.MaxParallelThreads=1 xUnit.ParallelAlgorithm=conservative`
 and then with `MaxParallelThreads=8`. Add `xUnit.ShowLiveOutput=true` after `--`
 to see when held resume-analysis callbacks are released and how many requests
-arrived or were aborted. If PostgreSQL refuses to drop a scenario database
+arrived or were aborted. WireMock forwards the full scenario-prefixed request
+path to the callback, so the callback must listen on that same path.
+If PostgreSQL refuses to drop a scenario database
 because it is in use, the failure includes a snapshot of its remaining sessions.
 The configured test database supplies connection settings but is not truncated or used for
 scenario data. The test role needs database-creation permissions and access to

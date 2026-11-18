@@ -50,13 +50,14 @@ public sealed class WireMockResumeAnalysisDriver(
             done_reason = "stop"
         });
         await CompletePendingResponse(200, body);
+        var chatPath = mappings.PathFor("/api/chat");
         if (holdResponse)
         {
-            _pendingResponse = new PendingResumeAnalysisResponse();
+            _pendingResponse = new PendingResumeAnalysisResponse(chatPath);
             var proxyUrl = await _pendingResponse.Start(callbackHost);
             await mappings.PostAsync(new MappingModel
             {
-                Request = new RequestModel { Path = mappings.PathFor("/api/chat"), Methods = ["POST"] },
+                Request = new RequestModel { Path = chatPath, Methods = ["POST"] },
                 Response = new ResponseModel { ProxyUrl = proxyUrl }
             });
             return;
@@ -65,7 +66,7 @@ public sealed class WireMockResumeAnalysisDriver(
         {
             Request = new RequestModel
             {
-                Path = mappings.PathFor("/api/chat"),
+                Path = chatPath,
                 Methods = ["POST"]
             },
             Response = new ResponseModel
