@@ -1,5 +1,6 @@
 @page "/jobs/{Id:int}"
-@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@layout PublicLayout
+@inherits LocalizedComponentBase
 @using System.Globalization
 @using System.Net
 @using DialDen.RLS.Abstractions.Postings
@@ -87,7 +88,7 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new JsonException("The API returned no entry point.");
             var link = entryPoint.Links.SingleOrDefault(
                 item => item is { Rel: "view-public-listing", Method: "GET" });
             if (link is null)
@@ -107,9 +108,9 @@ else
             response.EnsureSuccessStatusCode();
             _listing = await response.Content.ReadFromJsonAsync<PublicListingResponse>(
                 ApiJsonSerializerOptions.Default)
-                ?? throw new System.Text.Json.JsonException("The API returned no public listing.");
+                ?? throw new JsonException("The API returned no public listing.");
         }
-        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or JsonException)
         {
             _error = Localizer["Error_LoadPublicListing", exception.Message];
         }

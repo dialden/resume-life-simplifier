@@ -1,3 +1,5 @@
+using MudBlazor;
+
 namespace DialDen.RLS.UI.Branding;
 
 public sealed class BrandTheme
@@ -30,6 +32,30 @@ public sealed class BrandTheme
     public string BodyFontFamily => "Inter, sans-serif";
     public string[] BodyFontFamilies => ["Inter", "sans-serif"];
     public string HeadingFontFamily => BodyFontFamily;
+
+    public MudTheme CreateMudTheme() => new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = Primary,
+            Secondary = Secondary,
+            Background = Background,
+            Surface = Surface,
+            TextPrimary = TextPrimary,
+            TextSecondary = TextSecondary,
+            AppbarBackground = TopbarBackground,
+            AppbarText = TopbarText
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "10px"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = BodyFontFamilies },
+            Button = new ButtonTypography { FontFamily = BodyFontFamilies }
+        }
+    };
 
     public string CssVariables =>
         $"--brand-primary:{Primary};" +

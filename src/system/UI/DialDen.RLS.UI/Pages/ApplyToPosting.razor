@@ -1,5 +1,6 @@
 @page "/jobs/{Id:int}/apply"
-@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@layout PublicLayout
+@inherits LocalizedComponentBase
 @using System.Globalization
 @using System.Net
 @using Microsoft.Extensions.Logging
@@ -164,7 +165,7 @@
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new JsonException("The API returned no entry point.");
             var viewLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "view-public-listing", Method: "GET" });
             _submitLink = entryPoint.Links.SingleOrDefault(
@@ -184,7 +185,7 @@
             response.EnsureSuccessStatusCode();
             var listing = await response.Content.ReadFromJsonAsync<PublicListingResponse>(
                 ApiJsonSerializerOptions.Default, token)
-                ?? throw new System.Text.Json.JsonException("The API returned no public listing.");
+                ?? throw new JsonException("The API returned no public listing.");
             token.ThrowIfCancellationRequested();
             _listing = listing;
         }
@@ -192,7 +193,7 @@
         {
             // Navigation cancels requests for the previous posting.
         }
-        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or JsonException)
         {
             if (!token.IsCancellationRequested)
             {

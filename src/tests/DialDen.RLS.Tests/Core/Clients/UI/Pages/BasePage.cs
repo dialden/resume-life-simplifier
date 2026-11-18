@@ -15,7 +15,14 @@ public abstract class BasePage
 
     public async Task<HomePage> GoToHomePage()
     {
-        await _page.GetByRole(AriaRole.Link, new() { Name = "Vue d'ensemble", Exact = true }).ClickAsync();
+        if (new Uri(_page.Url).AbsolutePath.StartsWith("/jobs/", StringComparison.Ordinal))
+        {
+            await _page.GotoAsync("/");
+        }
+        else
+        {
+            await _page.GetByRole(AriaRole.Link, new() { Name = "Vue d'ensemble", Exact = true }).ClickAsync();
+        }
         await _page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/");
         return new HomePage(_page);
     }

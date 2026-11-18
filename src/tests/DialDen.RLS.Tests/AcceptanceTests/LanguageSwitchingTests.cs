@@ -14,6 +14,18 @@ public class LanguageSwitchingTests
     }
 
     [Trait("Category", "Acceptance")]
+    [Theory]
+    [InlineData("/jobs/2147483647")]
+    [InlineData("/jobs/2147483647/apply")]
+    public async Task PublicJobPagesCanSwitchBetweenFrenchAndEnglish(string path)
+    {
+        await using var interaction = _testEnvironment.InteractWithUI();
+
+        (await interaction.ReadPublicPageHeadingInLanguage(path, "en")).ShouldBe("Page not found");
+        (await interaction.ReadPublicPageHeadingInLanguage(path, "fr")).ShouldBe("Page introuvable");
+    }
+
+    [Trait("Category", "Acceptance")]
     [Fact]
     public async Task CanSwitchBetweenFrenchAndEnglishWithoutReloading()
     {

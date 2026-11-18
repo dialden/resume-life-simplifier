@@ -14,6 +14,17 @@ public class BrandingTests
     }
 
     [Trait("Category", "Acceptance")]
+    [Theory]
+    [InlineData("/jobs/2147483647")]
+    [InlineData("/jobs/2147483647/apply")]
+    public async Task PublicJobPagesDoNotShowRecruiterWorkspaceNavigation(string path)
+    {
+        await using var interaction = _testEnvironment.InteractWithUI();
+
+        (await interaction.ShowsWorkspaceNavigationAt(path)).ShouldBeFalse();
+    }
+
+    [Trait("Category", "Acceptance")]
     [Fact]
     public async Task DisplaysConfiguredCompanyBranding()
     {

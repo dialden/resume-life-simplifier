@@ -1,5 +1,5 @@
 @page "/postings/{Id:int}"
-@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@inherits LocalizedComponentBase
 @using System.Globalization
 @using System.Net
 @using DialDen.RLS.Abstractions.Postings
@@ -140,7 +140,7 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new JsonException("The API returned no entry point.");
             var viewLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "view-posting", Method: "GET" });
             if (viewLink is null)
@@ -160,7 +160,7 @@ else
             response.EnsureSuccessStatusCode();
             var posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>(
                 ApiJsonSerializerOptions.Default, token)
-                ?? throw new System.Text.Json.JsonException("The API returned no posting.");
+                ?? throw new JsonException("The API returned no posting.");
             token.ThrowIfCancellationRequested();
             _posting = posting;
 
@@ -170,7 +170,7 @@ else
         {
             // Navigation or disposal cancels this page's requests.
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             if (!token.IsCancellationRequested)
             {
@@ -203,7 +203,7 @@ else
                     case NotificationSignal.Changed:
                         var refreshed = await Api.GetFromJsonAsync<ViewPostingResponse>(
                             postingHref, ApiJsonSerializerOptions.Default, token)
-                            ?? throw new System.Text.Json.JsonException("The API returned no posting.");
+                            ?? throw new JsonException("The API returned no posting.");
 
                         await InvokeAsync(() =>
                         {
@@ -222,7 +222,7 @@ else
             // Navigation or disposal ends the observation.
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException
-            or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
+            or JsonException or InvalidOperationException or OperationCanceledException)
         {
             Logger.LogWarning(ex, "Live posting updates stopped.");
             await InvokeAsync(() =>
