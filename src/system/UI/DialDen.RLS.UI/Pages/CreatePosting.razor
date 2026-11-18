@@ -1,5 +1,6 @@
 @page "/postings/create"
-@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@inherits LocalizedComponentBase
+@using System.Net
 @using DialDen.RLS.Abstractions.Postings
 @inject HttpClient Api
 @inject NavigationManager Navigation
@@ -83,7 +84,7 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new JsonException("The API returned no entry point.");
             _createLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "create-posting", Method: "POST" });
             if (_createLink is null)
@@ -91,7 +92,7 @@ else
                 _loadError = () => Localizer["Error_ApiActionUnavailable_CreatePosting"];
             }
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             _loadError = () => Localizer["Error_LoadCreatePosting", ex.Message];
         }
@@ -112,9 +113,9 @@ else
         try
         {
             using var response = await Api.PostAsJsonAsync(link.Href, new CreatePostingRequest(_title, _description));
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                var problem = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
                 var messages = problem.GetProperty("errors").EnumerateObject()
                     .SelectMany(error => error.Value.EnumerateArray())
                     .Select(error => error.GetString()).ToArray();
@@ -124,10 +125,10 @@ else
             response.EnsureSuccessStatusCode();
             _ = await response.Content.ReadFromJsonAsync<CreatePostingResponse>(
                 ApiJsonSerializerOptions.Default)
-                ?? throw new System.Text.Json.JsonException("The API returned no created posting.");
+                ?? throw new JsonException("The API returned no created posting.");
             Navigation.NavigateTo("/postings");
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             _creationError = () => Localizer["Error_CreatePosting", ex.Message];
         }

@@ -1,9 +1,10 @@
 ﻿@inherits LayoutComponentBase
 
 @implements IAsyncDisposable
-@inject DialDen.RLS.UI.Notifications.NotificationService Notifications
-@inject DialDen.RLS.UI.Language.LanguageState Language
-@inject DialDen.RLS.UI.Branding.BrandTheme Brand
+@using DialDen.RLS.UI.Notifications
+@inject NotificationService Notifications
+@inject LanguageState Language
+@inject BrandTheme Brand
 @inject IStringLocalizer<Messages> Localizer
 
 <HeadContent>
@@ -52,18 +53,7 @@
         <div class="workspace-main">
             <header class="workspace-topbar">
                 <span class="topbar-title">@Localizer["WorkspaceTitle"]</span>
-                <div class="language-switcher" role="group" aria-label="@Localizer["Accessibility_Language"]">
-                    <MudButton data-testid="language-fr"
-                               Variant="@(Language.Current.TwoLetterISOLanguageName == "fr" ? Variant.Filled : Variant.Text)"
-                               Color="Color.Primary" Size="Size.Small"
-                               OnClick="@(() => Language.ChangeAsync("fr"))"
-                               aria-label="@Localizer["Language_SelectFrench"]">FR</MudButton>
-                    <MudButton data-testid="language-en"
-                               Variant="@(Language.Current.TwoLetterISOLanguageName == "en" ? Variant.Filled : Variant.Text)"
-                               Color="Color.Primary" Size="Size.Small"
-                               OnClick="@(() => Language.ChangeAsync("en"))"
-                               aria-label="@Localizer["Language_SelectEnglish"]">EN</MudButton>
-                </div>
+                <LanguageSwitcher />
                 <span class="workspace-label">
                     <span class="workspace-dot" aria-hidden="true"></span>
                     @Localizer["Layout_PersonalWorkspace"]
@@ -84,35 +74,7 @@
 
     protected override void OnInitialized()
     {
-        _theme = new MudTheme
-        {
-            PaletteLight = new PaletteLight
-            {
-                Primary = Brand.Primary,
-                Secondary = Brand.Secondary,
-                Background = Brand.Background,
-                Surface = Brand.Surface,
-                TextPrimary = Brand.TextPrimary,
-                TextSecondary = Brand.TextSecondary,
-                AppbarBackground = Brand.TopbarBackground,
-                AppbarText = Brand.TopbarText
-            },
-            LayoutProperties = new LayoutProperties
-            {
-                DefaultBorderRadius = "10px"
-            },
-            Typography = new Typography
-            {
-                Default = new DefaultTypography
-                {
-                    FontFamily = Brand.BodyFontFamilies
-                },
-                Button = new ButtonTypography
-                {
-                    FontFamily = Brand.BodyFontFamilies
-                }
-            }
-        };
+        _theme = Brand.CreateMudTheme();
         Language.LanguageChanged += OnLanguageChanged;
         _notifications = ObserveNotifications();
     }
@@ -121,7 +83,7 @@
     {
         _ = InvokeAsync(() =>
         {
-            DialDen.RLS.UI.Language.LanguageState.Apply(Language.Current);
+            LanguageState.Apply(Language.Current);
             StateHasChanged();
         });
     }

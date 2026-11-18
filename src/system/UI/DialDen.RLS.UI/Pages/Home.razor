@@ -1,5 +1,5 @@
 ﻿@page "/"
-@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@inherits LocalizedComponentBase
 
 @inject IStringLocalizer<Messages> Localizer
 
@@ -97,7 +97,7 @@ else
         {
             _entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/");
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             _error = () => Localizer["Error_ApiUnreachable", ex.Message];
         }

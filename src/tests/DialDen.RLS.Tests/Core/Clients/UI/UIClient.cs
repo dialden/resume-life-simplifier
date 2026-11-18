@@ -82,6 +82,26 @@ public class UIClient : IAsyncDisposable
 
     public Uri PublicWebsiteBaseUrl => new(_configuration.UIUrl);
 
+    public async Task<string> ReadPublicPageHeadingInLanguage(string path, string language)
+    {
+        var page = _page ?? await CreatePage();
+        if (new Uri(page.Url).AbsolutePath != path)
+        {
+            await page.GotoAsync(path);
+        }
+        await page.GetByRole(AriaRole.Heading, new() { Level = 1 }).WaitForAsync();
+        await new HomePage(page).SelectLanguage(language);
+        return await page.GetByRole(AriaRole.Heading, new() { Level = 1 }).InnerTextAsync();
+    }
+
+    public async Task<bool> ShowsWorkspaceNavigationAt(string path)
+    {
+        var page = _page ?? await CreatePage();
+        await page.GotoAsync(path);
+        await page.GetByRole(AriaRole.Heading, new() { Level = 1 }).WaitForAsync();
+        return await page.Locator(".workspace-sidebar").IsVisibleAsync();
+    }
+
     public async Task<PublicListingPage> OpenPublicListing(Uri address)
     {
         var page = _page ?? await CreatePage();

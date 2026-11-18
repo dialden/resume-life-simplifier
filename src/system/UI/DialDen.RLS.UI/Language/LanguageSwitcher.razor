@@ -1,0 +1,16 @@
+@inherits LocalizedComponentBase
+@inject LanguageState Language
+@inject IStringLocalizer<Messages> Localizer
+
+<div class="language-switcher" role="group" aria-label="@Localizer["Accessibility_Language"]">
+    <MudButton data-testid="language-fr"
+               Variant="@(Language.Current.TwoLetterISOLanguageName == "fr" ? Variant.Filled : Variant.Text)"
+               Color="Color.Primary" Size="Size.Small"
+               OnClick="@(() => Language.ChangeAsync("fr"))"
+               aria-label="@Localizer["Language_SelectFrench"]">FR</MudButton>
+    <MudButton data-testid="language-en"
+               Variant="@(Language.Current.TwoLetterISOLanguageName == "en" ? Variant.Filled : Variant.Text)"
+               Color="Color.Primary" Size="Size.Small"
+               OnClick="@(() => Language.ChangeAsync("en"))"
+               aria-label="@Localizer["Language_SelectEnglish"]">EN</MudButton>
+</div>

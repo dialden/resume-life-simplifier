@@ -1,0 +1,49 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject BrandTheme Brand
+@inject LanguageState Language
+@inject IStringLocalizer<Messages> Localizer
+
+<HeadContent>
+    <meta name="theme-color" content="@Brand.Background" />
+    <link rel="icon" type="image/svg+xml" href="@Brand.IconPath" />
+</HeadContent>
+
+<div class="brand-theme-scope public-shell" style="@Brand.CssVariables">
+    <MudThemeProvider Theme="_theme" />
+    <MudPopoverProvider />
+    <MudDialogProvider />
+    <MudSnackbarProvider />
+
+    <a class="skip-link" href="#main-content">@Localizer["Accessibility_SkipToContent"]</a>
+    <div class="public-language-bar">
+        <LanguageSwitcher />
+    </div>
+    <main id="main-content" class="workspace-content" tabindex="-1">
+        @Body
+    </main>
+</div>
+
+@code {
+    private MudTheme _theme = null!;
+
+    protected override void OnInitialized()
+    {
+        _theme = Brand.CreateMudTheme();
+        Language.LanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            LanguageState.Apply(Language.Current);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        Language.LanguageChanged -= OnLanguageChanged;
+    }
+}

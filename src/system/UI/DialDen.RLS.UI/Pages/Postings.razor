@@ -1,5 +1,6 @@
 @page "/postings"
-@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@inherits LocalizedComponentBase
+@using System.Net
 @using DialDen.RLS.Abstractions.Postings
 @using System.Globalization
 @using DialDen.RLS.UI.Notifications
@@ -298,7 +299,7 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new JsonException("The API returned no entry point.");
             if (version != _loadVersion)
             {
                 return;
@@ -319,14 +320,14 @@ else
                 return;
             }
             var sites = await Api.GetFromJsonAsync<JobSite[]>(sitesLink.Href, token)
-                ?? throw new System.Text.Json.JsonException("The API returned no job-site destinations.");
+                ?? throw new JsonException("The API returned no job-site destinations.");
 
             var separator = listLink.Href.Contains('?') ? '&' : '?';
             var href = $"{listLink.Href}{separator}pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}";
             var page = await Api.GetFromJsonAsync<ListPostingsResponse>(
                     href,
                     ApiJsonSerializerOptions.Default, token)
-                ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
+                ?? throw new JsonException("The API returned no postings page.");
             if (version == _loadVersion && !token.IsCancellationRequested)
             {
                 _page = page;
@@ -338,7 +339,7 @@ else
         {
             // Navigation cancels this page's requests.
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             if (version == _loadVersion)
             {
@@ -373,7 +374,7 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/")
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new JsonException("The API returned no entry point.");
             var publishLink = entryPoint.Links.SingleOrDefault(
                 link => link is { Rel: "publish-posting", Method: "PATCH" });
             if (publishLink is null)
@@ -392,8 +393,8 @@ else
                 var statusCode = response.StatusCode;
                 _publishError = () => statusCode switch
                 {
-                    System.Net.HttpStatusCode.NotFound => Localizer["Error_PostingNotFound"],
-                    System.Net.HttpStatusCode.Conflict => Localizer["Api_PostingAlreadyPublished"],
+                    HttpStatusCode.NotFound => Localizer["Error_PostingNotFound"],
+                    HttpStatusCode.Conflict => Localizer["Api_PostingAlreadyPublished"],
                     _ => Localizer["Error_PublishPostingHttp", (int)statusCode]
                 };
                 return;
@@ -401,7 +402,7 @@ else
 
             var published = await response.Content.ReadFromJsonAsync<PublishPostingResponse>(
                     ApiJsonSerializerOptions.Default)
-                ?? throw new System.Text.Json.JsonException("The API returned no published posting.");
+                ?? throw new JsonException("The API returned no published posting.");
             if (_disposed || version != _loadVersion || _page is null)
             {
                 return;
@@ -421,7 +422,7 @@ else
             _selectedJobSiteIds.Clear();
             _showPublishDialog = false;
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             _publishError = () => Localizer["Error_PublishPosting", ex.Message];
         }
@@ -459,7 +460,7 @@ else
                         {
                             var refreshed = await Api.GetFromJsonAsync<ListPostingsResponse>(
                                 pageHref, ApiJsonSerializerOptions.Default, token)
-                                ?? throw new System.Text.Json.JsonException("The API returned no postings page.");
+                                ?? throw new JsonException("The API returned no postings page.");
                             await InvokeAsync(() =>
                             {
                                 if (!token.IsCancellationRequested && version == _loadVersion)
@@ -482,7 +483,7 @@ else
             // Navigation or disposal ends the observation.
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException
-            or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
+            or JsonException or InvalidOperationException or OperationCanceledException)
         {
             Logger.LogWarning(ex, "Live postings updates stopped.");
             await InvokeAsync(() =>

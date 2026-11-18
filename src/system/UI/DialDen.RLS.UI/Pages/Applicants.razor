@@ -1,5 +1,5 @@
 @page "/postings/{Id:int}/applicants"
-@inherits DialDen.RLS.UI.Language.LocalizedComponentBase
+@inherits LocalizedComponentBase
 @using System.Globalization
 @using System.Net
 @using DialDen.RLS.Abstractions.Postings
@@ -182,7 +182,7 @@ else
         try
         {
             var entryPoint = await Api.GetFromJsonAsync<RLSEntryPoint>("/", token)
-                ?? throw new System.Text.Json.JsonException("The API returned no entry point.");
+                ?? throw new JsonException("The API returned no entry point.");
             var postingLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "view-posting", Method: "GET" });
             var applicationsLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "list-applications", Method: "GET" });
             var resumeLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "download-resume", Method: "GET" });
@@ -200,10 +200,10 @@ else
             }
             response.EnsureSuccessStatusCode();
             var posting = await response.Content.ReadFromJsonAsync<ViewPostingResponse>(ApiJsonSerializerOptions.Default, token)
-                ?? throw new System.Text.Json.JsonException("The API returned no posting.");
+                ?? throw new JsonException("The API returned no posting.");
             var applicationsHref = applicationsLink.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture));
             var applications = await Api.GetFromJsonAsync<ApplicationResponse[]>(applicationsHref, ApiJsonSerializerOptions.Default, token)
-                ?? throw new System.Text.Json.JsonException("The API returned no applications.");
+                ?? throw new JsonException("The API returned no applications.");
             token.ThrowIfCancellationRequested();
             _posting = posting;
             _applications = applications;
@@ -214,7 +214,7 @@ else
         {
             // Navigation cancels requests for the previous posting.
         }
-        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or JsonException)
         {
             if (!token.IsCancellationRequested)
             {
@@ -246,7 +246,7 @@ else
 
                 var applications = await Api.GetFromJsonAsync<ApplicationResponse[]>(
                     applicationsHref, ApiJsonSerializerOptions.Default, token)
-                    ?? throw new System.Text.Json.JsonException("The API returned no applications.");
+                    ?? throw new JsonException("The API returned no applications.");
                 await InvokeAsync(() =>
                 {
                     if (!token.IsCancellationRequested)
@@ -263,7 +263,7 @@ else
             // Navigation or disposal ends the observation.
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException
-            or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
+            or JsonException or InvalidOperationException or OperationCanceledException)
         {
             Logger.LogWarning(exception, "Live applicant updates stopped.");
             await InvokeAsync(() =>

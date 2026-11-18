@@ -7,6 +7,11 @@ public sealed class UIInteraction(UIClient client, AsyncServiceScope scope) : IA
 {
     public Task<HomePage> OpenHomePage() => client.OpenHomePage();
 
+    public Task<string> ReadPublicPageHeadingInLanguage(string path, string language) =>
+        client.ReadPublicPageHeadingInLanguage(path, language);
+
+    public Task<bool> ShowsWorkspaceNavigationAt(string path) => client.ShowsWorkspaceNavigationAt(path);
+
     public Task<string?> ReadLoadingLogoPathBeforeBlazorStarts() => client.ReadLoadingLogoPathBeforeBlazorStarts();
 
     public Task<string> ReadLoadingLogoAnimationNameBeforeBlazorStarts() => client.ReadLoadingLogoAnimationNameBeforeBlazorStarts();
