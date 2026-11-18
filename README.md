@@ -165,6 +165,13 @@ scenario gets a clone; cleanup removes only that scenario's database and stub
 mappings/request logs. Assembly disposal drops the template.
 WireMock request-log cleanup is serialized per server within the test process
 to avoid its shared journal's concurrent-deletion race; scenarios remain parallel.
+
+To compare a timing-sensitive failure with and without concurrency, run the
+same test filter with `-- xUnit.MaxParallelThreads=1 xUnit.ParallelAlgorithm=conservative`
+and then with `MaxParallelThreads=8`. Add `xUnit.ShowLiveOutput=true` after `--`
+to see when held resume-analysis callbacks are released and how many requests
+arrived or were aborted. If PostgreSQL refuses to drop a scenario database
+because it is in use, the failure includes a snapshot of its remaining sessions.
 The configured test database supplies connection settings but is not truncated or used for
 scenario data. The test role needs database-creation permissions and access to
 the `postgres` maintenance database. Flyway must be on `PATH`, and PostgreSQL

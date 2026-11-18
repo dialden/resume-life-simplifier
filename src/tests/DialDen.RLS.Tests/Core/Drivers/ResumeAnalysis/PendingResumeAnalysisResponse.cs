@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -13,6 +14,11 @@ public sealed class PendingResumeAnalysisResponse : IAsyncDisposable
     private readonly TaskCompletionSource<(int StatusCode, string Body)> _response =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly WebApplication _host;
+    private readonly Stopwatch _elapsed = Stopwatch.StartNew();
+    private readonly ITestOutputHelper? _output = TestContext.Current.TestOutputHelper;
+    private int _requests;
+    private int _abortedRequests;
+    private long _lastAbortMilliseconds = -1;
 
     public PendingResumeAnalysisResponse()
     {
@@ -22,10 +28,20 @@ public sealed class PendingResumeAnalysisResponse : IAsyncDisposable
         _host = builder.Build();
         _host.MapPost("/api/chat", async context =>
         {
-            var response = await _response.Task.WaitAsync(context.RequestAborted);
-            context.Response.StatusCode = response.StatusCode;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(response.Body, context.RequestAborted);
+            Interlocked.Increment(ref _requests);
+            try
+            {
+                var response = await _response.Task.WaitAsync(context.RequestAborted);
+                context.Response.StatusCode = response.StatusCode;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(response.Body, context.RequestAborted);
+            }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                Interlocked.Increment(ref _abortedRequests);
+                Interlocked.Exchange(ref _lastAbortMilliseconds, _elapsed.ElapsedMilliseconds);
+                throw;
+            }
         });
     }
 
@@ -35,15 +51,31 @@ public sealed class PendingResumeAnalysisResponse : IAsyncDisposable
         var address = _host.Services.GetRequiredService<IServer>()
             .Features.Get<IServerAddressesFeature>()?.Addresses.Single()
             ?? throw new InvalidOperationException("The pending resume-analysis host has no listening address.");
-        return new UriBuilder(address) { Host = callbackHost }.Uri.ToString();
+        var callback = new UriBuilder(address) { Host = callbackHost }.Uri;
+        _output?.WriteLine($"Held resume-analysis callback listening at {callback.Host}:{callback.Port}.");
+        return callback.ToString();
     }
 
-    public void Complete(int statusCode, string body) =>
+    public void Complete(int statusCode, string body)
+    {
+        _output?.WriteLine($"Releasing held resume analysis after {_elapsed.ElapsedMilliseconds} ms (HTTP {statusCode}).");
         _response.SetResult((statusCode, body));
+    }
 
     public async ValueTask DisposeAsync()
     {
-        await _host.StopAsync();
-        await _host.DisposeAsync();
+        try
+        {
+            await _host.StopAsync();
+            await _host.DisposeAsync();
+        }
+        finally
+        {
+            var lastAbort = Interlocked.Read(ref _lastAbortMilliseconds);
+            _output?.WriteLine(
+                $"Held resume analysis: {Volatile.Read(ref _requests)} requests, " +
+                $"{Volatile.Read(ref _abortedRequests)} aborted" +
+                (lastAbort >= 0 ? $" (last abort at {lastAbort} ms)." : "."));
+        }
     }
 }

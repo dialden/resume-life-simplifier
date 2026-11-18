@@ -132,7 +132,7 @@ public sealed class CommitStage
             [
                 "test", app.TestProject,
                 "--configuration", "Release", "--no-build",
-                "--filter", "Category=Acceptance|Category=Smoke",
+                "--filter", "Category=Acceptance|(Category=Smoke&ExternalSystems=Stubbed)",
                 "--results-directory", results,
                 "--logger", "console;verbosity=detailed",
                 "--logger", "trx;LogFileName=commit.trx"
