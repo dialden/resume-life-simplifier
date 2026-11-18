@@ -131,16 +131,19 @@ The harness types live in `src/tests/DialDen.RLS.Tests/Fixtures`:
 
 - `TestHarness` is the assembly fixture and composes scenarios' clients, drivers,
   and DSLs.
-- `TestHarnessResources` owns a Flyway-migrated database template, shared
-  access to the WireMock servers, and a lazily created Playwright/browser pair.
+- `TestHarness` owns a Flyway-migrated database template, shared WireMock
+  access, and a lazily created Playwright/browser pair. Private methods
+  encapsulate initialization, scenario setup, and cleanup.
 - `TestScenarioSelection` captures the external-system mode and interaction
   channel without starting an environment.
 - `TestScope` owns the scenario's interactions and environment and disposes
   them after execution, including failed assertions.
 - `TestEnvironment` owns a cloned database, separate API and worker hosts,
-  a UI host when needed, and a unique stub URI namespace. It does not compose
-  interactions. Real-system environments retain their configured external
-  endpoints rather than redirecting them to WireMock.
+  a UI host when needed, and the scenario's WireMock mappings and request logs.
+  After stopping its hosts, it uses `IDatabaseCleanup` to drop the clone and
+  removes the scoped mappings and logs. Drivers configure the mappings but
+  don't own their cleanup. Real-system environments retain their configured
+  external endpoints rather than redirecting them to WireMock.
 
 `TestHarness` exposes only `For(...)` to scenarios. xUnit manages initialization
 and disposal through explicitly implemented lifecycle interfaces. The returned

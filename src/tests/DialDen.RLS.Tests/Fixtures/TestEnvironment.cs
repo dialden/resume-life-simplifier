@@ -1,12 +1,14 @@
+using DialDen.RLS.Tests.Core.Clients;
 using DialDen.RLS.Tests.Extensions;
 using Microsoft.Extensions.Configuration;
+using WireMock.Client;
 
 namespace DialDen.RLS.Tests.Fixtures;
 
-/// <summary>Owns one scenario's application hosts, database clone, and external-system namespace.</summary>
+/// <summary>Owns one scenario's application hosts, database clone, and stub mappings.</summary>
 public sealed class TestEnvironment : IAsyncDisposable
 {
-    private readonly TestHarnessResources _resources;
+    private readonly IDatabaseCleanup _databaseCleanup;
     private readonly string _databaseName;
     private readonly IHttpHost _apiHost;
     private readonly IHttpHost? _uiHost;
@@ -17,19 +19,22 @@ public sealed class TestEnvironment : IAsyncDisposable
     public RLSConfiguration Configuration =>
         _configuration ?? throw new InvalidOperationException("The API host has not been started.");
 
-    public string ExternalSystemsPath { get; }
+    public WireMockMappings? JobSiteMappings { get; }
+    public WireMockMappings? ResumeAnalysisMappings { get; }
     public IReadOnlyList<string> JobSiteIds { get; }
 
-    public TestEnvironment(TestHarnessResources resources, string databaseName, string connectionString,
-        ExternalSystems externalSystems, Channel channel)
+    public TestEnvironment(string databaseName, string connectionString, ExternalSystems externalSystems,
+        Channel channel, IConfiguration workerConfiguration,
+        (Uri Url, IWireMockAdminApi Admin)? jobSitesStub,
+        (Uri Url, IWireMockAdminApi Admin)? resumeAnalysisStub,
+        IDatabaseCleanup databaseCleanup)
     {
-        _resources = resources;
+        _databaseCleanup = databaseCleanup;
         _databaseName = databaseName;
-        ExternalSystemsPath = $"/harness/{databaseName}";
-        var (configurationPrefix, workerConfiguration) = externalSystems switch
+        var configurationPrefix = externalSystems switch
         {
-            ExternalSystems.Stubbed => ("STUBBED_EXT_SYSTEMS_", resources.WorkerConfiguration),
-            ExternalSystems.Real => ("REAL_EXT_SYSTEMS_", resources.RealWorkerConfiguration),
+            ExternalSystems.Stubbed => "STUBBED_EXT_SYSTEMS_",
+            ExternalSystems.Real => "REAL_EXT_SYSTEMS_",
             _ => throw new ArgumentOutOfRangeException(nameof(externalSystems), externalSystems, null)
         };
         var sites = externalSystems == ExternalSystems.Stubbed
@@ -50,16 +55,22 @@ public sealed class TestEnvironment : IAsyncDisposable
         var workerSettings = new Dictionary<string, string?>(settings);
         if (externalSystems == ExternalSystems.Stubbed)
         {
+            if (jobSitesStub is not { } jobSites || resumeAnalysisStub is not { } resumeAnalysis)
+                throw new InvalidOperationException("Configure both WireMock servers for stubbed scenarios.");
+
+            var pathPrefix = $"/harness/{databaseName}";
+            var stubPath = pathPrefix.TrimStart('/') + "/";
+            JobSiteMappings = new(jobSites.Admin, pathPrefix, jobSites.Url);
+            ResumeAnalysisMappings = new(resumeAnalysis.Admin, pathPrefix, resumeAnalysis.Url);
             workerSettings["JobSites:Type"] = "stubbed";
-            workerSettings["Ollama:Endpoint"] =
-                new Uri(resources.ResumeAnalysisUrl, ExternalSystemsPath.TrimStart('/') + "/").ToString();
+            workerSettings["Ollama:Endpoint"] = new Uri(resumeAnalysis.Url, stubPath).ToString();
             workerSettings["Ollama:IdentityTokenAudience"] = "https://test-resume-analysis.run.app";
             workerSettings["Ollama:AllowInsecureAuthenticatedEndpoint"] = "true";
-            workerSettings["Ollama:IdentityMetadataEndpoint"] = new Uri(resources.ResumeAnalysisUrl,
-                ExternalSystemsPath.TrimStart('/') + "/computeMetadata/v1/instance/service-accounts/default/identity").ToString();
+            workerSettings["Ollama:IdentityMetadataEndpoint"] = new Uri(resumeAnalysis.Url,
+                stubPath + "computeMetadata/v1/instance/service-accounts/default/identity").ToString();
             foreach (var site in sites)
                 workerSettings[$"JobSites:Sites:{site.Key}:Url"] =
-                    new Uri(resources.JobSitesUrl, ExternalSystemsPath.TrimStart('/') + "/").ToString();
+                    new Uri(jobSites.Url, stubPath).ToString();
         }
         _workerHost = new InProcessWorkerHost(configurationPrefix, workerSettings);
         _apiHost = new InProcessAPIHttpHost(configurationPrefix, settings);
@@ -92,6 +103,8 @@ public sealed class TestEnvironment : IAsyncDisposable
             () => { _uiHost?.Dispose(); return ValueTask.CompletedTask; },
             () => { _apiHost.Dispose(); return ValueTask.CompletedTask; },
             () => { _workerHost.Dispose(); return ValueTask.CompletedTask; },
-            () => _resources.DropDatabaseAsync(_databaseName));
+            () => _databaseCleanup.DropDatabaseAsync(_databaseName),
+            () => JobSiteMappings?.DisposeAsync() ?? ValueTask.CompletedTask,
+            () => ResumeAnalysisMappings?.DisposeAsync() ?? ValueTask.CompletedTask);
     }
 }
