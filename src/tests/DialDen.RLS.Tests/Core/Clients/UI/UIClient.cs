@@ -4,7 +4,7 @@ using Microsoft.Playwright;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI;
 
-public class UIClient : IAsyncDisposable
+public class UIClient : IUIClient, IAsyncDisposable
 {
     private readonly Func<Task<IBrowser>> _getBrowser;
     private readonly RLSConfiguration _configuration;

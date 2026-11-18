@@ -11,27 +11,25 @@ public class LanguageSwitchingTests(TestHarness harness)
     [InlineData("/jobs/2147483647/apply")]
     public async Task PublicJobPagesCanSwitchBetweenFrenchAndEnglish(string path)
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
 
-        (await interaction.ReadPublicPageHeadingInLanguage(path, "en")).ShouldBe("Page not found");
-        (await interaction.ReadPublicPageHeadingInLanguage(path, "fr")).ShouldBe("Page introuvable");
+        (await ui.ReadPublicPageHeadingInLanguage(path, "en")).ShouldBe("Page not found");
+        (await ui.ReadPublicPageHeadingInLanguage(path, "fr")).ShouldBe("Page introuvable");
     }
 
     [Trait("Category", "Acceptance")]
     [Fact]
     public async Task CanSwitchBetweenFrenchAndEnglishWithoutReloading()
     {
-        await harness.For(ExternalSystems.Stubbed).Through(Channel.UI, async interaction =>
-        {
-            var homePage = await interaction.OpenHomePage();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
+        var homePage = await ui.OpenHomePage();
 
-            await homePage.SelectLanguage("en");
-            (await homePage.ReadWorkspaceTitle()).ShouldBe("Your career workspace");
-            (await homePage.ReadDocumentLanguage()).ShouldBe("en");
+        await homePage.SelectLanguage("en");
+        (await homePage.ReadWorkspaceTitle()).ShouldBe("Your career workspace");
+        (await homePage.ReadDocumentLanguage()).ShouldBe("en");
 
-            await homePage.SelectLanguage("fr");
-            (await homePage.ReadWorkspaceTitle()).ShouldBe("Votre espace carrière");
-            (await homePage.ReadDocumentLanguage()).ShouldBe("fr");
-        });
+        await homePage.SelectLanguage("fr");
+        (await homePage.ReadWorkspaceTitle()).ShouldBe("Votre espace carrière");
+        (await homePage.ReadDocumentLanguage()).ShouldBe("fr");
     }
 }

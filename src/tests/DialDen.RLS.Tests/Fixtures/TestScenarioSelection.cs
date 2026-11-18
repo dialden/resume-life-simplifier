@@ -1,4 +1,3 @@
-using DialDen.RLS.Tests.Core.Clients.UI;
 using DialDen.RLS.Tests.Core.Dsl;
 using DialDen.RLS.Tests.Core.Dsl.Scenario;
 using DialDen.RLS.Tests.Extensions;
@@ -16,21 +15,18 @@ public sealed class TestScenarioSelection(Func<Channel, ValueTask<TestScope>> cr
         if (!Enum.IsDefined(channel))
             throw new ArgumentOutOfRangeException(nameof(channel));
 
-        return new UseCaseDsl(async () =>
-        {
-            var scope = await createScope(channel);
-            return (scope.Interaction, scope);
-        }).Scenario();
+        return new UseCaseDsl(run => RunInScopeAsync(channel, scope => run(scope.Interaction))).Scenario();
     }
 
-    public async Task Through(Channel channel, Func<UIInteraction, Task> interact)
+    /// <summary>Opens a UI scenario that is cleaned up when the returned client proxy is disposed.</summary>
+    public async ValueTask<ScopedUIClient> ThroughUI() => new(await createScope(Channel.UI));
+
+    private async Task RunInScopeAsync(Channel channel, Func<TestScope, Task> run)
     {
-        if (channel != Channel.UI)
-            throw new ArgumentOutOfRangeException(nameof(channel), channel, "UI inspection requires the UI channel.");
         var scope = await createScope(channel);
         try
         {
-            await interact(scope.UIInteraction);
+            await run(scope);
         }
         catch (Exception error)
         {

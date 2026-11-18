@@ -85,39 +85,50 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
 
     private async ValueTask<TestScope> CreateScopeAsync(ExternalSystems externalSystems, Channel channel)
     {
-        var database = await CreateDatabaseAsync();
-        TestEnvironment? environment = null;
+        var environment = await StartEnvironmentAsync(externalSystems, channel);
         ServiceProvider? services = null;
         AsyncServiceScope? interactionScope = null;
         try
         {
-            environment = CreateEnvironment(database, externalSystems, channel);
-            environment.Start();
             services = CreateServices(environment, channel);
             interactionScope = services.CreateAsyncScope();
             var provider = interactionScope.Value.ServiceProvider;
             var interaction = new UseCaseDsl(
                 provider.GetRequiredService<RLSDsl>(),
-                provider.GetRequiredService<ExternalSystemsDsl>(),
-                interactionScope.Value);
-            var uiInteraction = channel == Channel.UI
-                ? new UIInteraction(provider.GetRequiredService<UIClient>(), interactionScope.Value)
-                : null;
-            return new(environment, interaction, services, uiInteraction);
+                provider.GetRequiredService<ExternalSystemsDsl>());
+            var uiClient = channel == Channel.UI ? provider.GetRequiredService<UIClient>() : null;
+            return new(environment, interaction, services, interactionScope.Value, uiClient);
         }
         catch (Exception error)
         {
             await TestResourceCleanup.RunAsync(error,
                 () => interactionScope?.DisposeAsync() ?? ValueTask.CompletedTask,
                 () => services?.DisposeAsync() ?? ValueTask.CompletedTask,
-                () => environment is not null
-                    ? environment.DisposeAsync()
-                    : DropDatabaseAsync(database.Name));
+                environment.DisposeAsync);
             throw;
         }
     }
 
     ValueTask IAsyncDisposable.DisposeAsync() => DisposeResourcesAsync();
+
+    private async ValueTask<TestEnvironment> StartEnvironmentAsync(ExternalSystems externalSystems, Channel channel)
+    {
+        var database = await CreateDatabaseAsync();
+        TestEnvironment? environment = null;
+        try
+        {
+            environment = CreateEnvironment(database, externalSystems, channel);
+            environment.Start();
+            return environment;
+        }
+        catch (Exception error)
+        {
+            await TestResourceCleanup.RunAsync(error, () => environment is not null
+                ? environment.DisposeAsync()
+                : DropDatabaseAsync(database.Name));
+            throw;
+        }
+    }
 
     private TestEnvironment CreateEnvironment(
         (string Name, string ConnectionString) database, ExternalSystems externalSystems, Channel channel)

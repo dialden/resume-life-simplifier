@@ -5,25 +5,27 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DialDen.RLS.Tests.Fixtures;
 
-/// <summary>Owns a scenario's interactions and environment, disposing interactions before the environment.</summary>
+/// <summary>Owns a scenario's DI scope, root service provider, and environment.</summary>
 public sealed class TestScope : IAsyncDisposable
 {
     private readonly ServiceProvider _services;
-    private readonly UIInteraction? _uiInteraction;
+    private readonly AsyncServiceScope _interactionScope;
+    private readonly UIClient? _uiClient;
     private bool _disposed;
 
     public TestScope(TestEnvironment environment, UseCaseDsl interaction, ServiceProvider services,
-        UIInteraction? uiInteraction)
+        AsyncServiceScope interactionScope, UIClient? uiClient)
     {
         Environment = environment;
         Interaction = interaction;
         _services = services;
-        _uiInteraction = uiInteraction;
+        _interactionScope = interactionScope;
+        _uiClient = uiClient;
     }
 
     public TestEnvironment Environment { get; }
     public UseCaseDsl Interaction { get; }
-    public UIInteraction UIInteraction => _uiInteraction
+    internal IUIClient UIClient => _uiClient
         ?? throw new InvalidOperationException("This scope does not use the UI channel.");
 
     public async ValueTask DisposeAsync()
@@ -31,7 +33,7 @@ public sealed class TestScope : IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
         await TestResourceCleanup.RunAsync(
-            Interaction.DisposeAsync,
+            _interactionScope.DisposeAsync,
             _services.DisposeAsync,
             Environment.DisposeAsync);
     }
