@@ -1,22 +1,21 @@
 using DialDen.RLS.Tests.Core.Clients.UI.Pages;
 using DialDen.RLS.Tests.Fixtures;
 using Microsoft.Playwright;
-using Microsoft.Playwright.TestAdapter;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI;
 
 public class UIClient : IAsyncDisposable
 {
-    private readonly IPlaywright _playwright;
+    private readonly Func<Task<IBrowser>> _getBrowser;
     private readonly RLSConfiguration _configuration;
-    private IBrowser? _browser;
+    private IBrowserContext? _context;
     private IPage? _page;
     private int _notificationStreamRequests;
 
-    public UIClient(RLSConfiguration configuration, IPlaywright playwright)
+    public UIClient(RLSConfiguration configuration, Func<Task<IBrowser>> getBrowser)
     {
         _configuration = configuration;
-        _playwright = playwright;
+        _getBrowser = getBrowser;
     }
 
     public async Task<HomePage> OpenHomePage()
@@ -118,9 +117,9 @@ public class UIClient : IAsyncDisposable
 
     private async Task<IPage> CreatePage()
     {
-        var browserType = _playwright[PlaywrightSettingsProvider.BrowserName];
-        _browser = await browserType.LaunchAsync();
-        var page = await _browser.NewPageAsync(new BrowserNewPageOptions { BaseURL = _configuration.UIUrl });
+        _context ??= await (await _getBrowser()).NewContextAsync(
+            new BrowserNewContextOptions { BaseURL = _configuration.UIUrl });
+        var page = await _context.NewPageAsync();
         await page.AddInitScriptAsync("""
             const originalFetch = window.fetch.bind(window);
             let notificationConnection;
@@ -186,10 +185,10 @@ public class UIClient : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (_browser is not null)
+        if (_context is not null)
         {
-            await _browser.CloseAsync();
-            _browser = null;
+            await _context.CloseAsync();
+            _context = null;
             _page = null;
         }
     }

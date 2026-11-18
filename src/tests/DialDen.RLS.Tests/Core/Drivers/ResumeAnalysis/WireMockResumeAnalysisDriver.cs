@@ -1,23 +1,22 @@
 using System.Text.Json;
+using DialDen.RLS.Tests.Core.Clients;
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
 using WireMock.Admin.Mappings;
-using WireMock.Client;
 
 namespace DialDen.RLS.Tests.Core.Drivers.ResumeAnalysis;
 
 public sealed class WireMockResumeAnalysisDriver(
-    IWireMockAdminApi adminApi, string callbackHost) : IResumeAnalysisDriver, IAsyncDisposable
+    string callbackHost, WireMockMappings mappings) : IResumeAnalysisDriver, IAsyncDisposable
 {
     private PendingResumeAnalysisResponse? _pendingResponse;
 
     public async Task FailsAnalysis()
     {
-        await adminApi.ResetMappingsAsync();
-        await adminApi.ResetRequestsAsync();
+        await mappings.ResetAsync();
         await ConfigureIdentityMetadata();
-        await adminApi.PostMappingAsync(new MappingModel
+        await mappings.PostAsync(new MappingModel
         {
-            Request = new RequestModel { Path = "/api/chat", Methods = ["POST"] },
+            Request = new RequestModel { Path = mappings.PathFor("/api/chat"), Methods = ["POST"] },
             Response = new ResponseModel { StatusCode = 503 }
         });
         await CompletePendingResponse(503, "");
@@ -36,8 +35,7 @@ public sealed class WireMockResumeAnalysisDriver(
 
     public async Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse)
     {
-        await adminApi.ResetMappingsAsync();
-        await adminApi.ResetRequestsAsync();
+        await mappings.ResetAsync();
         await ConfigureIdentityMetadata();
         var body = JsonSerializer.Serialize(new
         {
@@ -56,18 +54,18 @@ public sealed class WireMockResumeAnalysisDriver(
         {
             _pendingResponse = new PendingResumeAnalysisResponse();
             var proxyUrl = await _pendingResponse.Start(callbackHost);
-            await adminApi.PostMappingAsync(new MappingModel
+            await mappings.PostAsync(new MappingModel
             {
-                Request = new RequestModel { Path = "/api/chat", Methods = ["POST"] },
+                Request = new RequestModel { Path = mappings.PathFor("/api/chat"), Methods = ["POST"] },
                 Response = new ResponseModel { ProxyUrl = proxyUrl }
             });
             return;
         }
-        await adminApi.PostMappingAsync(new MappingModel
+        await mappings.PostAsync(new MappingModel
         {
             Request = new RequestModel
             {
-                Path = "/api/chat",
+                Path = mappings.PathFor("/api/chat"),
                 Methods = ["POST"]
             },
             Response = new ResponseModel
@@ -89,11 +87,11 @@ public sealed class WireMockResumeAnalysisDriver(
     }
 
     private Task ConfigureIdentityMetadata() =>
-        adminApi.PostMappingAsync(new MappingModel
+        mappings.PostAsync(new MappingModel
         {
             Request = new RequestModel
             {
-                Path = "/computeMetadata/v1/instance/service-accounts/default/identity",
+                Path = mappings.PathFor("/computeMetadata/v1/instance/service-accounts/default/identity"),
                 Methods = ["GET"],
                 Params =
                 [

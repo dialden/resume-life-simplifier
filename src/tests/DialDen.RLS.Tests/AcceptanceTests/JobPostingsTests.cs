@@ -1,23 +1,26 @@
-using DialDen.RLS.Tests.Core.Dsl.Scenario;
 using DialDen.RLS.Tests.Fixtures;
 
 namespace DialDen.RLS.Tests.AcceptanceTests;
 
-[Collection(RLSTestCollection.Name)]
-public class JobPostingsTests
+public class JobPostingsTests(TestHarness harness)
 {
-    private readonly TestEnvironment _testEnvironment;
-
-    public JobPostingsTests(TestEnvironments testEnvironments)
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CanCreatePosting(Channel channel)
     {
-        _testEnvironment = testEnvironments.For(ExternalSystems.Stubbed);
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .When().CreatePosting().WithTitle("Software Engineer")
+            .Then().ShouldSucceed()
+                .And().Posting()
+                    .HasTitle("Software Engineer")
+                    .HasStatus("Draft");
     }
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
     public async Task CanCreatePostingWithDescription(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .When().CreatePosting().WithDescription("Build tools & support customers <globally>.")
             .Then().ShouldSucceed()
                 .And().Posting().HasDescription("Build tools & support customers <globally>.");
@@ -27,7 +30,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanViewPostingDescription(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().WithDescription("Build tools & support customers <globally>.")
             .When().ViewPosting()
             .Then().ShouldSucceed()
@@ -41,7 +44,7 @@ public class JobPostingsTests
     [InlineData(null)]
     public async Task CannotCreatePostingWithoutDescription(string? description)
     {
-        await _testEnvironment.Scenario(Channel.API)
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.API)
             .When().CreatePosting().WithDescription(description!)
             .Then().ShouldFail().FieldErrorMessage("description", "A posting description is required.");
     }
@@ -52,28 +55,16 @@ public class JobPostingsTests
     [InlineData("   ")]
     public async Task CannotCreatePostingWithoutDescriptionThroughUI(string description)
     {
-        await _testEnvironment.Scenario(Channel.UI)
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.UI)
             .When().CreatePosting().WithDescription(description)
             .Then().ShouldFail().ErrorMessage("La description de l'offre est obligatoire.");
     }
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
-    public async Task CanCreatePosting(Channel channel)
-    {
-        await _testEnvironment.Scenario(channel)
-            .When().CreatePosting().WithTitle("Software Engineer")
-            .Then().ShouldSucceed()
-                .And().Posting()
-                    .HasTitle("Software Engineer")
-                    .HasStatus("Draft");
-    }
-
-    [Trait("Category", "Acceptance")]
-    [Theory, CombinatorialData]
     public async Task CanPublishPostingFromPostingsList(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().WithId("opportunity")
             .When().PublishPosting().WithId("opportunity")
             .Then().ShouldSucceed()
@@ -84,7 +75,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanSelectJobSitesWhenPublishing(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting()
             .When().PublishPosting().ToJobSites("stub-job-site")
             .Then().ShouldSucceed()
@@ -96,7 +87,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanSelectMultipleJobSitesWhenPublishing(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting()
             .When().PublishPosting().ToJobSites("stub-job-site", "another-stub-job-site")
             .Then().ShouldSucceed()
@@ -110,7 +101,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task JobSitesRespondIndependentlyToTheSamePosting(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().JobSite("stub-job-site").AcceptsPostings()
             .And().JobSite("another-stub-job-site").RejectsPostings()
             .And().Posting()
@@ -128,7 +119,7 @@ public class JobPostingsTests
     [InlineData(false, "Failed")]
     public async Task PublishedPostingUpdatesWithoutLeavingTheList(bool accepts, string outcome)
     {
-        var given = _testEnvironment.Scenario(Channel.UI)
+        var given = harness.For(ExternalSystems.Stubbed).Through(Channel.UI)
             .Given().Posting().WithCount(10).WithId("earlier")
             .And().JobSite("stub-job-site");
         if (accepts)
@@ -151,7 +142,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task ViewedPostingUpdatesWhenJobSitePublicationCompletes(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().JobSite("stub-job-site").AcceptsPostings().RespondsSlowly()
             .And().Posting().PublishedTo("stub-job-site")
             .When().ViewPosting()
@@ -165,7 +156,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanViewSucceededJobSitePublication(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedOnJobSite("stub-job-site")
             .When().ViewPosting()
             .Then().ShouldSucceed()
@@ -177,7 +168,7 @@ public class JobPostingsTests
     [Fact]
     public async Task CanObserveAnAlreadyCompletedPublication()
     {
-        await _testEnvironment.Scenario(Channel.API)
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.API)
             .Given().Posting().PublishedOnJobSite("stub-job-site")
             .When().ViewPosting()
             .Then().ShouldSucceed()
@@ -188,7 +179,7 @@ public class JobPostingsTests
     [Fact]
     public async Task LiveUpdatesRemainAvailableAcrossNavigation()
     {
-        await _testEnvironment.Scenario(Channel.UI)
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.UI)
             .Given().Posting().PublishedOnJobSite("stub-job-site")
             .When().ViewPosting()
             .Then().ShouldSucceed()
@@ -199,7 +190,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task JobSitePublicationFailsWhenTheJobSiteRejectsThePosting(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().JobSite("stub-job-site").RejectsPostings()
             .And().Posting()
             .When().PublishPosting().ToJobSites("stub-job-site")
@@ -211,7 +202,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task JobSitePublicationSucceedsWhenTheJobSiteAcceptsThePosting(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().JobSite("stub-job-site").AcceptsPostings()
             .And().Posting()
             .When().PublishPosting().ToJobSites("stub-job-site")
@@ -223,7 +214,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanPublishWithoutExternalJobSites(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting()
             .When().PublishPosting()
             .Then().ShouldSucceed()
@@ -234,7 +225,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CannotPublishAnAlreadyPublishedPosting(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().WithId("opportunity").PublishedTo()
             .When().PublishPosting().WithId("opportunity")
             .Then().ShouldFail().ErrorMessage("This posting cannot be published again.");
@@ -244,7 +235,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanListJobSitePublicationOutcome(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().WithId("opportunity").PublishedOnJobSite("stub-job-site")
             .When().ListPostings().AcrossAllPages()
             .Then().ShouldSucceed()
@@ -258,7 +249,7 @@ public class JobPostingsTests
     [InlineData("Stub-Job-Site")]
     public async Task CannotPublishToAnUnavailableJobSite(string jobSiteId)
     {
-        await _testEnvironment.Scenario(Channel.API)
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.API)
             .Given().Posting()
             .When().PublishPosting().ToJobSites(jobSiteId)
             .Then().ShouldFail().FieldErrorMessage("jobSiteIds", "Select distinct, available job sites.");
@@ -268,7 +259,7 @@ public class JobPostingsTests
     [Fact]
     public async Task CannotSelectTheSameJobSiteTwice()
     {
-        await _testEnvironment.Scenario(Channel.API)
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.API)
             .Given().Posting()
             .When().PublishPosting().ToJobSites("stub-job-site", "stub-job-site")
             .Then().ShouldFail().FieldErrorMessage("jobSiteIds", "Select distinct, available job sites.");
@@ -278,7 +269,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanViewCreatedPosting(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting()
             .When().ViewPosting()
             .Then().ShouldSucceed();
@@ -288,7 +279,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task CanListPostingsAcrossPages(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().WithCount(11).WithId("opportunities")
             .When().ListPostings().AcrossAllPages()
             .Then().ShouldSucceed()
@@ -301,7 +292,7 @@ public class JobPostingsTests
     [Theory, CombinatorialData]
     public async Task PageBeyondLastPostingIsEmpty(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting()
             .When().ListPostings().OnPage(int.MaxValue)
             .Then().ShouldSucceed()
@@ -313,7 +304,7 @@ public class JobPostingsTests
     public async Task CannotListNonPositivePage(
         Channel channel, [CombinatorialValues(0, -1)] int pageNumber)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .When().ListPostings().OnPage(pageNumber)
             .Then().ShouldFail();
     }

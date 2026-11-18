@@ -3,16 +3,8 @@ using Shouldly;
 
 namespace DialDen.RLS.Tests.AcceptanceTests;
 
-[Collection(RLSTestCollection.Name)]
-public class LanguageSwitchingTests
+public class LanguageSwitchingTests(TestHarness harness)
 {
-    private readonly TestEnvironment _testEnvironment;
-
-    public LanguageSwitchingTests(TestEnvironments testEnvironments)
-    {
-        _testEnvironment = testEnvironments.For(ExternalSystems.Stubbed);
-    }
-
     [Trait("Category", "Acceptance")]
     [Theory]
     [InlineData("/jobs/2147483647")]
@@ -29,15 +21,17 @@ public class LanguageSwitchingTests
     [Fact]
     public async Task CanSwitchBetweenFrenchAndEnglishWithoutReloading()
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
-        var homePage = await interaction.OpenHomePage();
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.UI, async interaction =>
+        {
+            var homePage = await interaction.OpenHomePage();
 
-        await homePage.SelectLanguage("en");
-        (await homePage.ReadWorkspaceTitle()).ShouldBe("Your career workspace");
-        (await homePage.ReadDocumentLanguage()).ShouldBe("en");
+            await homePage.SelectLanguage("en");
+            (await homePage.ReadWorkspaceTitle()).ShouldBe("Your career workspace");
+            (await homePage.ReadDocumentLanguage()).ShouldBe("en");
 
-        await homePage.SelectLanguage("fr");
-        (await homePage.ReadWorkspaceTitle()).ShouldBe("Votre espace carrière");
-        (await homePage.ReadDocumentLanguage()).ShouldBe("fr");
+            await homePage.SelectLanguage("fr");
+            (await homePage.ReadWorkspaceTitle()).ShouldBe("Votre espace carrière");
+            (await homePage.ReadDocumentLanguage()).ShouldBe("fr");
+        });
     }
 }

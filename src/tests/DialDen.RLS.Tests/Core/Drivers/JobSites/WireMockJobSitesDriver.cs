@@ -1,10 +1,12 @@
+using DialDen.RLS.Tests.Core.Clients;
 using WireMock.Admin.Mappings;
 using WireMock.Client;
 using System.Globalization;
 
 namespace DialDen.RLS.Tests.Core.Drivers.JobSites;
 
-public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnlyList<string> jobSiteIds) : IJobSitesDriver
+public sealed class WireMockJobSitesDriver(
+    IWireMockAdminApi adminApi, IReadOnlyList<string> jobSiteIds, WireMockMappings mappings) : IJobSitesDriver
 {
     public async Task<IReadOnlyList<Uri?>> PublicListingAddressesReceivedFor(string jobSiteId, int postingId)
     {
@@ -14,7 +16,7 @@ public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnly
         {
             var request = entry.Request
                 ?? throw new InvalidOperationException("The job-site request log contains no request.");
-            if (request.Path != $"/publish/{Uri.EscapeDataString(jobSiteId)}"
+            if (request.Path != mappings.PathFor($"/publish/{Uri.EscapeDataString(jobSiteId)}")
                 || request.Query is null
                 || !request.Query.TryGetValue("postingId", out var ids)
                 || !ids.Contains(postingId.ToString(CultureInfo.InvariantCulture)))
@@ -35,8 +37,7 @@ public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnly
 
     public async Task ResetAndAcceptByDefault()
     {
-        await adminApi.ResetMappingsAsync();
-        await adminApi.ResetRequestsAsync();
+        await mappings.ResetAsync();
         foreach (var jobSiteId in jobSiteIds)
         {
             await PostMapping(jobSiteId, postingId: ".*", accepts: true, matcher: "RegexMatcher");
@@ -49,11 +50,11 @@ public sealed class WireMockJobSitesDriver(IWireMockAdminApi adminApi, IReadOnly
 
     private Task PostMapping(
         string jobSiteId, string postingId, bool accepts, string matcher = "ExactMatcher", TimeSpan delay = default) =>
-        adminApi.PostMappingAsync(new MappingModel
+        mappings.PostAsync(new MappingModel
         {
             Request = new RequestModel
             {
-                Path = $"/publish/{Uri.EscapeDataString(jobSiteId)}",
+                Path = mappings.PathFor($"/publish/{Uri.EscapeDataString(jobSiteId)}"),
                 Methods = ["POST"],
                 Params =
                 [
