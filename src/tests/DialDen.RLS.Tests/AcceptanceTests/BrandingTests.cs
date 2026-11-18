@@ -3,33 +3,25 @@ using Shouldly;
 
 namespace DialDen.RLS.Tests.AcceptanceTests;
 
-[Collection(RLSTestCollection.Name)]
-public class BrandingTests
+public class BrandingTests(TestHarness harness)
 {
-    private readonly TestEnvironment _testEnvironment;
-
-    public BrandingTests(TestEnvironments testEnvironments)
-    {
-        _testEnvironment = testEnvironments.For(ExternalSystems.Stubbed);
-    }
-
     [Trait("Category", "Acceptance")]
     [Theory]
     [InlineData("/jobs/2147483647")]
     [InlineData("/jobs/2147483647/apply")]
     public async Task PublicJobPagesDoNotShowRecruiterWorkspaceNavigation(string path)
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
 
-        (await interaction.ShowsWorkspaceNavigationAt(path)).ShouldBeFalse();
+        (await ui.ShowsWorkspaceNavigationAt(path)).ShouldBeFalse();
     }
 
     [Trait("Category", "Acceptance")]
     [Fact]
     public async Task DisplaysConfiguredCompanyBranding()
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
-        var homePage = await interaction.OpenHomePage();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
+        var homePage = await ui.OpenHomePage();
 
         (await homePage.GetError()).ShouldBeNull();
         (await homePage.IsBrandLogoVisible()).ShouldBeTrue();
@@ -44,8 +36,8 @@ public class BrandingTests
     [Fact]
     public async Task UsesBrandFontForButtons()
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
-        var homePage = await interaction.OpenHomePage();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
+        var homePage = await ui.OpenHomePage();
 
         (await homePage.ReadPrimaryButtonFontFamily()).ShouldBe("Inter, sans-serif");
     }
@@ -54,8 +46,8 @@ public class BrandingTests
     [Fact]
     public async Task LoadsBundledInterForLatinAndLatinExtendedText()
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
-        var homePage = await interaction.OpenHomePage();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
+        var homePage = await ui.OpenHomePage();
 
         (await homePage.LoadInterFontsFor("Côté-Jardins")).ShouldBe(1);
         (await homePage.LoadInterFontsFor("Ā")).ShouldBe(1);
@@ -65,24 +57,24 @@ public class BrandingTests
     [Fact]
     public async Task ShowsSpinningBackdropFlowerBeforeApplicationStarts()
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
 
-        (await interaction.ReadLoadingLogoPathBeforeBlazorStarts())
+        (await ui.ReadLoadingLogoPathBeforeBlazorStarts())
             .ShouldBe("/branding/jardins-hsl-mark.svg");
-        (await interaction.ReadLoadingLogoAnimationNameBeforeBlazorStarts()).ShouldBe("loading-flower-spin");
-        (await interaction.ReadLoadingScreenBackgroundColorBeforeBlazorStarts()).ShouldBe("rgb(255, 255, 255)");
-        (await interaction.ReadLoadingLogoFilterBeforeBlazorStarts()).ShouldBe("brightness(0.35)");
+        (await ui.ReadLoadingLogoAnimationNameBeforeBlazorStarts()).ShouldBe("loading-flower-spin");
+        (await ui.ReadLoadingScreenBackgroundColorBeforeBlazorStarts()).ShouldBe("rgb(255, 255, 255)");
+        (await ui.ReadLoadingLogoFilterBeforeBlazorStarts()).ShouldBe("brightness(0.35)");
     }
 
     [Trait("Category", "Acceptance")]
     [Fact]
     public async Task ShowsLoadingPercentageBeforeApplicationStarts()
     {
-        await using var interaction = _testEnvironment.InteractWithUI();
-        await interaction.ReadLoadingLogoPathBeforeBlazorStarts();
+        await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
+        await ui.ReadLoadingLogoPathBeforeBlazorStarts();
 
-        (await interaction.ReadLoadingPercentageBeforeBlazorStarts()).ShouldBe("0%");
-        (await interaction.ReadLoadingPercentageBeforeBlazorStarts(47)).ShouldBe("47%");
-        (await interaction.ReadLoadingPercentageBeforeBlazorStarts(100)).ShouldBe("100%");
+        (await ui.ReadLoadingPercentageBeforeBlazorStarts()).ShouldBe("0%");
+        (await ui.ReadLoadingPercentageBeforeBlazorStarts(47)).ShouldBe("47%");
+        (await ui.ReadLoadingPercentageBeforeBlazorStarts(100)).ShouldBe("100%");
     }
 }

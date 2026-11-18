@@ -14,13 +14,13 @@ public sealed class PendingResumeAnalysisResponse : IAsyncDisposable
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly WebApplication _host;
 
-    public PendingResumeAnalysisResponse()
+    public PendingResumeAnalysisResponse(string chatPath)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.UseKestrel(options => options.ListenAnyIP(0));
         _host = builder.Build();
-        _host.MapPost("/api/chat", async context =>
+        _host.MapPost(chatPath, async context =>
         {
             var response = await _response.Task.WaitAsync(context.RequestAborted);
             context.Response.StatusCode = response.StatusCode;
@@ -35,7 +35,9 @@ public sealed class PendingResumeAnalysisResponse : IAsyncDisposable
         var address = _host.Services.GetRequiredService<IServer>()
             .Features.Get<IServerAddressesFeature>()?.Addresses.Single()
             ?? throw new InvalidOperationException("The pending resume-analysis host has no listening address.");
-        return new UriBuilder(address) { Host = callbackHost }.Uri.ToString();
+        var callback = new UriBuilder(address) { Host = callbackHost }.Uri;
+        // WireMock appends the incoming path, including its leading slash.
+        return callback.GetLeftPart(UriPartial.Authority);
     }
 
     public void Complete(int statusCode, string body) =>

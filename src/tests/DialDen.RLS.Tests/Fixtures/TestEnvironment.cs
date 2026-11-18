@@ -1,222 +1,110 @@
-using DialDen.RLS.Tests.Core.Clients.API;
-using DialDen.RLS.Tests.Core.Clients.API.Endpoints;
-using DialDen.RLS.Tests.Core.Clients.UI;
-using DialDen.RLS.Tests.Core.Drivers.RLS;
-using DialDen.RLS.Tests.Core.Drivers.RLS.API;
-using DialDen.RLS.Tests.Core.Drivers.RLS.UI;
-using DialDen.RLS.Tests.Core.Dsl;
-using DialDen.RLS.Tests.Core.Dsl.External.JobSites;
-using DialDen.RLS.Tests.Core.Dsl.External.ResumeAnalysis;
-using DialDen.RLS.Tests.Core.Dsl.UseCases;
+using DialDen.RLS.Tests.Core.Clients;
+using DialDen.RLS.Tests.Extensions;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Playwright;
+using WireMock.Client;
 
 namespace DialDen.RLS.Tests.Fixtures;
-public abstract class TestEnvironment : IAsyncDisposable
-{
-    private readonly IHttpHost _apiHost;
-    private readonly IHttpHost _uiHost;
-    private readonly IWorkerHost _workerHost;
-    private readonly object _startLock = new();
-    private RLSConfiguration? _configuration;
-    private ServiceProvider _serviceProvider = null!;
-    private bool disposedValue;
 
-    /// <summary>Only available once the API host has been started by <see cref="InteractWithSystemThrough"/>.</summary>
+/// <summary>Owns one scenario's application hosts, database clone, and stub mappings.</summary>
+public sealed class TestEnvironment : IAsyncDisposable
+{
+    private readonly IDatabaseCleanup _databaseCleanup;
+    private readonly string _databaseName;
+    private readonly IHttpHost _apiHost;
+    private readonly IHttpHost? _uiHost;
+    private readonly IWorkerHost _workerHost;
+    private RLSConfiguration? _configuration;
+    private bool _disposed;
+
     public RLSConfiguration Configuration =>
         _configuration ?? throw new InvalidOperationException("The API host has not been started.");
 
-    public TestEnvironment()
-    {
-        var testsConfiguration = GetTestsConfiguration();
-        var hosting = TestConfiguration.From(testsConfiguration).Hosting;
-        if (hosting.Mode == HostingMode.InProcess)
-        {
-            // Each environment's worker consumes its own queue, so it only answers with its own external systems.
-            var settings = new Dictionary<string, string?>
-            {
-                ["Messaging:JobSitePublicationQueue"] = JobSitePublicationQueue,
-                ["Messaging:ApplicationReceivedTopic"] = ApplicationReceivedTopic,
-                ["Messaging:ResumeExtractionQueue"] = $"{ApplicationReceivedTopic}-extraction"
-            };
-            var workerSettings = new Dictionary<string, string?>(settings);
-            if (ConfigurationEnvironmentVariablesPrefix == "STUBBED_EXT_SYSTEMS_")
-            {
-                var metadataServer = testsConfiguration["ResumeAnalysis:WireMockUrl"] ?? "http://wiremock-ollama/";
-                workerSettings["Ollama:IdentityTokenAudience"] = "https://test-resume-analysis.run.app";
-                workerSettings["Ollama:AllowInsecureAuthenticatedEndpoint"] = "true";
-                workerSettings["Ollama:IdentityMetadataEndpoint"] =
-                    new Uri(new Uri(metadataServer), "/computeMetadata/v1/instance/service-accounts/default/identity").ToString();
-            }
-            _workerHost = new InProcessWorkerHost(
-                ConfigurationEnvironmentVariablesPrefix,
-                workerSettings);
-            _apiHost = new InProcessAPIHttpHost(ConfigurationEnvironmentVariablesPrefix, settings);
-            _uiHost = new InProcessUIHttpHost(() => _apiHost.Url);
-        }
-        else
-        {
-            _workerHost = new ExternalWorkerHost();
-            _apiHost = new ExternalHttpHost(hosting.APIUrl);
-            _uiHost = new ExternalHttpHost(hosting.UIUrl);
-        }
-        InitializeTestsServiceProvider();
-    }
+    public WireMockMappings? JobSiteMappings { get; }
+    public WireMockMappings? ResumeAnalysisMappings { get; }
+    public IReadOnlyList<string> JobSiteIds { get; }
 
-    /// <summary>
-    /// Interact with the system through the default channel (API).
-    /// </summary>
-    public UseCaseDsl InteractWithSystem()
+    public TestEnvironment(string databaseName, string connectionString, ExternalSystems externalSystems,
+        Channel channel, IConfiguration workerConfiguration,
+        (Uri Url, IWireMockAdminApi Admin)? jobSitesStub,
+        (Uri Url, IWireMockAdminApi Admin)? resumeAnalysisStub,
+        IDatabaseCleanup databaseCleanup)
     {
-        return InteractWithSystemThrough(Channel.API);
-    }
-
-    public UseCaseDsl InteractWithSystemThrough(Channel channel)
-    {
-        StartHostsFor(channel);
-        // One scope per scenario, so each scenario gets its own UseCaseContext (alias -> unique value map)
-        var scenarioScope = _serviceProvider.CreateAsyncScope();
-        var sp = scenarioScope.ServiceProvider;
-        IRLSDriver driver = channel switch
+        _databaseCleanup = databaseCleanup;
+        _databaseName = databaseName;
+        var configurationPrefix = externalSystems switch
         {
-            Channel.UI => sp.GetRequiredService<UIRLSDriver>(),
-            Channel.API => sp.GetRequiredService<APIRLSDriver>(),
+            ExternalSystems.Stubbed => "STUBBED_EXT_SYSTEMS_",
+            ExternalSystems.Real => "REAL_EXT_SYSTEMS_",
+            _ => throw new ArgumentOutOfRangeException(nameof(externalSystems), externalSystems, null)
+        };
+        var sites = externalSystems == ExternalSystems.Stubbed
+            ? workerConfiguration.GetSection("JobSites:Sites").GetChildren().ToArray()
+            : [];
+        JobSiteIds = sites.Select(site => site["Id"]
+            ?? throw new InvalidOperationException("Each stubbed job site requires an Id.")).ToArray();
+        if (externalSystems == ExternalSystems.Stubbed && JobSiteIds.Count == 0)
+            throw new InvalidOperationException("Configure stubbed worker job sites for the harness.");
+
+        var settings = new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:RLS"] = connectionString,
+            ["Messaging:JobSitePublicationQueue"] = "rls-job-site-publication",
+            ["Messaging:ApplicationReceivedTopic"] = "rls-application-received",
+            ["Messaging:ResumeExtractionQueue"] = "rls-resume-extraction"
+        };
+        var workerSettings = new Dictionary<string, string?>(settings);
+        if (externalSystems == ExternalSystems.Stubbed)
+        {
+            if (jobSitesStub is not { } jobSites || resumeAnalysisStub is not { } resumeAnalysis)
+                throw new InvalidOperationException("Configure both WireMock servers for stubbed scenarios.");
+
+            var pathPrefix = $"/harness/{databaseName}";
+            var stubPath = pathPrefix.TrimStart('/') + "/";
+            JobSiteMappings = new(jobSites.Admin, pathPrefix, jobSites.Url);
+            ResumeAnalysisMappings = new(resumeAnalysis.Admin, pathPrefix, resumeAnalysis.Url);
+            workerSettings["JobSites:Type"] = "stubbed";
+            workerSettings["Ollama:Endpoint"] = new Uri(resumeAnalysis.Url, stubPath).ToString();
+            workerSettings["Ollama:IdentityTokenAudience"] = "https://test-resume-analysis.run.app";
+            workerSettings["Ollama:AllowInsecureAuthenticatedEndpoint"] = "true";
+            workerSettings["Ollama:IdentityMetadataEndpoint"] = new Uri(resumeAnalysis.Url,
+                stubPath + "computeMetadata/v1/instance/service-accounts/default/identity").ToString();
+            foreach (var site in sites)
+                workerSettings[$"JobSites:Sites:{site.Key}:Url"] =
+                    new Uri(jobSites.Url, stubPath).ToString();
+        }
+        _workerHost = new InProcessWorkerHost(configurationPrefix, workerSettings);
+        _apiHost = new InProcessAPIHttpHost(configurationPrefix, settings);
+        _uiHost = channel switch
+        {
+            Channel.API => null,
+            Channel.UI => new InProcessUIHttpHost(() => _apiHost.Url),
             _ => throw new ArgumentOutOfRangeException(nameof(channel), channel, null)
         };
-        //TODO: Replace all this manual creation with a more robust dependency injection library (autofac)
-        var ctfUseCaseFactory = ActivatorUtilities.CreateInstance<UseCaseFactory<IRLSDriver>>(sp, driver);
-        var externalSystems = ActivatorUtilities.CreateInstance<ExternalSystemsDsl>(sp);
-        var rls = ActivatorUtilities.CreateInstance<RLSDsl>(sp, ctfUseCaseFactory);
-        return new UseCaseDsl(rls, externalSystems, scenarioScope);
     }
 
-    public UIInteraction InteractWithUI()
+    public void Start()
     {
-        StartHostsFor(Channel.UI);
-        var scenarioScope = _serviceProvider.CreateAsyncScope();
-        return new UIInteraction(scenarioScope.ServiceProvider.GetRequiredService<UIClient>(), scenarioScope);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _workerHost.Start();
+        _apiHost.Start();
+        _configuration = new(_apiHost.Url);
+        if (_uiHost is not null)
+        {
+            _uiHost.Start();
+            _configuration.SetUIUrl(_uiHost.Url);
+        }
     }
-
-    /// <summary>
-    /// Override to configure additional services.
-    /// </summary>
-    /// <param name="services">The service collection to configure.</param>
-    protected virtual void ConfigureTestServices(IServiceCollection services)
-    {
-    }
-
-    /// <summary>
-    /// Override to configure from the service provider.
-    /// </summary>
-    /// <param name="serviceProvider">The service provider to configure.</param>
-    protected virtual void ConfigureTests(IServiceProvider serviceProvider)
-    {
-    }
-
-    protected abstract string ConfigurationEnvironmentVariablesPrefix { get; }
-
-    protected abstract string JobSitePublicationQueue { get; }
-
-    protected abstract string ApplicationReceivedTopic { get; }
 
     public async ValueTask DisposeAsync()
     {
-        if (!disposedValue)
-        {
-            await _serviceProvider.DisposeAsync();
-            _uiHost.Dispose();
-            _apiHost.Dispose();
-            _workerHost.Dispose();
-            disposedValue = true;
-        }
-    }
-
-    /// <summary>Starts only the hosts the channel needs. Idempotent and safe for parallel scenarios.</summary>
-    private void StartHostsFor(Channel channel)
-    {
-        switch (channel)
-        {
-            case Channel.API:
-                StartAPIHost();
-                break;
-            case Channel.UI: // The UI needs the API, so it starts after it.
-                StartAPIHost();
-                StartUIHost();
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(channel), channel, null);
-        }
-    }
-
-    private void StartAPIHost()
-    {
-        lock (_startLock)
-        {
-            if (_configuration != null) return;
-            // The worker registers the available job sites before the API offers them.
-            _workerHost.Start();
-            _apiHost.Start();
-            _configuration = CreateConfiguration(_apiHost.Url);
-        }
-    }
-
-    private void StartUIHost()
-    {
-        lock (_startLock)
-        {
-            _uiHost.Start();
-            _configuration!.SetUIUrl(_uiHost.Url);
-        }
-    }
-
-    private void InitializeTestsServiceProvider()
-    {
-        var services = new ServiceCollection();
-        ConfigureTestServicesInternal(services);
-        _serviceProvider = services.BuildServiceProvider();
-        ConfigureTests(_serviceProvider);
-    }
-
-    protected IConfiguration GetTestsConfiguration()
-    {
-        var configBuilder = new ConfigurationBuilder();
-        configBuilder.Sources.Clear();
-        configBuilder.AddEnvironmentVariables(prefix: "RLS_TEST_");
-        configBuilder.AddCommandLine(Environment.GetCommandLineArgs());
-        return configBuilder.Build();
-    }
-
-    private RLSConfiguration CreateConfiguration(string webServerUrl)
-    {
-        if (string.IsNullOrWhiteSpace(webServerUrl))
-        {
-            throw new InvalidOperationException("Web server URL is not configured.");
-        }
-        var configuration = new RLSConfiguration(webServerUrl);
-        return configuration;
-    }
-
-    private void ConfigureTestServicesInternal(IServiceCollection services)
-    {
-        // Factories: resolved only after the host has been started explicitly
-        services.AddSingleton(_ => Configuration);
-        services
-        .AddHttpClient()
-        .ConfigureHttpClientDefaults(builder =>
-            builder.ConfigureHttpClient((sp, httpClient) =>
-                httpClient.BaseAddress = new Uri(sp.GetRequiredService<RLSConfiguration>().WebServerUrl)));
-        // Created lazily so API-only runs never start Playwright
-        services.AddSingleton<IPlaywright>(_ => Playwright.CreateAsync().GetAwaiter().GetResult());
-        services.AddTransient<UIClient>();
-        services.AddTransient<UIRLSDriver>();
-        services.AddTransient<APIRLSDriver>();
-        services.AddTransient<APIClient>();
-        services.AddTransient<HealthEndpoint>();
-        services.AddScoped<GoToRLS>();
-        services.AddScoped<UseCaseContext>();
-        services.AddScoped<JobSitesDsl>();
-        services.AddScoped<ResumeAnalysisDsl>();
-        ConfigureTestServices(services);
+        if (_disposed) return;
+        _disposed = true;
+        await TestResourceCleanup.RunAsync(
+            () => { _uiHost?.Dispose(); return ValueTask.CompletedTask; },
+            () => { _apiHost.Dispose(); return ValueTask.CompletedTask; },
+            () => { _workerHost.Dispose(); return ValueTask.CompletedTask; },
+            () => _databaseCleanup.DropDatabaseAsync(_databaseName),
+            () => JobSiteMappings?.DisposeAsync() ?? ValueTask.CompletedTask,
+            () => ResumeAnalysisMappings?.DisposeAsync() ?? ValueTask.CompletedTask);
     }
 }

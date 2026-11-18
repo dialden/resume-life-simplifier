@@ -1,23 +1,24 @@
-using DialDen.RLS.Tests.Core.Dsl.Scenario;
 using DialDen.RLS.Tests.Fixtures;
 
 namespace DialDen.RLS.Tests.SmokeTests;
 
-[Collection(RLSTestCollection.Name)]
-public class RLSTests
+public class RLSTests(TestHarness harness)
 {
-    private readonly TestEnvironments _testEnvironments;
-
-    public RLSTests(TestEnvironments testEnvironments)
+    [Trait("Category", "Smoke")]
+    [Trait("ExternalSystems", "Stubbed")]
+    [Theory, CombinatorialData]
+    public async Task ShouldBeUpAndRunningWithStubbedExternalSystems(Channel channel)
     {
-        _testEnvironments = testEnvironments;
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Assume().RLS().ShouldBeRunning();
     }
 
     [Trait("Category", "Smoke")]
+    [Trait("ExternalSystems", "Real")]
     [Theory, CombinatorialData]
-    public async Task ShouldBeUpAndRunning(Channel channel, ExternalSystems externalSystem)
+    public async Task ShouldBeUpAndRunningWithRealExternalSystems(Channel channel)
     {
-        await _testEnvironments.For(externalSystem).Scenario(channel)
+        await harness.For(ExternalSystems.Real).Through(channel)
             .Assume().RLS().ShouldBeRunning();
     }
 }

@@ -31,17 +31,23 @@ public sealed class InProcessWorkerHost : IWorkerHost
                 configuration
                     .AddEnvironmentVariables(_environmentVariablesPrefix + WorkerHost.EnvironmentVariablesPrefix)
                     .AddInMemoryCollection(_settings));
-            var host = builder.Build();
-            host.StartAsync().GetAwaiter().GetResult();
-            _host = host;
+            _host = builder.Build();
+            _host.StartAsync().GetAwaiter().GetResult();
         }
     }
 
     public void Dispose()
     {
         if (_host == null) return;
-        _host.StopAsync().GetAwaiter().GetResult();
-        _host.Dispose();
+        var host = _host;
         _host = null;
+        try
+        {
+            host.StopAsync().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            host.Dispose();
+        }
     }
 }

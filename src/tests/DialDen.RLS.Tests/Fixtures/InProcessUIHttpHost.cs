@@ -75,15 +75,24 @@ public sealed class InProcessUIHttpHost : IHttpHost
             // Endpoints are needed (not just static files) so fingerprinted assets resolve from their plain route
             app.MapStaticAssets(Path.Combine(_uiBuildPath, $"{UIApplicationName}.staticwebassets.endpoints.json"));
             app.MapFallbackToFile("index.html");
+            _app = app;
             app.Start();
             _url = app.Services.GetRequiredService<IServer>().GetWebServerUrl();
-            _app = app;
         }
     }
 
     public void Dispose()
     {
-        _app?.StopAsync().GetAwaiter().GetResult();
-        _app?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        var app = _app;
+        if (app is null) return;
+        _app = null;
+        try
+        {
+            app.StopAsync().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            app.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
     }
 }

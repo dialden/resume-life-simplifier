@@ -111,6 +111,84 @@ values; setup regenerates the Git-ignored launch settings. See the
 - Make sure you have completed the [Prerequisites](#prerequisites)
 - Run `dotnet test src/tests/DialDen.RLS.Tests/DialDen.RLS.Tests.csproj` from the repository root.
 
+The test project uses xUnit.net v3 with the VSTest adapter. The
+`xunit.v3.mtp-off` package keeps Microsoft Testing Platform integration disabled
+so existing `dotnet test` filters and runsettings remain supported on .NET 10.
+
+#### Test harness migration
+
+The assembly-wide `TestHarness` supports API and UI scenarios with in-process
+hosting and either stubbed or real external systems:
+
+```csharp
+await harness.For(ExternalSystems.Stubbed).Through(Channel.API)
+    .When().CreatePosting().WithTitle("Software Engineer")
+    .Then().ShouldSucceed()
+        .And().Posting().HasTitle("Software Engineer").HasStatus("Draft");
+```
+
+The harness types live in `src/tests/DialDen.RLS.Tests/Fixtures`:
+
+- `TestHarness` is the assembly fixture and composes scenarios' clients, drivers,
+  and DSLs.
+- `TestHarness` owns a Flyway-migrated database template, shared WireMock
+  access, and a lazily created Playwright/browser pair. Private methods
+  encapsulate initialization, scenario setup, and cleanup.
+- `TestScenarioSelection` captures the external-system mode and interaction
+  channel. For fluent scenarios, it opens a `TestScope` only when the scenario
+  is awaited, then disposes it even if an assertion fails.
+- `TestScope` owns the scenario's DI scope, root service provider, and
+  environment, and disposes them in that order. The DSL uses the scoped
+  services without owning their lifetime.
+- `TestEnvironment` owns a cloned database, separate API and worker hosts,
+  a UI host when needed, and the scenario's WireMock mappings and request logs.
+  After stopping its hosts, it uses `IDatabaseCleanup` to drop the clone and
+  removes the scoped mappings and logs. Drivers configure the mappings but
+  don't own their cleanup. Real-system environments retain their configured
+  external endpoints rather than redirecting them to WireMock.
+
+`TestHarness` exposes only `For(...)` to scenarios. xUnit manages initialization
+and disposal through explicitly implemented lifecycle interfaces. The returned
+selection exposes `Through(...)` for fluent scenarios and `ThroughUI()` for
+UI-only presentation checks. `ThroughUI()` returns a `ScopedUIClient` that
+forwards the full `IUIClient` API. Disposing the proxy with `await using`
+disposes the scenario's `TestScope`; the underlying `UIClient` is responsible
+only for its browser context:
+
+```csharp
+await using var ui = await harness.For(ExternalSystems.Stubbed).ThroughUI();
+var homePage = await ui.OpenHomePage();
+```
+
+Assembly initialization migrates a uniquely named template once. Each awaited
+scenario gets a clone; cleanup removes only that scenario's database and stub
+mappings/request logs. Assembly disposal drops the template.
+WireMock request-log cleanup is serialized per server within the test process
+to avoid its shared journal's concurrent-deletion race; scenarios remain parallel.
+
+To compare a timing-sensitive failure with and without concurrency, run the
+same test filter with `-- xUnit.MaxParallelThreads=1 xUnit.ParallelAlgorithm=conservative`
+and then with `xUnit.MaxParallelThreads=8`.
+
+WireMock forwards the full scenario-prefixed request path to the held
+resume-analysis callback, so the callback must listen on that same path.
+
+The configured test database supplies connection settings but is not truncated or used for
+scenario data. The test role needs database-creation permissions and access to
+the `postgres` maintenance database. Flyway must be on `PATH`, and PostgreSQL
+must be reachable over TCP.
+
+All acceptance and smoke scenarios use the harness; there is no collection
+fixture or paused migration block. Each UI scenario gets an isolated browser
+context; closing it does not close the assembly's shared browser. API-only
+runs do not launch Playwright. xUnit uses `ParallelMode.All` with a four-test
+concurrency cap, allowing methods and theory rows in the same class to overlap
+without sharing application hosts, databases, browser state, or stub mappings.
+Scheduling is configured in
+[xunit.runner.json](src/tests/DialDen.RLS.Tests/xunit.runner.json).
+Real-system coverage currently consists of the existing smoke scenarios.
+Externally hosted environments are not supported by the harness yet.
+
 #### Run Playwright tests with the browser inspector
 The tracked runsettings file is
 [`.vscode/default.runsettings`](.vscode/default.runsettings). To use it in VS

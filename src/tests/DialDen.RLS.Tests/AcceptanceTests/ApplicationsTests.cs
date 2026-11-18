@@ -1,23 +1,15 @@
-using DialDen.RLS.Tests.Core.Dsl.Scenario;
 using DialDen.RLS.Tests.Fixtures;
 
 namespace DialDen.RLS.Tests.AcceptanceTests;
 
-[Collection(RLSTestCollection.Name)]
-public class ApplicationsTests
+public class ApplicationsTests(TestHarness harness)
 {
-    private readonly TestEnvironment _testEnvironment;
-
-    public ApplicationsTests(TestEnvironments testEnvironments)
-    {
-        _testEnvironment = testEnvironments.For(ExternalSystems.Stubbed);
-    }
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
     public async Task RecruitersCanReviewContactInformationExtractedFromResumes(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis()
                 .FindsName("Alex Resume")
@@ -41,7 +33,7 @@ public class ApplicationsTests
     public async Task ReviewedApplicationsUpdateWhenResumeAnalysisCompletes(
         Channel channel, [CombinatorialValues(null, "resume@example.com")] string? extractedEmail)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis().HasNotCompletedAnalysis()
             .And().Application()
@@ -54,7 +46,7 @@ public class ApplicationsTests
     [Fact]
     public async Task ReviewedApplicationsRecoverLiveUpdatesAfterAConnectionInterruption()
     {
-        await _testEnvironment.Scenario(Channel.UI)
+        await harness.For(ExternalSystems.Stubbed).Through(Channel.UI)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis().HasNotCompletedAnalysis()
             .And().Application()
@@ -67,7 +59,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ReviewedApplicationsUpdateWhenResumeAnalysisFails(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis().HasNotCompletedAnalysis()
             .And().Application()
@@ -80,7 +72,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ApplicationsRemainAvailableWhenResumeAnalysisIsUnavailable(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis().IsUnavailable()
             .When().ApplyToPosting().WithResume()
@@ -94,7 +86,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task UnreadableResumesHaveFailedExtraction(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().WithUnreadableResume()
             .Then().ShouldSucceed()
@@ -105,7 +97,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ResumesAboveTheExtractionPageLimitHaveFailedExtraction(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().WithResumePages(21)
             .Then().ShouldSucceed()
@@ -116,7 +108,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ResumesAtTheExtractionPageLimitCanBeAnalyzed(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().WithResumePages(20)
             .Then().ShouldSucceed()
@@ -127,7 +119,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task NewlyReceivedApplicationsAreAwaitingInformationExtraction(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis().HasNotCompletedAnalysis()
             .When().ApplyToPosting().WithResume()
@@ -140,7 +132,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ResumeAnalysisCanCompleteWithoutFindingContactInformation(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis()
             .When().ApplyToPosting().WithResume()
@@ -155,7 +147,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ApplicationsAreAvailableForReviewOnTheCorrectPosting(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().WithId("opportunity").PublishedTo()
             .And().Posting().WithId("other-opportunity").PublishedTo()
             .When().ApplyToPosting().WithId("opportunity")
@@ -175,7 +167,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task RepeatedApplicationsAreRetainedSeparately(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().Application().WithEmail("alex@example.com")
             .When().ApplyToPosting().WithEmail("alex@example.com").WithResume()
@@ -188,7 +180,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ApplicationsRetainTheReferringJobSite(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedOnJobSite("stub-job-site")
             .When().ApplyToPosting().ReferredBy("stub-job-site").WithResume()
             .Then().ShouldSucceed()
@@ -201,7 +193,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task UnrecognizedReferralsAreNotAttributedToAJobSite(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().ReferredBy("stub-job-site").WithResume()
             .Then().ShouldSucceed()
@@ -214,7 +206,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task ApplicationsCanIncludeAWordResume(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().WithWordResume()
             .Then().ShouldSucceed()
@@ -225,7 +217,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task AResumeAtTheSizeLimitCanBeSubmitted(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().WithResumeOfSize(5 * 1024 * 1024)
             .Then().ShouldSucceed()
@@ -236,7 +228,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task AResumeAboveTheSizeLimitIsRejected(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().WithResumeOfSize(5 * 1024 * 1024 + 1)
             .Then().ShouldFail();
@@ -246,7 +238,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task DraftPostingsDoNotAcceptApplications(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting()
             .When().ApplyToPosting().WithResume()
             .Then().ShouldFail();
@@ -256,7 +248,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task UnknownPostingsDoNotAcceptApplications(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .When().ApplyToPosting().WithId("0").WithResume()
             .Then().ShouldFail();
     }
@@ -265,7 +257,7 @@ public class ApplicationsTests
     [Theory, CombinatorialData]
     public async Task AnInvalidWordResumeIsRejected(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .When().ApplyToPosting().WithInvalidWordResume()
             .Then().ShouldFail();

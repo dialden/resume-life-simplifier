@@ -4,9 +4,6 @@
 #:project ../../shared/DialDen.RLS.Pipelines.csproj
 
 using System.Globalization;
-using System.Net;
-using System.Net.Sockets;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -16,10 +13,10 @@ var (version, pushImages) = CommitStage.ParseArguments(args);
 var stage = new CommitStage(version);
 
 await stage.Build();
+await stage.RunInProcessTests();
+stage.ReportTestResults();
 await stage.PublishApplications();
 await stage.BuildImages();
-await stage.RunAcceptanceTests();
-stage.ReportTestResults();
 
 if (pushImages)
 {
@@ -130,187 +127,17 @@ public sealed class CommitStage
         Run("docker", ["build", "--provenance=false", "--sbom=false",
         "--tag", image, "--file", dockerfile, context]);
 
-    // The acceptance tests run against the built images, not hosts inside the test process.
-    public async Task RunAcceptanceTests()
-    {
-        var apiPort = FreePort();
-        var uiPort = FreePort();
-        var wireMockPort = FreePort();
-        var apiUrl = $"http://127.0.0.1:{apiPort}";
-        var uiUrl = $"http://127.0.0.1:{uiPort}";
-        var wireMockUrl = $"http://127.0.0.1:{wireMockPort}";
-        var network = $"rls-commit-{Guid.NewGuid():N}";
-        var wireMockName = $"rls-wiremock-{Guid.NewGuid():N}";
-        var workerName = $"rls-worker-{Guid.NewGuid():N}";
-        var queue = $"rls-commit-publications-{Guid.NewGuid():N}";
-        var applicationTopic = $"rls-commit-applications-{Guid.NewGuid():N}";
-        var containers = new List<string>();
-        await Run("docker", ["network", "create", network]);
-        try
-        {
-            await StartContainer("sheyenrath/wiremock.net", 80, wireMockPort,
-                new Dictionary<string, string>(), network, containers, wireMockName);
-            await WaitUntilReady(wireMockUrl + "/__admin/health");
-
-            var workerEnvironment = ApplicationEnvironment("RLS_WORKER_");
-            // Both processes use the API's guarded test database and the same isolated queue.
-            var apiEnvironment = ApiEnvironment(uiUrl);
-            var connectionString = apiEnvironment.GetValueOrDefault("RLS_API_ConnectionStrings__RLS")
-                ?? throw new InvalidOperationException("STUBBED_EXT_SYSTEMS_RLS_API_ConnectionStrings__RLS is required.");
-            workerEnvironment["RLS_WORKER_ConnectionStrings__RLS"] = connectionString;
-            workerEnvironment["RLS_WORKER_Messaging__JobSitePublicationQueue"] = queue;
-            workerEnvironment["RLS_WORKER_Messaging__ApplicationReceivedTopic"] = applicationTopic;
-            workerEnvironment["RLS_WORKER_Messaging__ResumeExtractionQueue"] = $"{applicationTopic}-extraction";
-            if (!workerEnvironment.TryGetValue("RLS_WORKER_Ollama__Endpoint", out var ollamaEndpoint) ||
-                !Uri.TryCreate(ollamaEndpoint, UriKind.Absolute, out var ollamaUri) ||
-                ollamaUri.Scheme is not ("http" or "https"))
-            {
-                throw new InvalidOperationException(
-                    "STUBBED_EXT_SYSTEMS_RLS_WORKER_Ollama__Endpoint must be an absolute HTTP or HTTPS URL.");
-            }
-            workerEnvironment["RLS_WORKER_Ollama__IdentityTokenAudience"] = "https://test-resume-analysis.run.app";
-            workerEnvironment["RLS_WORKER_Ollama__AllowInsecureAuthenticatedEndpoint"] = "true";
-            workerEnvironment["RLS_WORKER_Ollama__IdentityMetadataEndpoint"] =
-                new Uri(ollamaUri, "/computeMetadata/v1/instance/service-accounts/default/identity").ToString();
-            workerEnvironment["RLS_WORKER_JobSites__Type"] = "stubbed";
-            foreach (var key in workerEnvironment.Keys
-                .Where(key => key.StartsWith("RLS_WORKER_JobSites__Sites__", StringComparison.Ordinal)
-                    && key.EndsWith("__Url", StringComparison.Ordinal)).ToArray())
-            {
-                workerEnvironment[key] = $"http://{wireMockName}/";
-            }
-            apiEnvironment["RLS_API_Messaging__JobSitePublicationQueue"] = queue;
-            apiEnvironment["RLS_API_Messaging__ApplicationReceivedTopic"] = applicationTopic;
-
-            await StartContainer(workerImage, null, null, workerEnvironment, network, containers, workerName);
-            await StartContainer(apiImage, 8080, apiPort, apiEnvironment, network, containers);
-            await StartContainer(uiImage, 80, uiPort,
-                new Dictionary<string, string> { ["API_BASE_URL"] = apiUrl }, network, containers);
-            await WaitUntilReady(apiUrl + "/health");
-            await WaitUntilReady(uiUrl + "/");
-            await WaitUntilJobSiteRegistered(apiUrl, workerName);
-
-            await Run("dotnet",
-                [
-                    "test", app.TestProject,
+    public Task RunInProcessTests() =>
+        Run("dotnet",
+            [
+                "test", app.TestProject,
                 "--configuration", "Release", "--no-build",
-                "--filter", "Category=Acceptance|Category=Smoke",
+                "--filter", "Category=Acceptance|(Category=Smoke&ExternalSystems=Stubbed)",
                 "--results-directory", results,
                 "--logger", "console;verbosity=detailed",
                 "--logger", "trx;LogFileName=commit.trx"
-                ],
-                new Dictionary<string, string>
-                {
-                    ["RLS_TEST_Hosting__Mode"] = "External",
-                    ["RLS_TEST_Hosting__APIUrl"] = apiUrl,
-                    ["RLS_TEST_Hosting__UIUrl"] = uiUrl,
-                    ["RLS_TEST_JobSites__WireMockUrl"] = wireMockUrl
-                });
-        }
-        catch
-        {
-            // Container logs are only worth the noise when something went wrong.
-            foreach (var container in containers)
-            {
-                await Run("docker", ["logs", container]);
-            }
-            throw;
-        }
-        finally
-        {
-            foreach (var container in containers.AsEnumerable().Reverse())
-            {
-                await Run("docker", ["rm", "--force", container]);
-            }
-            await Run("docker", ["network", "rm", network]);
-        }
-    }
-
-    // The test-environment API settings (e.g. the test database connection) become the API container's own.
-    private Dictionary<string, string> ApiEnvironment(string uiUrl)
-    {
-        var environment = ApplicationEnvironment("RLS_API_");
-        environment["RLS_API_Cors__AllowedOrigins__0"] = uiUrl;
-        return environment;
-    }
-
-    private Dictionary<string, string> ApplicationEnvironment(string applicationPrefix)
-    {
-        var testEnvironmentPrefix = "STUBBED_EXT_SYSTEMS_" + applicationPrefix;
-        var environment = new Dictionary<string, string>();
-        foreach (var name in Environment.GetEnvironmentVariables().Keys.Cast<string>()
-            .Where(name => name.StartsWith(testEnvironmentPrefix, StringComparison.Ordinal)))
-        {
-            environment[applicationPrefix + name[testEnvironmentPrefix.Length..]] =
-                Environment.GetEnvironmentVariable(name)!;
-        }
-        return environment;
-    }
-
-    private async Task StartContainer(string image, int? containerPort, int? hostPort,
-        Dictionary<string, string> environment, string network, List<string> containers, string? containerName = null)
-    {
-        var name = containerName ?? $"rls-commit-{Guid.NewGuid():N}";
-        // Values travel through the process environment so secrets never appear in the logged command line.
-        string[] environmentArguments = [.. environment.Keys.SelectMany(key => new[] { "--env", key })];
-        string[] portArguments = containerPort is not null && hostPort is not null
-            ? ["--publish", $"127.0.0.1:{hostPort}:{containerPort}"]
-            : [];
-        var hostArguments = await DatabaseHostArguments();
-        if (environment.TryGetValue("RLS_WORKER_Ollama__Endpoint", out var ollamaEndpoint))
-        {
-            var host = new Uri(ollamaEndpoint).Host;
-            if (Uri.CheckHostName(host) == UriHostNameType.Dns)
-            {
-                var addresses = await Dns.GetHostAddressesAsync(host);
-                hostArguments = [.. hostArguments, "--add-host",
-                    $"{host}:{addresses.First(a => a.AddressFamily == AddressFamily.InterNetwork)}"];
-            }
-        }
-        await Run("docker", ["create", "--name", name,
-        "--network", network, .. portArguments,
-        .. hostArguments, .. environmentArguments, image], environment);
-        containers.Add(name);
-        await Run("docker", ["start", name]);
-    }
-
-    private async Task WaitUntilJobSiteRegistered(string apiUrl, string workerName)
-    {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-        var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (DateTime.UtcNow < deadline)
-        {
-            var running = await Run("docker", ["inspect", "--format", "{{.State.Running}}", workerName],
-                captureOutput: true);
-            if (running.Trim() != "true")
-            {
-                throw new InvalidOperationException("The acceptance-test Worker stopped before it was ready.");
-            }
-
-            using var response = await client.GetAsync(apiUrl + "/job-sites");
-            response.EnsureSuccessStatusCode();
-            using var sites = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            if (sites.RootElement.EnumerateArray().Any(site => site.GetProperty("id").GetString() == "stub-job-site"))
-            {
-                Log("Worker running; stub-job-site is available.");
-                return;
-            }
-            await Task.Delay(500);
-        }
-        throw new TimeoutException("The acceptance-test Worker did not register stub-job-site within 30 seconds.");
-    }
-
-    // Containers started here cannot resolve the compose service name of the database, so pin its address.
-    private async Task<string[]> DatabaseHostArguments()
-    {
-        var host = Environment.GetEnvironmentVariable("PGHOST");
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            return [];
-        }
-        var addresses = await Dns.GetHostAddressesAsync(host);
-        return ["--add-host", $"{host}:{addresses.First(a => a.AddressFamily == AddressFamily.InterNetwork)}"];
-    }
+            ],
+            new Dictionary<string, string> { ["RLS_TEST_Hosting__Mode"] = "InProcess" });
 
     public void ReportTestResults()
     {
@@ -327,29 +154,8 @@ public sealed class CommitStage
     }
 
     private Task<string> Run(string command, string[] arguments,
-        IReadOnlyDictionary<string, string>? environment = null, bool captureOutput = false) =>
-        processRunner.Run(command, arguments, environment, captureOutput);
-
-    private async Task WaitUntilReady(string url)
-    {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-        var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (true)
-        {
-            try
-            {
-                using var response = await client.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-                Log($"Ready: {url}");
-                return;
-            }
-            catch (Exception exception) when (
-                exception is HttpRequestException or TaskCanceledException && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(500);
-            }
-        }
-    }
+        IReadOnlyDictionary<string, string>? environment = null) =>
+        processRunner.Run(command, arguments, environment);
 
     public static (string Version, bool PushImages) ParseArguments(string[] arguments)
     {
@@ -389,20 +195,6 @@ public sealed class CommitStage
         return images.Distinct(StringComparer.Ordinal).Count() == images.Length
             ? config
             : throw new InvalidOperationException("API, UI and Worker image names must differ.");
-    }
-
-    private static int FreePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        try
-        {
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
     }
 
     private static void RequireFile(string path)

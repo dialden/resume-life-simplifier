@@ -289,3 +289,10 @@ Compose passes these settings into the dev container. Rebuild the container
 after editing the file. Hosting mode is independent of stubbed versus real
 external systems. In-process API hosting continues to use
 `RLS_TEST_CONNECTION_STRING` for the test database.
+
+The [commit stage](../ops/pipelines/stages/commit/invoke.cs) runs the in-process
+acceptance tests and stubbed smoke tests with the default parallel settings
+before building the application images. Real smoke tests remain available for
+credentialed runs with `--filter 'Category=Smoke&ExternalSystems=Real'`.
+Testing the built images belongs in a separate acceptance stage, outside the
+commit gate.
