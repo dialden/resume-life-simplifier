@@ -30,6 +30,67 @@ public class ApplicationsTests(TestHarness harness)
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task RecruitersCanReviewEducationExtractedFromResumes(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis()
+                .FindsEducation(
+                    institution: "Example University", qualification: "Bachelor of Science",
+                    fieldOfStudy: "Computer Science", startDate: "2016", endDate: "2020")
+                .FindsEducation(
+                    institution: "Example Institute", qualification: "Security Certificate",
+                    endDate: "June 2022")
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyHasExtractedEducation(
+                        ("Example University", "Bachelor of Science", "Computer Science", "2016", "2020"),
+                        ("Example Institute", "Security Certificate", null, null, "June 2022"));
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ResumeAnalysisCanCompleteWithoutFindingEducation(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().FindsNoEducation()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyHasExtractedEducation();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ContactInformationIsRetainedWhenEducationIsFound(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis()
+                .FindsEmail("resume@example.com")
+                .FindsEducation(institution: "Example University", qualification: "Bachelor of Science")
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyHasExtractedContactInformation(email: "resume@example.com");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task InvalidEducationDoesNotLeavePartialExtractionResults(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().FindsEmail("resume@example.com").ReturnsInvalidEducation()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyHasFailedExtractionWithoutExtractedInformation();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task ReviewedApplicationsUpdateWhenResumeAnalysisCompletes(
         Channel channel, [CombinatorialValues(null, "resume@example.com")] string? extractedEmail)
     {

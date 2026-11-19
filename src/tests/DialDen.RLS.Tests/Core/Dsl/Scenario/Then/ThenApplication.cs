@@ -71,6 +71,13 @@ public sealed class ThenApplication<TResponse, TVerification>
         return this;
     }
 
+    public ThenApplication<TResponse, TVerification> EventuallyHasFailedExtractionWithoutExtractedInformation()
+    {
+        _checks.Add((submission, application) =>
+            submission.EventuallyHasFailedExtractionWithoutExtractedInformation(application));
+        return this;
+    }
+
     public ThenApplication<TResponse, TVerification> EventuallyHasExtractedContactInformation(
         string? name = null, string? email = null, string? phoneNumber = null,
         string? postalAddress = null, string? linkedInUrl = null)
@@ -78,6 +85,15 @@ public sealed class ThenApplication<TResponse, TVerification>
         var expected = new ExtractedContactInformation(name, email, phoneNumber, postalAddress, linkedInUrl);
         _checks.Add((submission, application) =>
             submission.EventuallyHasExtractedContactInformation(application, expected));
+        return this;
+    }
+
+    public ThenApplication<TResponse, TVerification> EventuallyHasExtractedEducation(
+        params (string? Institution, string? Qualification, string? FieldOfStudy, string? StartDate, string? EndDate)[] education)
+    {
+        var expected = education.Select(entry => new ExtractedEducation(
+            entry.Institution, entry.Qualification, entry.FieldOfStudy, entry.StartDate, entry.EndDate)).ToArray();
+        _checks.Add((submission, application) => submission.EventuallyHasExtractedEducation(application, expected));
         return this;
     }
 

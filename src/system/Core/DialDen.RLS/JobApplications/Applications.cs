@@ -53,7 +53,7 @@ internal sealed class Applications(
         var applications = await archive.List(postingId, cancellationToken);
         return applications.Select(application => new ApplicationResponse(
             application.Id, application.Name, application.Email, application.Source, application.ReferralJobSiteId,
-            application.ExtractionStatus, application.ExtractedContacts)).ToArray();
+            application.ExtractionStatus, application.ExtractedContacts, application.ExtractedEducation)).ToArray();
     }
 
     public async Task<ApplicationResponse?> Find(int postingId, int applicationId, CancellationToken cancellationToken)
@@ -61,7 +61,7 @@ internal sealed class Applications(
         var application = await archive.Find(postingId, applicationId, cancellationToken);
         return application is null ? null : new ApplicationResponse(
             application.Id, application.Name, application.Email, application.Source, application.ReferralJobSiteId,
-            application.ExtractionStatus, application.ExtractedContacts);
+            application.ExtractionStatus, application.ExtractedContacts, application.ExtractedEducation);
     }
 
     public async Task<ResumeResponse?> Resume(int postingId, int applicationId, CancellationToken cancellationToken)

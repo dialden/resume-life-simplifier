@@ -4,4 +4,5 @@ namespace DialDen.RLS.Abstractions.Applications;
 public sealed record ApplicationResponse(
     int Id, string Name, string Email, string Source, string? ReferralJobSiteId,
     InformationExtractionStatus ExtractionStatus,
-    ExtractedContactInformation? ExtractedContacts);
+    ExtractedContactInformation? ExtractedContacts,
+    IReadOnlyList<ExtractedEducation>? ExtractedEducation);

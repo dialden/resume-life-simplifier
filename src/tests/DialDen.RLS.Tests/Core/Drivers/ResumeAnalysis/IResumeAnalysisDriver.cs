@@ -8,5 +8,10 @@ public interface IResumeAnalysisDriver
 
     Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse);
 
+    Task FindsEducation(
+        ExtractedContactInformation contacts, IReadOnlyList<ExtractedEducation> education, bool holdResponse);
+
+    Task ReturnsInvalidEducation(ExtractedContactInformation contacts);
+
     Task FailsAnalysis();
 }

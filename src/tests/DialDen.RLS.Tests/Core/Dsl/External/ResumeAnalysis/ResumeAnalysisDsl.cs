@@ -11,4 +11,11 @@ public sealed class ResumeAnalysisDsl(IResumeAnalysisDriver driver)
 
     public Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse) =>
         driver.FindsContactInformation(contacts, holdResponse);
+
+    public Task FindsEducation(
+        ExtractedContactInformation contacts, IReadOnlyList<ExtractedEducation> education, bool holdResponse) =>
+        driver.FindsEducation(contacts, education, holdResponse);
+
+    public Task ReturnsInvalidEducation(ExtractedContactInformation contacts) =>
+        driver.ReturnsInvalidEducation(contacts);
 }

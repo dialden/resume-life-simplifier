@@ -33,10 +33,26 @@ public sealed class WireMockResumeAnalysisDriver(
             await ResetAndReturnNoContactsByDefault();
     }
 
-    public async Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse)
+    public Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse) =>
+        ConfigureAnalysis(contacts, Array.Empty<ExtractedEducation>(), holdResponse);
+
+    public Task FindsEducation(
+        ExtractedContactInformation contacts, IReadOnlyList<ExtractedEducation> education, bool holdResponse) =>
+        ConfigureAnalysis(contacts, education, holdResponse);
+
+    public Task ReturnsInvalidEducation(ExtractedContactInformation contacts) =>
+        ConfigureAnalysis(contacts, "invalid", holdResponse: false);
+
+    private async Task ConfigureAnalysis(
+        ExtractedContactInformation contacts, object education, bool holdResponse)
     {
         await mappings.ResetAsync();
         await ConfigureIdentityMetadata();
+        var content = JsonSerializer.Serialize(new
+        {
+            contacts.Name, contacts.Email, contacts.PhoneNumber, contacts.PostalAddress, contacts.LinkedInUrl,
+            education
+        }, JsonSerializerOptions.Web);
         var body = JsonSerializer.Serialize(new
         {
             model = "qwen2.5vl:7b",
@@ -44,7 +60,7 @@ public sealed class WireMockResumeAnalysisDriver(
             message = new
             {
                 role = "assistant",
-                content = JsonSerializer.Serialize(contacts, JsonSerializerOptions.Web)
+                content
             },
             done = true,
             done_reason = "stop"

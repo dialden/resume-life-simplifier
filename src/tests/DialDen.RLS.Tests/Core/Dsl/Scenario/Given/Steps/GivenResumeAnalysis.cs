@@ -5,8 +5,10 @@ namespace DialDen.RLS.Tests.Core.Dsl.Scenario.Given.Steps;
 public sealed class GivenResumeAnalysis(GivenStage stage) : BaseGiven(stage)
 {
     private ExtractedContactInformation _contacts = new(null, null, null, null, null);
+    private List<ExtractedEducation>? _education;
     private bool _holdResponse;
     private bool _fails;
+    private bool _invalidEducation;
     public GivenResumeAnalysis IsUnavailable()
     {
         _fails = true;
@@ -49,7 +51,31 @@ public sealed class GivenResumeAnalysis(GivenStage stage) : BaseGiven(stage)
         return this;
     }
 
+    public GivenResumeAnalysis FindsEducation(
+        string? institution = null, string? qualification = null, string? fieldOfStudy = null,
+        string? startDate = null, string? endDate = null)
+    {
+        _education ??= [];
+        _education.Add(new(institution, qualification, fieldOfStudy, startDate, endDate));
+        return this;
+    }
+
+    public GivenResumeAnalysis FindsNoEducation()
+    {
+        _education = [];
+        return this;
+    }
+
+    public GivenResumeAnalysis ReturnsInvalidEducation()
+    {
+        _invalidEducation = true;
+        return this;
+    }
+
     internal override Task Execute(UseCaseDsl app) =>
         _fails ? app.ExternalSystems.ResumeAnalysis.FailsAnalysis()
-            : app.ExternalSystems.ResumeAnalysis.FindsContactInformation(_contacts, _holdResponse);
+            : _invalidEducation ? app.ExternalSystems.ResumeAnalysis.ReturnsInvalidEducation(_contacts)
+            : _education is null
+                ? app.ExternalSystems.ResumeAnalysis.FindsContactInformation(_contacts, _holdResponse)
+                : app.ExternalSystems.ResumeAnalysis.FindsEducation(_contacts, _education, _holdResponse);
 }

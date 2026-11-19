@@ -46,7 +46,7 @@ public static class InfrastructureServiceCollectionExtensions
                 AllowAutoRedirect = false,
                 UseProxy = false
             });
-        services.AddHttpClient<IResumeContactExtraction, OllamaResumeContactExtraction>((provider, client) =>
+        services.AddHttpClient<IResumeInformationExtraction, OllamaResumeInformationExtraction>((provider, client) =>
         {
             client.BaseAddress = provider.GetRequiredService<IOptions<OllamaOptions>>().Value.Endpoint;
             client.Timeout = Timeout.InfiniteTimeSpan;
