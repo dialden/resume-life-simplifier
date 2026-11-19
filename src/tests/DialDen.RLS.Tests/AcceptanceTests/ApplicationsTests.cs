@@ -32,7 +32,7 @@ public class ApplicationsTests(TestHarness harness)
     [Theory, CombinatorialData]
     public async Task RecruitersCanReviewEducationExtractedFromResumes(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis()
                 .FindsEducation(
@@ -53,7 +53,7 @@ public class ApplicationsTests(TestHarness harness)
     [Theory, CombinatorialData]
     public async Task ResumeAnalysisCanCompleteWithoutFindingEducation(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis().FindsNoEducation()
             .When().ApplyToPosting().WithResume()
@@ -65,7 +65,7 @@ public class ApplicationsTests(TestHarness harness)
     [Theory, CombinatorialData]
     public async Task ContactInformationIsRetainedWhenEducationIsFound(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis()
                 .FindsEmail("resume@example.com")
@@ -80,7 +80,7 @@ public class ApplicationsTests(TestHarness harness)
     [Theory, CombinatorialData]
     public async Task InvalidEducationDoesNotLeavePartialExtractionResults(Channel channel)
     {
-        await _testEnvironment.Scenario(channel)
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis().FindsEmail("resume@example.com").ReturnsInvalidEducation()
             .When().ApplyToPosting().WithResume()
