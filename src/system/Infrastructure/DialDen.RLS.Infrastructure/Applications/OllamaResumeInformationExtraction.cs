@@ -81,6 +81,7 @@ internal sealed class OllamaResumeInformationExtraction(
                     2. ZERO INFERENCE / ZERO GUESSING: Do NOT compute, guess, deduce, or infer
                        any values based on surrounding context. If a value is not explicitly printed
                        as text, or any part of it is unreadable or uncertain, output null for that value.
+                    3. DO NOT TRANSLATE: Do not translate any text from the resume images. Extract all information exactly as it appears.
                     Do not extract employers' or references' contacts.
                     Return one JSON object with name, email, phoneNumber, postalAddress, linkedInUrl,
                     and education. Education must be an array of objects with institution, qualification,
