@@ -671,4 +671,72 @@
   <data name="Posting_RequiredEducationHelp" xml:space="preserve"><comment>UI text</comment><value>Facultatif. Décrivez le diplôme ou la qualification exigés.</value></data>
   <data name="Posting_NoRequiredEducation" xml:space="preserve"><comment>UI text</comment><value>Aucune formation requise précisée.</value></data>
   <data name="Api_PostingUpdateConflict" xml:space="preserve"><comment>API message: publish posting</comment><value>L'offre a été modifiée. Rechargez-la et réessayez.</value></data>
+  <data name="Comparison_Navigation" xml:space="preserve"><comment>UI text</comment><value>Prototype de comparaison</value></data>
+  <data name="Comparison_PageTitle" xml:space="preserve"><comment>UI text</comment><value>Prototype de comparaison des candidatures</value></data>
+  <data name="Comparison_Eyebrow" xml:space="preserve"><comment>UI text</comment><value>EXPLORER UN FUTUR PARCOURS</value></data>
+  <data name="Comparison_Title" xml:space="preserve"><comment>UI text</comment><value>Composez votre présélection</value></data>
+  <data name="Comparison_MatrixTitle" xml:space="preserve"><comment>UI text</comment><value>Comparez les éléments de preuve</value></data>
+  <data name="Comparison_Job" xml:space="preserve"><comment>UI text</comment><value>Poste fictif : développeur ou développeuse .NET senior</value></data>
+  <data name="Comparison_DemoTag" xml:space="preserve"><comment>UI text</comment><value>Prototype interactif</value></data>
+  <data name="Comparison_DemoNotice" xml:space="preserve"><comment>UI text</comment><value>Candidatures et preuves fictives à des fins d'exploration. Les modifications et les notes restent sur cette page et sont réinitialisées si vous l'actualisez ou la quittez. Elles ne sont ni enregistrées ni envoyées à l'API.</value></data>
+  <data name="Comparison_TriageHeading" xml:space="preserve"><comment>UI text</comment><value>Commencez par l'essentiel</value></data>
+  <data name="Comparison_TriageDescription" xml:space="preserve"><comment>UI text</comment><value>Les critères obligatoires d'abord. Dans chaque groupe, les candidatures sont classées selon les critères supplémentaires satisfaits.</value></data>
+  <data name="Comparison_Selected" xml:space="preserve"><comment>UI text</comment><value>{0} sur 4 sélectionnées</value></data>
+  <data name="Comparison_Compare" xml:space="preserve"><comment>UI text</comment><value>Comparer les candidatures</value></data>
+  <data name="Comparison_SelectionHelp" xml:space="preserve"><comment>UI text</comment><value>Sélectionnez de 2 à 4 candidatures pour comparer les preuves côte à côte.</value></data>
+  <data name="Comparison_Qualified" xml:space="preserve"><comment>UI text</comment><value>Qualifiées</value></data>
+  <data name="Comparison_QualifiedHelp" xml:space="preserve"><comment>UI text</comment><value>Tous les critères obligatoires sont satisfaits avec un niveau de confiance élevé</value></data>
+  <data name="Comparison_VerifyTier" xml:space="preserve"><comment>UI text</comment><value>À vérifier</value></data>
+  <data name="Comparison_VerifyHelp" xml:space="preserve"><comment>UI text</comment><value>Critères obligatoires satisfaits, avec des preuves à examiner</value></data>
+  <data name="Comparison_Disqualified" xml:space="preserve"><comment>UI text</comment><value>Non admissibles</value></data>
+  <data name="Comparison_DisqualifiedHelp" xml:space="preserve"><comment>UI text</comment><value>Développez pour voir les candidatures auxquelles il manque une exigence</value></data>
+  <data name="Comparison_EmptyTier" xml:space="preserve"><comment>UI text</comment><value>Aucune candidature fictive dans ce groupe.</value></data>
+  <data name="Comparison_SelectCandidate" xml:space="preserve"><comment>UI text</comment><value>Sélectionner {0} pour la comparaison</value></data>
+  <data name="Comparison_SampleCandidate" xml:space="preserve"><comment>UI text</comment><value>Candidature fictive</value></data>
+  <data name="Comparison_Mandatory" xml:space="preserve"><comment>UI text</comment><value>Obligatoire</value></data>
+  <data name="Comparison_Bonus" xml:space="preserve"><comment>UI text</comment><value>Atout</value></data>
+  <data name="Comparison_MandatoryCount" xml:space="preserve"><comment>UI text</comment><value>Obligatoires : {0}/{1}</value></data>
+  <data name="Comparison_BonusCount" xml:space="preserve"><comment>UI text</comment><value>Atouts : {0}/{1}</value></data>
+  <data name="Comparison_Flags" xml:space="preserve"><comment>UI text</comment><value>À vérifier : {0}</value></data>
+  <data name="Comparison_Missing" xml:space="preserve"><comment>UI text</comment><value>Manquant : {0}</value></data>
+  <data name="Comparison_MatrixHeading" xml:space="preserve"><comment>UI text</comment><value>Comparaison par critère</value></data>
+  <data name="Comparison_MatrixHelp" xml:space="preserve"><comment>UI text</comment><value>Ouvrez un verdict pour examiner l'extrait du CV fictif, ajouter une note ou modifier la décision.</value></data>
+  <data name="Comparison_Back" xml:space="preserve"><comment>UI text</comment><value>Retour à la présélection</value></data>
+  <data name="Comparison_Criteria" xml:space="preserve"><comment>UI text</comment><value>Critères du poste</value></data>
+  <data name="Comparison_Met" xml:space="preserve"><comment>UI text</comment><value>Satisfait</value></data>
+  <data name="Comparison_Verify" xml:space="preserve"><comment>UI text</comment><value>À vérifier</value></data>
+  <data name="Comparison_NotMet" xml:space="preserve"><comment>UI text</comment><value>Non satisfait</value></data>
+  <data name="Comparison_ViewEvidence" xml:space="preserve"><comment>UI text</comment><value>Voir la preuve</value></data>
+  <data name="Comparison_Overridden" xml:space="preserve"><comment>UI text</comment><value>Décision du recruteur</value></data>
+  <data name="Comparison_OriginalConfidence" xml:space="preserve"><comment>UI text</comment><value>Confiance initiale : {0}</value></data>
+  <data name="Comparison_NoteLabel" xml:space="preserve"><comment>UI text</comment><value>Note pour {0} — {1}</value></data>
+  <data name="Comparison_MarkMet" xml:space="preserve"><comment>UI text</comment><value>Marquer comme satisfait</value></data>
+  <data name="Comparison_MarkNotMet" xml:space="preserve"><comment>UI text</comment><value>Marquer comme non satisfait</value></data>
+  <data name="Comparison_ResetVerdict" xml:space="preserve"><comment>UI text</comment><value>Rétablir le verdict initial</value></data>
+  <data name="Comparison_ScrollHint" xml:space="preserve"><comment>UI text</comment><value>Faites défiler horizontalement pour voir toutes les candidatures.</value></data>
+  <data name="Comparison_CriterionExperience" xml:space="preserve"><comment>UI text</comment><value>5 ans d'expérience en C#</value></data>
+  <data name="Comparison_CriterionApi" xml:space="preserve"><comment>UI text</comment><value>Développement d'API REST</value></data>
+  <data name="Comparison_CriterionEducation" xml:space="preserve"><comment>UI text</comment><value>Baccalauréat en informatique</value></data>
+  <data name="Comparison_CriterionFrench" xml:space="preserve"><comment>UI text</comment><value>Français professionnel</value></data>
+  <data name="Comparison_CriterionCloud" xml:space="preserve"><comment>UI text</comment><value>Expérience en infonuagique</value></data>
+  <data name="Comparison_CriterionDelivery" xml:space="preserve"><comment>UI text</comment><value>Expérience en CI/CD</value></data>
+  <data name="Comparison_CriterionMentoring" xml:space="preserve"><comment>UI text</comment><value>Mentorat de développeurs</value></data>
+  <data name="Comparison_EvidenceExperienceMet" xml:space="preserve"><comment>UI text</comment><value>« Développement d'applications en C# pendant six ans. »</value></data>
+  <data name="Comparison_EvidenceExperienceVerify" xml:space="preserve"><comment>UI text</comment><value>« 4,5 ans de développement d'applications en C#. »</value></data>
+  <data name="Comparison_EvidenceApiMet" xml:space="preserve"><comment>UI text</comment><value>« Conception et maintien d'API REST en ASP.NET Core. »</value></data>
+  <data name="Comparison_EvidenceEducationMet" xml:space="preserve"><comment>UI text</comment><value>« Baccalauréat en informatique. »</value></data>
+  <data name="Comparison_EvidenceEducationVerify" xml:space="preserve"><comment>UI text</comment><value>« Études universitaires en développement logiciel. »</value></data>
+  <data name="Comparison_EvidenceEducationMissing" xml:space="preserve"><comment>UI text</comment><value>« Diplôme collégial en technologies de l'information. »</value></data>
+  <data name="Comparison_EvidenceFrenchMet" xml:space="preserve"><comment>UI text</comment><value>« Français : maîtrise professionnelle. »</value></data>
+  <data name="Comparison_EvidenceCloudMet" xml:space="preserve"><comment>UI text</comment><value>« Déploiement de services sur une plateforme infonuagique. »</value></data>
+  <data name="Comparison_EvidenceCloudMissing" xml:space="preserve"><comment>UI text</comment><value>Aucun extrait pertinent trouvé dans le CV fictif.</value></data>
+  <data name="Comparison_EvidenceDeliveryMet" xml:space="preserve"><comment>UI text</comment><value>« Création de pipelines CI/CD pour les mises en production automatisées. »</value></data>
+  <data name="Comparison_EvidenceDeliveryMissing" xml:space="preserve"><comment>UI text</comment><value>Aucun extrait pertinent trouvé dans le CV fictif.</value></data>
+  <data name="Comparison_EvidenceMentoringMet" xml:space="preserve"><comment>UI text</comment><value>« Mentorat de développeurs juniors lors de revues de code. »</value></data>
+  <data name="Comparison_EvidenceMentoringMissing" xml:space="preserve"><comment>UI text</comment><value>Aucun extrait pertinent trouvé dans le CV fictif.</value></data>
+  <data name="Comparison_NormalizedExperienceMet" xml:space="preserve"><comment>UI text</comment><value>Expérience normalisée : 6 ans</value></data>
+  <data name="Comparison_NormalizedExperienceVerify" xml:space="preserve"><comment>UI text</comment><value>Expérience normalisée : 4,5 ans</value></data>
+  <data name="Comparison_NormalizedEducationMet" xml:space="preserve"><comment>UI text</comment><value>Formation normalisée : baccalauréat</value></data>
+  <data name="Comparison_NormalizedEducationVerify" xml:space="preserve"><comment>UI text</comment><value>Formation normalisée : études universitaires, diplôme non confirmé</value></data>
+  <data name="Comparison_NormalizedEducationMissing" xml:space="preserve"><comment>UI text</comment><value>Formation normalisée : diplôme collégial</value></data>
 </root>

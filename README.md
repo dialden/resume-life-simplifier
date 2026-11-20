@@ -76,6 +76,13 @@ unspecified.
 Jobillico sandbox verification is still needed for the competencies display and
 for a completed criterion without a recognized diploma.
 
+## Comparison prototype
+
+The workspace navigation includes a candidate comparison prototype at
+`/comparison-prototype`. It uses fictional data only; selections, notes, and
+verdict overrides remain in the page and are lost on refresh or navigation.
+The prototype does not read or modify real postings or applications.
+
 # Contribute
 ## Software requirements
 ### Windows
