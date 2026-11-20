@@ -311,6 +311,65 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
 .applicant-education-list { display: grid; gap: 16px; margin: 16px 0 0; padding: 0; list-style: none; }
 .applicant-education-list > li { padding: 16px; border: 1px solid var(--workspace-border); border-radius: 8px; background: #fff; }
 .applicant-education-fields { padding-left: 0; }
+.comparison-heading { margin-bottom: 24px; }
+.comparison-notice { margin-bottom: 28px; }
+.comparison-intro, .comparison-matrix-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 16px; }
+.comparison-intro p, .comparison-matrix-toolbar p, .comparison-selection-help, .comparison-scroll-hint { margin-top: 6px; color: var(--workspace-muted); font-size: .85rem; line-height: 1.6; }
+.comparison-actions { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
+.comparison-actions > span { color: var(--workspace-muted); font-size: .8rem; font-weight: 600; }
+.comparison-selection-help { margin-bottom: 18px; }
+.comparison-tier { margin-bottom: 18px; overflow: hidden; }
+.comparison-tier-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 24px; background: var(--workspace-surface-alt); }
+summary.comparison-tier-header { cursor: pointer; list-style: none; }
+summary.comparison-tier-header::-webkit-details-marker { display: none; }
+.comparison-tier-title { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.comparison-tier-title strong, .comparison-tier-title small { display: block; }
+.comparison-tier-title strong { font-size: .95rem; }
+.comparison-tier-title small { margin-top: 4px; color: var(--workspace-muted); font-size: .76rem; line-height: 1.4; }
+.comparison-tier-icon { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; }
+.comparison-tier-icon--met, .comparison-verdict--met { color: #17684d; background: #e8f5ee; }
+.comparison-tier-icon--verify, .comparison-verdict--verify { color: #805500; background: #fff3d4; }
+.comparison-tier-icon--missing, .comparison-verdict--missing { color: #9c3e3e; background: #fbecec; }
+.comparison-candidate { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-top: 1px solid var(--workspace-border); }
+.comparison-candidate-name { min-width: 170px; }
+.comparison-candidate-name strong, .comparison-candidate-name span { display: block; }
+.comparison-candidate-name strong { font-size: .9rem; }
+.comparison-candidate-name span, .comparison-column-caption { margin-top: 4px; color: var(--workspace-muted); font-size: .73rem; font-weight: 400; }
+.comparison-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.comparison-pill { padding: 6px 10px; border-radius: 999px; background: var(--workspace-surface-alt); color: var(--workspace-ink); font-size: .73rem; font-weight: 600; }
+.comparison-pill--verify { color: #805500; background: #fff3d4; }
+.comparison-missing { color: #9c3e3e; font-size: .76rem; }
+.comparison-empty { padding: 20px 24px; color: var(--workspace-muted); font-size: .85rem; }
+.comparison-matrix-toolbar { margin: 30px 0 18px; }
+.comparison-table-scroll { overflow-x: auto; border: 1px solid var(--workspace-border); border-radius: 12px; background: var(--workspace-surface); }
+.comparison-table { width: 100%; min-width: 700px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.comparison-table th, .comparison-table td { width: 240px; padding: 18px; border-bottom: 1px solid var(--workspace-border); border-right: 1px solid var(--workspace-border); text-align: left; vertical-align: top; }
+.comparison-table th:first-child { width: 190px; }
+.comparison-table tr > :last-child { border-right: 0; }
+.comparison-table tbody tr:last-child > * { border-bottom: 0; }
+.comparison-table thead th { background: var(--workspace-surface-alt); font-size: .85rem; }
+.comparison-column-name, .comparison-column-caption, .comparison-criterion-kind, .comparison-criterion-title { display: block; }
+.comparison-criterion-kind { margin-bottom: 8px; color: var(--workspace-muted); font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; }
+.comparison-criterion-title { font-size: .82rem; line-height: 1.5; }
+.comparison-evidence summary { cursor: pointer; list-style: none; }
+.comparison-evidence summary:focus-visible, summary.comparison-tier-header:focus-visible { outline: 3px solid var(--brand-focus); outline-offset: -3px; }
+.comparison-evidence summary::-webkit-details-marker { display: none; }
+.comparison-verdict { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; font-size: .75rem; font-weight: 650; }
+.comparison-evidence-link { display: block; margin-top: 10px; color: var(--workspace-primary); font-size: .76rem; font-weight: 600; }
+.comparison-evidence-body { margin-top: 16px; font-size: .78rem; line-height: 1.55; }
+.comparison-evidence-label, .comparison-normalized { color: var(--workspace-muted); }
+.comparison-override-label { color: var(--workspace-primary); font-weight: 700; margin-bottom: 8px; }
+.comparison-evidence blockquote { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--brand-accent); overflow-wrap: anywhere; }
+.comparison-normalized { margin-bottom: 12px; }
+.comparison-override-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.comparison-scroll-hint { margin-top: 10px; }
+@media (max-width: 760px) {
+    .comparison-intro, .comparison-matrix-toolbar { align-items: flex-start; flex-direction: column; }
+    .comparison-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .comparison-candidate { align-items: flex-start; flex-wrap: wrap; padding: 14px 16px; }
+    .comparison-pills { width: 100%; margin-left: 0; }
+    .comparison-tier-header { padding: 16px; }
+}
 @media (max-width: 1100px) {
     .applicant-card { grid-template-columns: minmax(0, 1fr); }
     .applicant-download { grid-column: 1; grid-row: auto; justify-self: start; margin-left: 60px; }
@@ -345,7 +404,7 @@ h3 { font-size: 1rem; font-weight: 650; line-height: 1.5; }
     .brand-logo-mark { display: block; width: 46px; height: 46px; object-fit: contain; }
     .brand-mobile-name { color: var(--brand-sidebar-text); font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
     .nav-caption, .sidebar-note, .sidebar-footer { display: none; }
-    .workspace-nav { flex-direction: row; margin-top: 20px; gap: 10px; }
+    .workspace-nav { flex-direction: row; flex-wrap: wrap; margin-top: 20px; gap: 10px; }
     .workspace-nav-link { padding: 10px 14px; font-size: 0.8rem; gap: 8px; }
     .workspace-main {
         margin-left: 0;
