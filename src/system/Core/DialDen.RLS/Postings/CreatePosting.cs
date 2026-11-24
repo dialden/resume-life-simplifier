@@ -21,7 +21,7 @@ internal sealed class CreatePosting : ICreatePosting
         {
             throw new InvalidPostingDescriptionException();
         }
-        var draft = new Posting(0, request.Title, PostingStatus.Draft, request.RequiredEducation)
+        var draft = new Posting(request.Title, request.RequiredEducation)
         {
             Description = request.Description
         };

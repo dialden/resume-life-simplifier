@@ -16,9 +16,7 @@ internal sealed class ViewPublicListing(
         }
 
         return new PublicListingResponse(
-            posting.Id, posting.Title, posting.Description, publicListingAddress.ForPosting(posting.Id))
-        {
-            RequiredEducation = posting.RequiredEducation
-        };
+            posting.Id, posting.Title, posting.Description, publicListingAddress.ForPosting(posting.Id),
+            posting.RequiredEducation);
     }
 }
