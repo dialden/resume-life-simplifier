@@ -7,6 +7,13 @@ public class CreatePosting : RLSUseCase<CreatePostingResponse, CreatePostingVeri
 {
     private string _title = "Software Engineer";
     private string _description = "Build and maintain software for our customers.";
+    private string? _requiredEducation;
+
+    public CreatePosting WithRequiredEducation(string? requiredEducation)
+    {
+        _requiredEducation = requiredEducation;
+        return this;
+    }
 
     public CreatePosting WithDescription(string description)
     {
@@ -26,7 +33,7 @@ public class CreatePosting : RLSUseCase<CreatePostingResponse, CreatePostingVeri
 
     public override async Task<RLSUseCaseResult<CreatePostingResponse, CreatePostingVerification>> Execute()
     {
-        var result = await Driver.CreatePosting(_title, _description);
+        var result = await Driver.CreatePosting(_title, _description, _requiredEducation);
         return new RLSUseCaseResult<CreatePostingResponse, CreatePostingVerification>(
             result,
             Context,

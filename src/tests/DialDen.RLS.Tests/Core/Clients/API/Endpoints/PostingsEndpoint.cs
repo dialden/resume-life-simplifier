@@ -24,9 +24,9 @@ public class PostingsEndpoint
         _httpClient = httpClient;
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> Create(string title, string description)
+    public async Task<Result<CreatePostingResponse, SystemError>> Create(string title, string description, string? requiredEducation)
     {
-        using var response = await _httpClient.PostAsJsonAsync("/postings", new { Title = title, Description = description });
+        using var response = await _httpClient.PostAsJsonAsync("/postings", new { Title = title, Description = description, RequiredEducation = requiredEducation });
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)

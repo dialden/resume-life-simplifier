@@ -52,8 +52,7 @@ internal sealed class PublishPosting : IPublishPosting
         }
         catch (PostingChangedConcurrentlyException)
         {
-            // Publishing is the only change to a posting's status, so someone else published it first.
-            throw new PostingAlreadyPublishedException();
+            throw new PostingUpdateConflictException();
         }
 
         return new PublishPostingResponse(published.Id, published.Status, publicListingUrl)

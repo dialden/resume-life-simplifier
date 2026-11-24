@@ -7,9 +7,8 @@ namespace DialDen.RLS.Infrastructure.Postings;
 
 internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPostingsArchive
 {
-    public async Task<Posting> Add(string title, string description, CancellationToken cancellationToken)
+    public async Task<Posting> Add(Posting posting, CancellationToken cancellationToken)
     {
-        var posting = new Posting(0, title, PostingStatus.Draft) { Description = description };
         context.Postings.Add(posting);
         await context.SaveChangesAsync(cancellationToken);
 
@@ -35,10 +34,12 @@ internal sealed class EntityFrameworkPostingsArchive(RLSContext context) : IPost
         // concurrent saves fail here instead of inserting duplicates.
         var claimed = await context.Postings
             .Where(stored => stored.Id == found.Id && stored.Title == found.Title
-                && stored.Description == found.Description && stored.Status == found.Status)
+                && stored.Description == found.Description && stored.RequiredEducation == found.RequiredEducation
+                && stored.Status == found.Status)
             .ExecuteUpdateAsync(update => update
                 .SetProperty(stored => stored.Title, posting.Title)
                 .SetProperty(stored => stored.Description, posting.Description)
+                .SetProperty(stored => stored.RequiredEducation, posting.RequiredEducation)
                 .SetProperty(stored => stored.Status, posting.Status), cancellationToken);
         if (claimed == 0)
         {

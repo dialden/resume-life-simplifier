@@ -16,6 +16,8 @@ public sealed class PublicListingVerification(
 
     public void HasDescription(string description) => Response.Description.ShouldBe(description);
 
+    public void HasRequiredEducation(string education) => Response.RequiredEducation.ShouldBe(education);
+
     public void HasShareableAddress()
     {
         Response.Id.ShouldBe(expectedId);

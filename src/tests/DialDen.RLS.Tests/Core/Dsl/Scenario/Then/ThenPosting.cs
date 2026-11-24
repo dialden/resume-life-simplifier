@@ -45,6 +45,17 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
 
     public TaskAwaiter GetAwaiter() => _stage.ExecuteAndDispose(Execute).GetAwaiter();
 
+    public ThenPosting<TSuccessResponse, TSuccessVerification> HasRequiredEducation(string? requiredEducation)
+    {
+        _verifications.Add(v =>
+        {
+            if (v is not ViewPostingVerification view)
+                throw new InvalidOperationException("Education can only be verified when viewing a posting.");
+            view.HasRequiredEducation(requiredEducation);
+        });
+        return this;
+    }
+
     public ThenPosting<TSuccessResponse, TSuccessVerification> HasDescription(string description)
     {
         _verifications.Add(v =>
@@ -79,6 +90,20 @@ public class ThenPosting<TSuccessResponse, TSuccessVerification>
             }
             await _stage.App.RLS.ViewPosting().WithId(publication.Id).UntilJobSiteResponded(
                 jobSiteId, TimeSpan.FromSeconds(30), expectedStatus);
+        });
+        return this;
+    }
+
+    public ThenPosting<TSuccessResponse, TSuccessVerification> JobSiteReceivesEducation(
+        string jobSiteId, string? text)
+    {
+        _observations.Add(async verification =>
+        {
+            if (verification is not PublishPostingVerification publication)
+                throw new InvalidOperationException("Education can only be verified after publishing.");
+            await _stage.App.RLS.ViewPosting().WithId(publication.Id).UntilJobSiteResponded(
+                jobSiteId, TimeSpan.FromSeconds(30), "Succeeded");
+            await _stage.App.ExternalSystems.JobSites.HasEducation(jobSiteId, publication.Id, text);
         });
         return this;
     }

@@ -47,6 +47,9 @@ else
                     <MudTextField T="string" Label="@Localizer["CreatePosting_DescriptionLabel"]" InputId="posting-description-input"
                                   Variant="Variant.Outlined" Lines="6" HelperText="@Localizer["CreatePosting_DescriptionHelp"]"
                                   @bind-Value="_description" Disabled="_isCreating" />
+                    <MudTextField T="string" Label="@Localizer["Posting_RequiredEducation"]" InputId="posting-education-input"
+                                  Variant="Variant.Outlined" HelperText="@Localizer["Posting_RequiredEducationHelp"]"
+                                  @bind-Value="_requiredEducation" Disabled="_isCreating" />
                     @if (_creationError is not null)
                     {
                         <MudAlert Class="mt-4" Severity="Severity.Error" role="alert">@_creationError()</MudAlert>
@@ -76,6 +79,7 @@ else
     private Func<string>? _loadError;
     private string _title = string.Empty;
     private string _description = string.Empty;
+    private string _requiredEducation = string.Empty;
     private bool _isCreating;
     private Func<string>? _creationError;
 
@@ -112,7 +116,10 @@ else
 
         try
         {
-            using var response = await Api.PostAsJsonAsync(link.Href, new CreatePostingRequest(_title, _description));
+            using var response = await Api.PostAsJsonAsync(link.Href, new CreatePostingRequest(_title, _description)
+            {
+                RequiredEducation = _requiredEducation
+            });
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 var problem = await response.Content.ReadFromJsonAsync<JsonElement>();

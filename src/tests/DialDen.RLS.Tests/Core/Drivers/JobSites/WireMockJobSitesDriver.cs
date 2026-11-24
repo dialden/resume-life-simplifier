@@ -1,5 +1,6 @@
 using DialDen.RLS.Tests.Core.Clients;
 using WireMock.Admin.Mappings;
+using WireMock.Admin.Requests;
 using WireMock.Client;
 using System.Globalization;
 
@@ -8,22 +9,25 @@ namespace DialDen.RLS.Tests.Core.Drivers.JobSites;
 public sealed class WireMockJobSitesDriver(
     IWireMockAdminApi adminApi, IReadOnlyList<string> jobSiteIds, WireMockMappings mappings) : IJobSitesDriver
 {
+    public async Task<IReadOnlyList<string?>> EducationReceivedFor(string jobSiteId, int postingId)
+    {
+        var values = new List<string?>();
+        foreach (var request in await RequestsFor(jobSiteId, postingId))
+        {
+            if (request.Query!.TryGetValue("requiredEducation", out var education))
+                values.AddRange(education);
+            else
+                values.Add(null);
+        }
+        return values;
+    }
+
     public async Task<IReadOnlyList<Uri?>> PublicListingAddressesReceivedFor(string jobSiteId, int postingId)
     {
-        var requests = await adminApi.GetRequestsAsync();
         var addresses = new List<Uri?>();
-        foreach (var entry in requests)
+        foreach (var request in await RequestsFor(jobSiteId, postingId))
         {
-            var request = entry.Request
-                ?? throw new InvalidOperationException("The job-site request log contains no request.");
-            if (request.Path != mappings.PathFor($"/publish/{Uri.EscapeDataString(jobSiteId)}")
-                || request.Query is null
-                || !request.Query.TryGetValue("postingId", out var ids)
-                || !ids.Contains(postingId.ToString(CultureInfo.InvariantCulture)))
-            {
-                continue;
-            }
-            if (!request.Query.TryGetValue("publicListingUrl", out var urls))
+            if (!request.Query!.TryGetValue("publicListingUrl", out var urls))
             {
                 addresses.Add(null);
             }
@@ -33,6 +37,22 @@ public sealed class WireMockJobSitesDriver(
             }
         }
         return addresses;
+    }
+
+    private async Task<IReadOnlyList<LogRequestModel>> RequestsFor(string jobSiteId, int postingId)
+    {
+        var requests = new List<LogRequestModel>();
+        foreach (var entry in await adminApi.GetRequestsAsync())
+        {
+            var request = entry.Request
+                ?? throw new InvalidOperationException("The job-site request log contains no request.");
+            if (request.Path == mappings.PathFor($"/publish/{Uri.EscapeDataString(jobSiteId)}")
+                && request.Query is not null
+                && request.Query.TryGetValue("postingId", out var ids)
+                && ids.Contains(postingId.ToString(CultureInfo.InvariantCulture)))
+                requests.Add(request);
+        }
+        return requests;
     }
 
     public async Task ResetAndAcceptByDefault()

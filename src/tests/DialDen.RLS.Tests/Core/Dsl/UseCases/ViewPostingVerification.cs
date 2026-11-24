@@ -28,6 +28,8 @@ public class ViewPostingVerification : ResponseVerification<ViewPostingResponse>
 
     public void HasDescription(string description) => Response.Description.ShouldBe(description);
 
+    public void HasRequiredEducation(string? requiredEducation) => Response.RequiredEducation.ShouldBe(requiredEducation);
+
     public void HasJobSitePublication(string jobSiteId, string expectedStatus)
     {
         Response.JobSitePublications.Where(publication => publication.JobSiteId == jobSiteId)

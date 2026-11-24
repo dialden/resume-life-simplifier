@@ -32,6 +32,16 @@ public sealed class ThenPublicListing<TResponse, TVerification>
         return this;
     }
 
+    public ThenPublicListing<TResponse, TVerification> HasRequiredEducation(string education)
+    {
+        _checks.Add(listing =>
+        {
+            listing.HasRequiredEducation(education);
+            return Task.CompletedTask;
+        });
+        return this;
+    }
+
     public ThenPublicListing<TResponse, TVerification> HasStableShareableAddress()
     {
         _checks.Add(async listing =>

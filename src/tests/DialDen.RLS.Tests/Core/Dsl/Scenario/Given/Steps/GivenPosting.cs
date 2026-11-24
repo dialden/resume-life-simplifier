@@ -5,6 +5,13 @@ public class GivenPosting : BaseGiven
     private string _idAlias = ScenarioDefaults.PostingId;
     private string _title = "Software Engineer";
     private string _description = "Build and maintain software for our customers.";
+    private string? _requiredEducation;
+
+    public GivenPosting WithRequiredEducation(string? requiredEducation)
+    {
+        _requiredEducation = requiredEducation;
+        return this;
+    }
 
     public GivenPosting WithDescription(string description)
     {
@@ -36,7 +43,8 @@ public class GivenPosting : BaseGiven
     {
         for (var index = 1; index <= _count; index++)
         {
-            var result = await app.RLS.CreatePosting().WithTitle(_title).WithDescription(_description).Execute();
+            var result = await app.RLS.CreatePosting().WithTitle(_title).WithDescription(_description)
+                .WithRequiredEducation(_requiredEducation).Execute();
             var alias = _count == 1 ? _idAlias : $"{_idAlias}-{index}";
             var postingId = result.ShouldSucceed().SaveIdAs(alias).Id
                 ?? throw new InvalidOperationException("The created posting did not include an ID.");

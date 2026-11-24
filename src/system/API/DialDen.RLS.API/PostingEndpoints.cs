@@ -1,9 +1,11 @@
 using DialDen.RLS.Abstractions.Postings;
+using DialDen.RLS.Localization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Localization;
 
 namespace DialDen.RLS.API;
 
@@ -78,6 +80,7 @@ public static class PostingEndpoints
                 int id,
                 UpdatePostingRequest request,
                 [FromServices] IPublishPosting publishPosting,
+                IStringLocalizer<Messages> Localizer,
                 CancellationToken cancellationToken) =>
             {
                 if (request.Status is not PostingStatus.Published)
@@ -107,6 +110,11 @@ public static class PostingEndpoints
                     {
                         ["jobSiteIds"] = [exception.Message]
                     });
+                }
+                catch (PostingUpdateConflictException)
+                {
+                    return TypedResults.Problem(statusCode: StatusCodes.Status409Conflict,
+                        detail: Localizer["Api_PostingUpdateConflict"]);
                 }
             })
             .WithName("UpdatePosting")

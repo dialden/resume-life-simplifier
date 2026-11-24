@@ -7,6 +7,17 @@ public class PublicListingsTests(TestHarness harness)
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task CandidatesCanSeeRequiredEducation(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Baccalauréat en génie logiciel").PublishedTo()
+            .When().ViewPublicListing()
+            .Then().ShouldSucceed()
+                .And().PublicListing().HasRequiredEducation("Baccalauréat en génie logiciel");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task PublishingWithoutExternalDestinationsCreatesAShareablePublicListing(Channel channel)
     {
         await harness.For(ExternalSystems.Stubbed).Through(channel)

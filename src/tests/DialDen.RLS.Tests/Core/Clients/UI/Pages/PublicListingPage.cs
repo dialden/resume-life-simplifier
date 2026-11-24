@@ -48,6 +48,12 @@ public sealed class PublicListingPage(IPage page)
         var address = await canonicalLink.GetAttributeAsync("href")
             ?? throw new InvalidOperationException("The public listing has no canonical address.");
         return Result<PublicListingResponse, SystemError>.Success(
-            new PublicListingResponse(id, title, description) { PublicListingUrl = new Uri(address, UriKind.Absolute) });
+            new PublicListingResponse(id, title, description)
+            {
+                PublicListingUrl = new Uri(address, UriKind.Absolute),
+                RequiredEducation = await listing.GetByTestId("public-listing-required-education").CountAsync() == 0
+                    ? null
+                    : await listing.GetByTestId("public-listing-required-education").InnerTextAsync()
+            });
     }
 }

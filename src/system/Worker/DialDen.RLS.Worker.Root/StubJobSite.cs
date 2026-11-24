@@ -14,8 +14,11 @@ internal sealed class StubJobSite(string id, string name, HttpClient httpClient)
         var publicListingQuery = posting.PublicListingUrl is null
             ? ""
             : $"&publicListingUrl={Uri.EscapeDataString(posting.PublicListingUrl.AbsoluteUri)}";
+        var educationQuery = posting.RequiredEducation is null
+            ? ""
+            : $"&requiredEducation={Uri.EscapeDataString(posting.RequiredEducation)}";
         using var response = await httpClient.PostAsync(
-            $"publish/{Uri.EscapeDataString(Id)}?postingId={posting.PostingId}{publicListingQuery}",
+            $"publish/{Uri.EscapeDataString(Id)}?postingId={posting.PostingId}{publicListingQuery}{educationQuery}",
             content: null,
             cancellationToken);
         response.EnsureSuccessStatusCode();

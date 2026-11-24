@@ -37,9 +37,9 @@ public class APIRLSDriver : IRLSDriver
         return await _apiClient.Health.CheckHealth();
     }
 
-    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description)
+    public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description, string? requiredEducation)
     {
-        return await _apiClient.Postings.Create(title, description);
+        return await _apiClient.Postings.Create(title, description, requiredEducation);
     }
 
     public Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds)

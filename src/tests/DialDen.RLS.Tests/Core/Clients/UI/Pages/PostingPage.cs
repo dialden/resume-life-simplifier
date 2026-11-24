@@ -80,7 +80,11 @@ public class PostingPage : BasePage
             new ViewPostingResponse(id, title, status)
             {
                 Description = await details.GetByTestId("posting-description").InnerTextAsync(),
+                RequiredEducation = await details.GetByTestId("posting-required-education").CountAsync() == 0
+                    ? null
+                    : await details.GetByTestId("posting-required-education").InnerTextAsync(),
                 JobSitePublications = await ReadJobSitePublications(details)
             });
     }
+
 }
