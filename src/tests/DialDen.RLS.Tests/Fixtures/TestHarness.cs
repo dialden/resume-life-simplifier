@@ -29,7 +29,7 @@ namespace DialDen.RLS.Tests.Fixtures;
 public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
 {
     private readonly string _templateName = $"rls_template_{Guid.NewGuid():N}";
-    private readonly ConcurrentDictionary<string, string> _databases = new();
+    private readonly ConcurrentDictionary<string, byte> _databases = new();
     private readonly Lazy<Task<IBrowser>> _browser;
     private readonly IConfiguration _testsConfiguration = new ConfigurationBuilder()
         .AddEnvironmentVariables("RLS_TEST_")
@@ -246,9 +246,12 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
         var settings = new NpgsqlConnectionStringBuilder(_connectionString
             ?? throw new InvalidOperationException("Harness resources have not been initialized."))
         {
-            Database = name
+            Database = name,
+            // Scenario databases are short-lived; independent provider pools can otherwise
+            // retain idle connections after the hosts stop and prevent the database from dropping.
+            Pooling = false
         };
-        _databases[name] = settings.ConnectionString;
+        _databases[name] = 0;
         try
         {
             await ExecuteAsync($"CREATE DATABASE {Quote(name)} TEMPLATE {Quote(_templateName)}");
@@ -265,10 +268,8 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
 
     private async ValueTask DropDatabaseAsync(string name)
     {
-        if (!_databases.TryGetValue(name, out var connectionString))
+        if (!_databases.ContainsKey(name))
             throw new InvalidOperationException("Refusing to drop a database not owned by this harness.");
-        using (var connection = new NpgsqlConnection(connectionString))
-            NpgsqlConnection.ClearPool(connection);
         await ExecuteAsync($"DROP DATABASE IF EXISTS {Quote(name)}");
         _databases.TryRemove(name, out _);
     }

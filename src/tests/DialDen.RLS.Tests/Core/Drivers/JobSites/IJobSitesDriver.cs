@@ -8,4 +8,6 @@ public interface IJobSitesDriver
     Task SetResponse(string jobSiteId, int postingId, bool accepts, TimeSpan delay);
 
     Task<IReadOnlyList<Uri?>> PublicListingAddressesReceivedFor(string jobSiteId, int postingId);
+
+    Task<IReadOnlyList<string?>> EducationReceivedFor(string jobSiteId, int postingId);
 }

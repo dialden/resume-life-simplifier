@@ -58,6 +58,24 @@ Frameworks: .NET 10, Blazor WebAssembly
 
 Database: PostgreSQL
 
+### Education requirement
+
+A posting may include one optional free-text education requirement specified at
+creation. It appears on the public listing after publication and is passed to
+the selected job sites. The API exposes `requiredEducation` on posting creation
+and views. Blank values mean no requirement; other text is preserved.
+
+The Jobillico adapter sends this text in `sskills_en`, matching the posting's
+existing default language, and marks the education criterion completed. It
+recognizes certain explicit diploma names and abbreviations, optionally followed
+by a field of study, and otherwise leaves the diploma and level unspecified.
+This inference is best-effort and does not interpret arbitrary free text; review
+the result in Jobillico. For example, `Baccalauréat en génie logiciel` maps to a
+bachelor's degree, whereas `DEC ou baccalauréat en informatique` is left
+unspecified.
+Jobillico sandbox verification is still needed for the competencies display and
+for a completed criterion without a recognized diploma.
+
 # Contribute
 ## Software requirements
 ### Windows

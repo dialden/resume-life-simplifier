@@ -21,10 +21,15 @@ internal sealed class CreatePosting : ICreatePosting
         {
             throw new InvalidPostingDescriptionException();
         }
-        var posting = await _postingsArchive.Add(request.Title, request.Description, cancellationToken);
+        var draft = new Posting(request.Title, request.RequiredEducation)
+        {
+            Description = request.Description
+        };
+        var posting = await _postingsArchive.Add(draft, cancellationToken);
         return new CreatePostingResponse(posting.Id, posting.Title, posting.Status)
         {
-            Description = posting.Description
+            Description = posting.Description,
+            RequiredEducation = posting.RequiredEducation
         };
     }
 }

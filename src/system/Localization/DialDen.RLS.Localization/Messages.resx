@@ -667,4 +667,8 @@
   <data name="Applications_ExtractedPostalAddress" xml:space="preserve"><comment>UI text</comment><value>Postal address</value></data>
   <data name="Applications_ExtractedLinkedInUrl" xml:space="preserve"><comment>UI text</comment><value>LinkedIn profile</value></data>
   <data name="Posting_PublicListingHelp" xml:space="preserve"><comment>UI text</comment><value>See the published job and application form as applicants see them.</value></data>
+  <data name="Posting_RequiredEducation" xml:space="preserve"><comment>UI text</comment><value>Required education</value></data>
+  <data name="Posting_RequiredEducationHelp" xml:space="preserve"><comment>UI text</comment><value>Optional. Describe the degree or qualification required.</value></data>
+  <data name="Posting_NoRequiredEducation" xml:space="preserve"><comment>UI text</comment><value>No education requirement specified.</value></data>
+  <data name="Api_PostingUpdateConflict" xml:space="preserve"><comment>API message: publish posting</comment><value>The posting changed. Reload it and try again.</value></data>
 </root>

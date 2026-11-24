@@ -6,6 +6,29 @@ public class JobPostingsTests(TestHarness harness)
 {
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
+    public async Task JobSiteReceivesRequiredEducation(Channel channel)
+    {
+        const string education = "Baccalauréat en génie logiciel & systèmes <embarqués>";
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation(education)
+            .When().PublishPosting().ToJobSites("stub-job-site")
+            .Then().ShouldSucceed()
+                .And().Posting().JobSiteReceivesEducation("stub-job-site", education);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task JobSiteReceivesNoEducationWhenNoneIsRequired(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting()
+            .When().PublishPosting().ToJobSites("stub-job-site")
+            .Then().ShouldSucceed()
+                .And().Posting().JobSiteReceivesEducation("stub-job-site", null);
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
     public async Task CanCreatePosting(Channel channel)
     {
         await harness.For(ExternalSystems.Stubbed).Through(channel)
@@ -35,6 +58,28 @@ public class JobPostingsTests(TestHarness harness)
             .When().ViewPosting()
             .Then().ShouldSucceed()
                 .And().Posting().HasDescription("Build tools & support customers <globally>.");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CanViewRequiredEducation(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Baccalauréat en génie logiciel")
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().HasRequiredEducation("Baccalauréat en génie logiciel");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task EducationIsOptional(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting()
+            .When().ViewPosting()
+            .Then().ShouldSucceed()
+                .And().Posting().HasRequiredEducation(null);
     }
 
     [Trait("Category", "Acceptance")]

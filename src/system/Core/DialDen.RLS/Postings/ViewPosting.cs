@@ -34,6 +34,7 @@ internal sealed class ViewPosting : IViewPosting
         return new ViewPostingResponse(posting.Id, posting.Title, posting.Status)
         {
             Description = posting.Description,
+            RequiredEducation = posting.RequiredEducation,
             PublicListingUrl = posting.Status == PostingStatus.Published
                 ? _publicListingAddress.ForPosting(posting.Id)
                 : null,

@@ -67,6 +67,17 @@ else
                 <p class="posting-description" data-testid="posting-description">@_posting.Description</p>
             </div>
             <div class="posting-content-section">
+                <h3>@Localizer["Posting_RequiredEducation"]</h3>
+                @if (_posting.RequiredEducation is not null)
+                {
+                    <p class="posting-description" data-testid="posting-required-education">@_posting.RequiredEducation</p>
+                }
+                else
+                {
+                    <p class="panel-description">@Localizer["Posting_NoRequiredEducation"]</p>
+                }
+            </div>
+            <div class="posting-content-section">
                 <h3>@Localizer["Posting_JobSitePublications"]</h3>
                 @if (_posting.JobSitePublications.Count == 0)
                 {

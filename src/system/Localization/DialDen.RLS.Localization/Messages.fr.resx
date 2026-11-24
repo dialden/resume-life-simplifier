@@ -667,4 +667,8 @@
   <data name="Applications_ExtractedPostalAddress" xml:space="preserve"><comment>UI text</comment><value>Adresse postale</value></data>
   <data name="Applications_ExtractedLinkedInUrl" xml:space="preserve"><comment>UI text</comment><value>Profil LinkedIn</value></data>
   <data name="Posting_PublicListingHelp" xml:space="preserve"><comment>UI text</comment><value>Consultez l'offre publiée et le formulaire tels qu'ils sont présentés aux candidats.</value></data>
+  <data name="Posting_RequiredEducation" xml:space="preserve"><comment>UI text</comment><value>Formation requise</value></data>
+  <data name="Posting_RequiredEducationHelp" xml:space="preserve"><comment>UI text</comment><value>Facultatif. Décrivez le diplôme ou la qualification exigés.</value></data>
+  <data name="Posting_NoRequiredEducation" xml:space="preserve"><comment>UI text</comment><value>Aucune formation requise précisée.</value></data>
+  <data name="Api_PostingUpdateConflict" xml:space="preserve"><comment>API message: publish posting</comment><value>L'offre a été modifiée. Rechargez-la et réessayez.</value></data>
 </root>

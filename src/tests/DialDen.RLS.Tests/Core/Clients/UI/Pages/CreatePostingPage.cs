@@ -34,6 +34,9 @@ public class CreatePostingPage : BasePage
     public Task FillDescription(string description) =>
         _page.GetByLabel("Description", new() { Exact = true }).FillAsync(description);
 
+    public Task FillRequiredEducation(string requiredEducation) =>
+        _page.GetByLabel("Formation requise", new() { Exact = true }).FillAsync(requiredEducation);
+
     public async Task<Result<CreatePostingResponse, SystemError>> ClickCreatePosting()
     {
         var response = await _page.RunAndWaitForResponseAsync(

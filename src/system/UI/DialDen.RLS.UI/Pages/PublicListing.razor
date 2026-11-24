@@ -49,6 +49,13 @@ else
                     <h2>@Localizer["PublicListing_AboutRole"]</h2>
                 </div>
                 <div class="public-job-description" data-testid="public-listing-description">@_listing.Description</div>
+                @if (_listing.RequiredEducation is not null)
+                {
+                    <div class="posting-content-section">
+                        <h3>@Localizer["Posting_RequiredEducation"]</h3>
+                        <p class="posting-description" data-testid="public-listing-required-education">@_listing.RequiredEducation</p>
+                    </div>
+                }
                 <div class="panel-footer">@Localizer["PublicListing_Footer"]</div>
             </article>
             <aside class="help-panel public-job-apply" aria-labelledby="apply-title">

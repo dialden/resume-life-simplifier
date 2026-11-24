@@ -21,6 +21,14 @@ public class JobSitesDsl
 
     public Task Reset() => _driver.ResetAndAcceptByDefault();
 
+    public async Task HasEducation(string jobSiteId, int postingId, string? text)
+    {
+        var received = await _driver.EducationReceivedFor(jobSiteId, postingId);
+        received.ShouldNotBeEmpty();
+        foreach (var education in received)
+            education.ShouldBe(text);
+    }
+
     public async Task HasPublicListingAddress(string jobSiteId, int postingId, Uri expectedAddress)
     {
         var addresses = await _driver.PublicListingAddressesReceivedFor(jobSiteId, postingId);
