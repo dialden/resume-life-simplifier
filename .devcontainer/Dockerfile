@@ -31,7 +31,7 @@ RUN wget -qO- https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dear
 
 # Install PostgreSQL client for database role provisioning and permission checks
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends postgresql-client-16=16.15-0ubuntu0.24.04.1 && \
+    apt-get install -y --no-install-recommends  postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
 RUN wget -qO /usr/local/bin/cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.27.0/cloud-sql-proxy.linux.amd64 && \
