@@ -24,6 +24,8 @@ public sealed class WhenStage
     public WhenApplyToPosting ApplyToPosting() => new(_app, _scenario, _setup);
 
     public WhenResumeAnalysisCompletes ResumeAnalysisCompletes() => new(_app, _scenario, _setup);
+    public WhenReviewEducation ReviewEducation() => new(_app, _scenario, _setup);
+    public WhenCompareCandidates CompareCandidates(params string[] names) => new(_app, _scenario, _setup, names);
 
     public WhenListPostings ListPostings() => new(_app, _scenario, _setup);
 }

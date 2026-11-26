@@ -22,4 +22,16 @@ public sealed class RealResumeAnalysisDriver : IResumeAnalysisDriver
     public Task ReturnsInvalidEducation(ExtractedContactInformation contacts) =>
         throw new InvalidOperationException(
             "Controlling resume-analysis responses requires the stubbed external systems environment.");
+
+    public Task AssessesEducation(bool? met, double confidence, string? evidence) =>
+        throw new InvalidOperationException(
+            "Controlling education comparison responses requires the stubbed external systems environment.");
+
+    public Task FailsEducationComparison() =>
+        throw new InvalidOperationException(
+            "Controlling education comparison responses requires the stubbed external systems environment.");
+
+    public Task HoldEducationComparison() =>
+        throw new InvalidOperationException(
+            "Controlling education comparison responses requires the stubbed external systems environment.");
 }

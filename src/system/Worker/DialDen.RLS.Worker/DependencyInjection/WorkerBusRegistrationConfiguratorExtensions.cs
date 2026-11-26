@@ -11,6 +11,8 @@ public static class WorkerBusRegistrationConfiguratorExtensions
         bus.AddConsumer<PublishPostingOnJobSiteConsumer, PublishPostingOnJobSiteConsumerDefinition>();
         bus.AddConsumer<ExtractApplicationInformationConsumer, ExtractApplicationInformationConsumerDefinition>();
         bus.AddConsumer<RecordInformationExtractionFailureConsumer, RecordInformationExtractionFailureConsumerDefinition>();
+        bus.AddConsumer<CompareApplicationConsumer, CompareApplicationConsumerDefinition>();
+        bus.AddConsumer<RecordApplicationComparisonFailureConsumer, RecordApplicationComparisonFailureConsumerDefinition>();
 
         return bus;
     }

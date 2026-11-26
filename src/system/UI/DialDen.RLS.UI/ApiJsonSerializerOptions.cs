@@ -13,7 +13,8 @@ internal static class ApiJsonSerializerOptions
         {
             new JsonStringEnumConverter<PostingStatus>(),
             new JsonStringEnumConverter<JobSitePublicationStatus>(),
-            new JsonStringEnumConverter<InformationExtractionStatus>()
+            new JsonStringEnumConverter<ApplicationStatus>(),
+            new JsonStringEnumConverter<ApplicationReviewGroup>()
         }
     };
 }

@@ -6,6 +6,17 @@ namespace DialDen.RLS.Tests.Core.Clients.API.Endpoints;
 
 public sealed class ApplicationsEndpoint(HttpClient httpClient)
 {
+    public async Task<Result<VoidValue, SystemError>> ReviewEducation(
+        int postingId, int applicationId, bool? overrideMet, string note, int version)
+    {
+        using var response = await httpClient.PutAsJsonAsync(
+            $"/postings/{postingId}/applications/{applicationId}/education-review", new { overrideMet, note, version });
+        return response.IsSuccessStatusCode
+            ? Result.Success<SystemError>()
+            : Result.Failure<SystemError>(SystemError.Of(
+                $"Saving the education review returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
+    }
+
     public async Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> Observe(
         int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout)
     {

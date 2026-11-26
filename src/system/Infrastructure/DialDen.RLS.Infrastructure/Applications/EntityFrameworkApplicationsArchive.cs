@@ -20,26 +20,28 @@ internal sealed class EntityFrameworkApplicationsArchive(RLSContext context) : I
 
     public async Task<IReadOnlyList<ApplicationSummary>> List(int postingId, CancellationToken cancellationToken)
     {
-        return await context.Applications.AsNoTracking().Where(item => item.PostingId == postingId)
+        var applications = await context.Applications.AsNoTracking().Where(item => item.PostingId == postingId)
             .OrderBy(item => item.Id)
-            .Select(item => new ApplicationSummary(
-                item.Id, item.Name, item.Email, item.Source, item.ReferralJobSiteId,
-                item.ExtractionStatus,
-                item.ExtractionStatus == InformationExtractionStatus.Completed
-                    ? new ExtractedContactInformation(
-                        item.ExtractedName,
-                        item.ExtractedEmail,
-                        item.ExtractedPhoneNumber,
-                        item.ExtractedPostalAddress,
-                        item.ExtractedLinkedInUrl)
-                    : null,
-                item.ExtractionStatus == InformationExtractionStatus.Completed
-                    ? item.EducationHistory.OrderBy(entry => entry.Position)
-                        .Select(entry => new ExtractedEducation(
-                            entry.Institution, entry.Qualification, entry.FieldOfStudy, entry.StartDate, entry.EndDate))
-                        .ToArray()
-                    : null))
+            .Select(item => new
+            {
+                item.Id, item.Name, item.Email, item.Source, item.ReferralJobSiteId, item.Status, item.ReviewVersion,
+                item.ExtractedName, item.ExtractedEmail, item.ExtractedPhoneNumber, item.ExtractedPostalAddress,
+                item.ExtractedLinkedInUrl,
+                Education = item.EducationHistory.OrderBy(entry => entry.Position)
+                    .Select(entry => new ExtractedEducation(entry.Institution, entry.Qualification,
+                        entry.StartDate, entry.EndDate)).ToArray(),
+                Assessment = item.EducationAssessment
+            })
             .ToArrayAsync(cancellationToken);
+        return applications.Select(item => new ApplicationSummary(
+            item.Id, item.Name, item.Email, item.Source, item.ReferralJobSiteId,
+            item.Status,
+            item.Status is ApplicationStatus.AwaitingComparison or ApplicationStatus.ComparisonFailed or ApplicationStatus.Ready
+                ? new ExtractedContactInformation(item.ExtractedName, item.ExtractedEmail, item.ExtractedPhoneNumber,
+                    item.ExtractedPostalAddress, item.ExtractedLinkedInUrl) : null,
+            item.Status is ApplicationStatus.AwaitingComparison or ApplicationStatus.ComparisonFailed or ApplicationStatus.Ready
+                ? item.Education : null,
+            Application.GroupFor(item.Status, item.Assessment), item.Assessment?.ToResponse(), item.ReviewVersion)).ToArray();
     }
 
     public async Task<Application?> Find(int postingId, int applicationId, CancellationToken cancellationToken)
@@ -61,7 +63,8 @@ internal sealed class EntityFrameworkApplicationsArchive(RLSContext context) : I
             return true;
         }
         catch (DbUpdateConcurrencyException exception)
-            when (exception.Entries.Any(conflict => ReferenceEquals(conflict.Entity, application)))
+            when (exception.Entries.Any(conflict => ReferenceEquals(conflict.Entity, application)
+                || ReferenceEquals(conflict.Entity, application.EducationAssessment)))
         {
             return false;
         }

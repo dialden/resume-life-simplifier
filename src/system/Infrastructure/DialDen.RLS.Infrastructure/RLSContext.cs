@@ -67,8 +67,20 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
         application.Property(entity => entity.Resume).HasColumnName("resume").IsRequired();
         application.Property(entity => entity.Source).HasColumnName("source").IsRequired();
         application.Property(entity => entity.ReferralJobSiteId).HasColumnName("referral_job_site_id");
-        application.Property(entity => entity.ExtractionStatus).HasColumnName("extraction_status")
+        application.Property(entity => entity.Status).HasColumnName("status")
             .HasConversion<string>().IsConcurrencyToken();
+        application.Property(entity => entity.ReviewVersion).HasColumnName("review_version").IsConcurrencyToken();
+        application.OwnsOne(entity => entity.EducationAssessment, assessment =>
+        {
+            assessment.Property(value => value.OriginalMet).HasColumnName("education_original_met");
+            assessment.Property(value => value.Confidence).HasColumnName("education_confidence");
+            assessment.Property(value => value.Evidence).HasColumnName("education_evidence");
+            assessment.Property(value => value.OverrideMet).HasColumnName("education_override_met");
+            assessment.Property(value => value.Note).HasColumnName("education_note");
+            assessment.Ignore(value => value.ReviewGroup);
+        });
+        application.Ignore(entity => entity.HasExtractedInformation);
+        application.Ignore(entity => entity.ReviewGroup);
         application.Ignore(entity => entity.ExtractedContacts);
         application.Ignore(entity => entity.ExtractedEducation);
         application.Property(entity => entity.ExtractedName).HasColumnName("extracted_name");
@@ -85,7 +97,6 @@ internal sealed class RLSContext(DbContextOptions<RLSContext> options) : DbConte
             education.Property(entity => entity.Position).HasColumnName("position");
             education.Property(entity => entity.Institution).HasColumnName("institution");
             education.Property(entity => entity.Qualification).HasColumnName("qualification");
-            education.Property(entity => entity.FieldOfStudy).HasColumnName("field_of_study");
             education.Property(entity => entity.StartDate).HasColumnName("start_date");
             education.Property(entity => entity.EndDate).HasColumnName("end_date");
         });

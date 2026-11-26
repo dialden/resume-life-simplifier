@@ -32,6 +32,22 @@ public class APIRLSDriver : IRLSDriver
     public Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId)
         => _apiClient.Applications.DownloadResume(postingId, applicationId);
 
+    public Task<Result<VoidValue, SystemError>> ReviewEducation(
+        int postingId, int applicationId, bool? overrideMet, string note, int version) =>
+        _apiClient.Applications.ReviewEducation(postingId, applicationId, overrideMet, note, version);
+
+    public async Task<Result<ComparisonResponse, SystemError>> CompareCandidates(
+        int postingId, IReadOnlyList<int> applicationIds)
+    {
+        var posting = await _apiClient.Postings.View(postingId);
+        if (posting.IsFailure) return Result<ComparisonResponse, SystemError>.Failure(posting.Error);
+        var applications = await _apiClient.Applications.List(postingId);
+        if (applications.IsFailure) return Result<ComparisonResponse, SystemError>.Failure(applications.Error);
+        return Result<ComparisonResponse, SystemError>.Success(new(
+            posting.Value.RequiredEducation, applications.Value.Where(item => applicationIds.Contains(item.Id))
+                .Select(item => new CandidateComparison(item.Name, item.EducationAssessment?.Evidence)).ToArray()));
+    }
+
     public async Task<Result<VoidValue, SystemError>> GoToRLS()
     {
         return await _apiClient.Health.CheckHealth();

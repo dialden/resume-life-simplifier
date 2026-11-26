@@ -33,6 +33,13 @@ public class GivenStage
         return step;
     }
 
+    public GivenEducationReview EducationReview()
+    {
+        var step = new GivenEducationReview(this);
+        _steps.Add(step);
+        return step;
+    }
+
     public GivenResumeAnalysis ResumeAnalysis()
     {
         var step = new GivenResumeAnalysis(this);

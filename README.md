@@ -76,12 +76,28 @@ unspecified.
 Jobillico sandbox verification is still needed for the competencies display and
 for a completed criterion without a recognized diploma.
 
-## Comparison prototype
+## Candidate comparison
 
-The workspace navigation includes a candidate comparison prototype at
-`/comparison-prototype`. It uses fictional data only; selections, notes, and
-verdict overrides remain in the page and are lost on refresh or navigation.
-The prototype does not read or modify real postings or applications.
+The applicants page groups candidates by résumé processing and education
+assessment. After résumé extraction, the worker compares extracted education
+against the posting's education requirement. If no requirement is specified,
+the candidate is ready without a comparison. Missing education, uncertain verdicts,
+and positive assessments below 85% confidence require human verification. The model's confidence is
+an indication for review, not a calibrated probability or hiring decision.
+An explicit verdict that the requirement is not met is grouped under
+"Requirements not met" regardless of confidence. Negative education assessments
+have no proof excerpt; the migration clears excerpts from existing negative
+assessments. Recruiter overrides take precedence over the original assessment.
+Each education entry has one qualification field, including the subject of
+study. Existing qualification and field-of-study values are combined by the
+database migration.
+
+Select two to four ready candidates to compare their assessments. Recruiters
+can inspect the extracted information, download résumés, and save notes or
+override and restore education verdicts. Notes and overrides are persisted;
+selection is local to the page. Failed extraction or comparison remains visible
+separately. Existing extracted applications with a requirement are queued for
+comparison by the database migration.
 
 # Contribute
 ## Software requirements

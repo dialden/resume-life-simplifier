@@ -51,6 +51,11 @@ public static class InfrastructureServiceCollectionExtensions
             client.BaseAddress = provider.GetRequiredService<IOptions<OllamaOptions>>().Value.Endpoint;
             client.Timeout = Timeout.InfiniteTimeSpan;
         }).AddHttpMessageHandler<OllamaIdentityHandler>();
+        services.AddHttpClient<IEducationComparison, OllamaComparer>((provider, client) =>
+        {
+            client.BaseAddress = provider.GetRequiredService<IOptions<OllamaOptions>>().Value.Endpoint;
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        }).AddHttpMessageHandler<OllamaIdentityHandler>();
         return services;
     }
 
@@ -86,6 +91,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IJobSitesCatalog, EntityFrameworkJobSitesCatalog>();
         services.AddScoped<IApplicationsArchive, EntityFrameworkApplicationsArchive>();
         services.AddScoped<IApplicationReceipts, OutboxApplicationReceipts>();
+        services.AddScoped<IApplicationChanges, OutboxApplicationChanges>();
         services.AddSingleton<IPublicListingAddress>(serviceProvider =>
             new ConfiguredPublicListingAddress(
                 serviceProvider.GetRequiredService<IConfiguration>()));

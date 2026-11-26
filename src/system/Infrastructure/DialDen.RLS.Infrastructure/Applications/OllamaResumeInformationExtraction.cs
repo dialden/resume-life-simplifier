@@ -18,7 +18,7 @@ internal sealed class OllamaResumeInformationExtraction(
     private static readonly string[] ContactFields =
         ["name", "email", "phoneNumber", "postalAddress", "linkedInUrl"];
     private static readonly string[] EducationFields =
-        ["institution", "qualification", "fieldOfStudy", "startDate", "endDate"];
+        ["institution", "qualification", "startDate", "endDate"];
     private static readonly JsonElement ResponseSchema = CreateResponseSchema();
 
     private static JsonElement CreateResponseSchema()
@@ -73,7 +73,9 @@ internal sealed class OllamaResumeInformationExtraction(
                     Extract the candidate's name, email, phoneNumber, postalAddress, linkedInUrl,
                     and education history from the resume images attached to this prompt.
                     Include formal education and certifications, in document order. For each entry,
-                    extract institution, qualification, fieldOfStudy, startDate and endDate.
+                    extract institution, qualification, startDate and endDate. Include the degree,
+                    certification and subject of study together in qualification, exactly as written.
+                    If they appear separately, copy both in document order separated by a newline.
                     Preserve dates as written, including incomplete or ongoing dates.
                     CRITICAL EXTRACTION RULES:
                     1. STRICT LITERALITY: Extract ONLY information that is explicitly written,
@@ -85,7 +87,7 @@ internal sealed class OllamaResumeInformationExtraction(
                     Do not extract employers' or references' contacts.
                     Return one JSON object with name, email, phoneNumber, postalAddress, linkedInUrl,
                     and education. Education must be an array of objects with institution, qualification,
-                    fieldOfStudy, startDate and endDate; use an empty array when none is found.
+                    startDate and endDate; use an empty array when none is found.
                     All other values must be strings or null. Use null for missing or unreadable information.
                     Do not include explanations, markdown, or additional fields.
                     """ + "\n\nThese are all resume pages, in document order.",
@@ -176,7 +178,7 @@ internal sealed class OllamaResumeInformationExtraction(
                 var fields = EducationFields.Select(field => ReadText(entry, field)).ToArray();
                 if (fields.All(string.IsNullOrEmpty))
                     throw new InvalidDataException("The resume analysis response contains an empty education entry.");
-                entries.Add(new ExtractedEducation(fields[0], fields[1], fields[2], fields[3], fields[4]));
+                entries.Add(new ExtractedEducation(fields[0], fields[1], fields[2], fields[3]));
             }
             return new ExtractedResumeInformation(
                 new ExtractedContactInformation(values[0], values[1], values[2], values[3], values[4]), entries);

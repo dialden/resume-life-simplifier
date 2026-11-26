@@ -13,5 +13,9 @@ public interface IResumeAnalysisDriver
 
     Task ReturnsInvalidEducation(ExtractedContactInformation contacts);
 
+    Task AssessesEducation(bool? met, double confidence, string? evidence);
+    Task FailsEducationComparison();
+    Task HoldEducationComparison();
+
     Task FailsAnalysis();
 }

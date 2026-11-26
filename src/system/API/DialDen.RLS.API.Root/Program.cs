@@ -20,7 +20,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<PostingStatus>());
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<JobSitePublicationStatus>());
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<InformationExtractionStatus>());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<ApplicationStatus>());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<ApplicationReviewGroup>());
 });
 builder.Services
     .AddRLSApi()

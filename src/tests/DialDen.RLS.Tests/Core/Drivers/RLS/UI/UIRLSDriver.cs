@@ -53,6 +53,31 @@ public class UIRLSDriver : IRLSDriver
         return await page.DownloadResume(applicationId);
     }
 
+    public async Task<Result<VoidValue, SystemError>> ReviewEducation(
+        int postingId, int applicationId, bool? overrideMet, string note, int version)
+    {
+        var page = await _uiClient.OpenPosting(postingId);
+        var applications = await page.ReadApplications();
+        if (applications.IsFailure)
+            return Result.Failure<SystemError>(applications.Error);
+        var applicants = _uiClient.DisplayedApplicantsPage(postingId);
+        return applicants.IsFailure
+            ? Result.Failure<SystemError>(applicants.Error)
+            : await applicants.Value.ReviewEducation(applicationId, overrideMet, note);
+    }
+
+    public async Task<Result<ComparisonResponse, SystemError>> CompareCandidates(
+        int postingId, IReadOnlyList<int> applicationIds)
+    {
+        var posting = await _uiClient.OpenPosting(postingId);
+        var applications = await posting.ReadApplications();
+        if (applications.IsFailure) return Result<ComparisonResponse, SystemError>.Failure(applications.Error);
+        var page = _uiClient.DisplayedApplicantsPage(postingId);
+        return page.IsFailure
+            ? Result<ComparisonResponse, SystemError>.Failure(page.Error)
+            : await page.Value.CompareCandidates(applicationIds);
+    }
+
     public async Task<Result<VoidValue, SystemError>> GoToRLS()
     {
         var homePage = await _uiClient.OpenHomePage();

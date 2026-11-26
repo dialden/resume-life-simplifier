@@ -9,6 +9,7 @@ public sealed class WireMockResumeAnalysisDriver(
     string callbackHost, WireMockMappings mappings) : IResumeAnalysisDriver, IAsyncDisposable
 {
     private PendingResumeAnalysisResponse? _pendingResponse;
+    private PendingResumeAnalysisResponse? _pendingComparison;
 
     public async Task FailsAnalysis()
     {
@@ -31,6 +32,12 @@ public sealed class WireMockResumeAnalysisDriver(
     {
         if (_pendingResponse is not null)
             await ResetAndReturnNoContactsByDefault();
+        if (_pendingComparison is not null)
+        {
+            _pendingComparison.Complete(503, "");
+            await _pendingComparison.DisposeAsync();
+            _pendingComparison = null;
+        }
     }
 
     public Task FindsContactInformation(ExtractedContactInformation contacts, bool holdResponse) =>
@@ -42,6 +49,68 @@ public sealed class WireMockResumeAnalysisDriver(
 
     public Task ReturnsInvalidEducation(ExtractedContactInformation contacts) =>
         ConfigureAnalysis(contacts, "invalid", holdResponse: false);
+
+    public Task AssessesEducation(bool? met, double confidence, string? evidence)
+    {
+        var content = JsonSerializer.Serialize(new { met, confidence, evidence });
+        var body = JsonSerializer.Serialize(new
+        {
+            model = "qwen2.5vl:7b",
+            message = new { role = "assistant", content },
+            done = true,
+            done_reason = "stop"
+        });
+        return mappings.PostAsync(new MappingModel
+        {
+            Priority = 1,
+            Request = new RequestModel
+            {
+                Path = mappings.PathFor("/api/chat"),
+                Methods = ["POST"],
+                Body = new BodyModel { Matcher = new MatcherModel
+                    { Name = "WildcardMatcher", Pattern = "*Compare the education data*" } }
+            },
+            Response = new ResponseModel
+            {
+                StatusCode = 200,
+                Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
+                Body = body
+            }
+        });
+    }
+
+    public Task FailsEducationComparison() =>
+        mappings.PostAsync(new MappingModel
+        {
+            Priority = 1,
+            Request = new RequestModel
+            {
+                Path = mappings.PathFor("/api/chat"),
+                Methods = ["POST"],
+                Body = new BodyModel { Matcher = new MatcherModel
+                    { Name = "WildcardMatcher", Pattern = "*Compare the education data*" } }
+            },
+            Response = new ResponseModel { StatusCode = 503 }
+        });
+
+    public async Task HoldEducationComparison()
+    {
+        var chatPath = mappings.PathFor("/api/chat");
+        _pendingComparison = new PendingResumeAnalysisResponse(chatPath);
+        var proxyUrl = await _pendingComparison.Start(callbackHost);
+        await mappings.PostAsync(new MappingModel
+        {
+            Priority = 1,
+            Request = new RequestModel
+            {
+                Path = chatPath,
+                Methods = ["POST"],
+                Body = new BodyModel { Matcher = new MatcherModel
+                    { Name = "WildcardMatcher", Pattern = "*Compare the education data*" } }
+            },
+            Response = new ResponseModel { ProxyUrl = proxyUrl }
+        });
+    }
 
     private async Task ConfigureAnalysis(
         ExtractedContactInformation contacts, object education, bool holdResponse)
@@ -80,6 +149,7 @@ public sealed class WireMockResumeAnalysisDriver(
         }
         await mappings.PostAsync(new MappingModel
         {
+            Priority = 10,
             Request = new RequestModel
             {
                 Path = chatPath,
