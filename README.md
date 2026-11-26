@@ -203,7 +203,9 @@ var homePage = await ui.OpenHomePage();
 
 Assembly initialization migrates a uniquely named template once. Each awaited
 scenario gets a clone; cleanup removes only that scenario's database and stub
-mappings/request logs. Assembly disposal drops the template.
+mappings/request logs. Clone cleanup forcibly disconnects remaining sessions
+after stopping its hosts; it never targets databases not owned by the harness.
+Assembly disposal drops the template.
 WireMock request-log cleanup is serialized per server within the test process
 to avoid its shared journal's concurrent-deletion race; scenarios remain parallel.
 
@@ -217,7 +219,7 @@ resume-analysis callback, so the callback must listen on that same path.
 The configured test database supplies connection settings but is not truncated or used for
 scenario data. The test role needs database-creation permissions and access to
 the `postgres` maintenance database. Flyway must be on `PATH`, and PostgreSQL
-must be reachable over TCP.
+13 or later must be reachable over TCP.
 
 All acceptance and smoke scenarios use the harness; there is no collection
 fixture or paused migration block. Each UI scenario gets an isolated browser
