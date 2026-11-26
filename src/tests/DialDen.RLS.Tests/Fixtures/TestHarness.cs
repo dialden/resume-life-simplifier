@@ -239,7 +239,7 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
         await ExecuteAsync($"ALTER DATABASE {Quote(_templateName)} ALLOW_CONNECTIONS false");
     }
 
-    private async ValueTask<(string Name, string ConnectionString)> CreateDatabaseAsync()
+    internal async ValueTask<(string Name, string ConnectionString)> CreateDatabaseAsync()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var name = $"rls_scope_{Guid.NewGuid():N}";
@@ -266,11 +266,11 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
 
     ValueTask IDatabaseCleanup.DropDatabaseAsync(string databaseName) => DropDatabaseAsync(databaseName);
 
-    private async ValueTask DropDatabaseAsync(string name)
+    internal async ValueTask DropDatabaseAsync(string name)
     {
         if (!_databases.ContainsKey(name))
             throw new InvalidOperationException("Refusing to drop a database not owned by this harness.");
-        await ExecuteAsync($"DROP DATABASE IF EXISTS {Quote(name)}");
+        await ExecuteAsync($"DROP DATABASE IF EXISTS {Quote(name)} WITH (FORCE)");
         _databases.TryRemove(name, out _);
     }
 
