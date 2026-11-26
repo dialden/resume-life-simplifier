@@ -102,6 +102,7 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
         catch (Exception error)
         {
             await TestResourceCleanup.RunAsync(error,
+                () => { environment.Diagnostics.WriteToTestOutput(); return ValueTask.CompletedTask; },
                 () => interactionScope?.DisposeAsync() ?? ValueTask.CompletedTask,
                 () => services?.DisposeAsync() ?? ValueTask.CompletedTask,
                 environment.DisposeAsync);
@@ -123,9 +124,11 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
         }
         catch (Exception error)
         {
-            await TestResourceCleanup.RunAsync(error, () => environment is not null
-                ? environment.DisposeAsync()
-                : DropDatabaseAsync(database.Name));
+            await TestResourceCleanup.RunAsync(error,
+                () => { environment?.Diagnostics.WriteToTestOutput(); return ValueTask.CompletedTask; },
+                () => environment is not null
+                    ? environment.DisposeAsync()
+                    : DropDatabaseAsync(database.Name));
             throw;
         }
     }
@@ -158,7 +161,7 @@ public sealed class TestHarness : IAsyncLifetime, IDatabaseCleanup
         services.AddScoped<APIClient>();
         if (channel == Channel.UI)
         {
-            services.AddScoped(_ => new UIClient(environment.Configuration, GetBrowserAsync));
+            services.AddScoped(_ => new UIClient(environment.Configuration, GetBrowserAsync, environment.Diagnostics));
             services.AddScoped<IRLSDriver, UIRLSDriver>();
         }
         else

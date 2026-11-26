@@ -30,9 +30,17 @@ public sealed class TestScenarioSelection(Func<Channel, ValueTask<TestScope>> cr
         }
         catch (Exception error)
         {
-            await TestResourceCleanup.RunAsync(error, scope.DisposeAsync);
+            await TestResourceCleanup.RunAsync(error, scope.ReportDiagnosticsAsync, scope.DisposeAsync);
             throw;
         }
-        await scope.DisposeAsync();
+        try
+        {
+            await scope.DisposeAsync();
+        }
+        catch (Exception error)
+        {
+            await TestResourceCleanup.RunAsync(error, scope.ReportDiagnosticsAsync);
+            throw;
+        }
     }
 }

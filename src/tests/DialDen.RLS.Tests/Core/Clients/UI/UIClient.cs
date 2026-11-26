@@ -1,6 +1,7 @@
 using DialDen.RLS.Tests.Core.Clients.UI.Pages;
 using DialDen.RLS.Tests.Fixtures;
 using Microsoft.Playwright;
+using System.Collections.Concurrent;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI;
 
@@ -8,14 +9,17 @@ public class UIClient : IUIClient, IAsyncDisposable
 {
     private readonly Func<Task<IBrowser>> _getBrowser;
     private readonly RLSConfiguration _configuration;
+    private readonly ScenarioDiagnostics _diagnostics;
+    private readonly ConcurrentDictionary<IRequest, string> _pendingRequests = new();
     private IBrowserContext? _context;
     private IPage? _page;
     private int _notificationStreamRequests;
 
-    public UIClient(RLSConfiguration configuration, Func<Task<IBrowser>> getBrowser)
+    internal UIClient(RLSConfiguration configuration, Func<Task<IBrowser>> getBrowser, ScenarioDiagnostics diagnostics)
     {
         _configuration = configuration;
         _getBrowser = getBrowser;
+        _diagnostics = diagnostics;
     }
 
     public async Task<HomePage> OpenHomePage()
@@ -120,6 +124,25 @@ public class UIClient : IUIClient, IAsyncDisposable
         _context ??= await (await _getBrowser()).NewContextAsync(
             new BrowserNewContextOptions { BaseURL = _configuration.UIUrl });
         var page = await _context.NewPageAsync();
+        page.PageError += (_, _) => _diagnostics.Record("Browser", "Unhandled page error (details omitted)");
+        page.Console += (_, message) =>
+        {
+            if (message.Type is "error" or "warning")
+                _diagnostics.Record("Browser", $"Console {message.Type} (details omitted)");
+        };
+        page.RequestFinished += (sender, request) => _pendingRequests.TryRemove(request, out _);
+        page.RequestFailed += (sender, request) =>
+        {
+            _pendingRequests.TryRemove(request, out _);
+            _diagnostics.Record("Browser", $"Request failed: resource={request.ResourceType}, " +
+                $"route={ClassifyRoute(request.Url)}, error={ClassifyFailure(request.Failure)}");
+        };
+        page.Response += (_, response) =>
+        {
+            if (response.Status >= 400)
+                _diagnostics.Record("Browser", $"HTTP {response.Status}: resource={response.Request.ResourceType}, " +
+                    $"route={ClassifyRoute(response.Url)}");
+        };
         await page.AddInitScriptAsync("""
             const originalFetch = window.fetch.bind(window);
             let notificationConnection;
@@ -141,6 +164,7 @@ public class UIClient : IUIClient, IAsyncDisposable
             """);
         page.Request += (_, request) =>
         {
+            _pendingRequests[request] = $"{request.ResourceType}:{ClassifyRoute(request.Url)}";
             if (new Uri(request.Url).AbsolutePath == "/notifications/stream")
             {
                 Interlocked.Increment(ref _notificationStreamRequests);
@@ -149,6 +173,56 @@ public class UIClient : IUIClient, IAsyncDisposable
         _page = page;
         return page;
     }
+
+    internal async Task RecordDiagnosticsAsync()
+    {
+        if (_page is null)
+        {
+            _diagnostics.Record("Browser", "No page was opened");
+            return;
+        }
+        var page = _page;
+        var path = ClassifyRoute(page.Url);
+        var pending = _pendingRequests.Values.GroupBy(value => value)
+            .Select(group => $"{group.Key}={group.Count()}");
+        _diagnostics.Record("Browser", $"Pending requests: {string.Join(", ", pending)}");
+        try
+        {
+            var state = await page.EvaluateAsync<string>("""
+                () => JSON.stringify({
+                    readyState: document.readyState,
+                    appChildren: document.querySelector('#app')?.childElementCount ?? 0,
+                    headings: document.querySelectorAll('h1,h2,h3').length,
+                    alerts: document.querySelectorAll('[role=alert]').length,
+                    statuses: document.querySelectorAll('[role=status]').length
+                })
+                """).WaitAsync(TimeSpan.FromSeconds(3));
+            _diagnostics.Record("Browser", $"path={path}, state={state}");
+        }
+        catch (Exception error) when (error is PlaywrightException or TimeoutException)
+        {
+            _diagnostics.Record("Browser", $"path={path}, page state unavailable: {error.GetType().Name}");
+        }
+    }
+
+    private static string ClassifyRoute(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var address))
+            return "(unavailable)";
+        var segment = address.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return segment switch
+        {
+            null => "/",
+            "_framework" or "_content" or "postings" or "jobs" or "notifications" => "/" + segment,
+            _ => "(other)"
+        };
+    }
+
+    private static string ClassifyFailure(string? failure) =>
+        failure is not null && failure.StartsWith("net::ERR_", StringComparison.Ordinal)
+            && failure.AsSpan("net::ERR_".Length).ToString().All(character => char.IsAsciiLetterUpper(character) || character == '_')
+            ? failure
+            : "(omitted)";
 
     public Result<PostingPage, SystemError> DisplayedPostingPage(int id)
     {

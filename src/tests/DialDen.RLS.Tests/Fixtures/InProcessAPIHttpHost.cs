@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace DialDen.RLS.Tests.Fixtures;
 
@@ -15,15 +16,18 @@ public sealed class InProcessAPIHttpHost : WebApplicationFactory<Program>, IHttp
     private readonly object _startLock = new();
     private readonly string _environmentVariablesPrefix;
     private readonly IReadOnlyDictionary<string, string?> _settings;
+    private readonly ScenarioDiagnostics _diagnostics;
     private string? _url;
 
     public string Url => _url ?? throw new InvalidOperationException("The host has not been started.");
 
     /// <param name="settings">Settings overriding the environment variables.</param>
-    public InProcessAPIHttpHost(string environmentVariablesPrefix, IReadOnlyDictionary<string, string?> settings)
+    internal InProcessAPIHttpHost(string environmentVariablesPrefix, IReadOnlyDictionary<string, string?> settings,
+        ScenarioDiagnostics diagnostics)
     {
         _environmentVariablesPrefix = environmentVariablesPrefix;
         _settings = settings;
+        _diagnostics = diagnostics;
     }
 
     /// <summary>Starts the host once. Subsequent calls are no-ops.</summary>
@@ -42,6 +46,12 @@ public sealed class InProcessAPIHttpHost : WebApplicationFactory<Program>, IHttp
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(Environments.Development);
+        builder.ConfigureLogging(logging =>
+        {
+            logging.AddProvider(new ScenarioLogProvider(_diagnostics, "API"));
+            logging.AddFilter<ScenarioLogProvider>(null, LogLevel.Warning);
+            logging.AddFilter<ScenarioLogProvider>("MassTransit", LogLevel.None);
+        });
         builder.ConfigureAppConfiguration(configBuilder =>
         {
             var envSource = configBuilder.Sources.OfType<EnvironmentVariablesConfigurationSource>().Single();

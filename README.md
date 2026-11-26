@@ -209,6 +209,11 @@ Assembly disposal drops the template.
 WireMock request-log cleanup is serialized per server within the test process
 to avoid its shared journal's concurrent-deletion race; scenarios remain parallel.
 
+On a fluent scenario failure, the test output includes a bounded, timestamped
+timeline of API and worker logging metadata, worker message consumption, browser
+failures and page state, and process resource usage. Request bodies, structured
+log values, and browser error text are not captured. Diagnostics are per scenario.
+
 To compare a timing-sensitive failure with and without concurrency, run the
 same test filter with `-- xUnit.MaxParallelThreads=1 xUnit.ParallelAlgorithm=conservative`
 and then with `xUnit.MaxParallelThreads=8`.

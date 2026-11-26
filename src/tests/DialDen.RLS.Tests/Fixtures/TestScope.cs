@@ -28,6 +28,13 @@ public sealed class TestScope : IAsyncDisposable
     internal IUIClient UIClient => _uiClient
         ?? throw new InvalidOperationException("This scope does not use the UI channel.");
 
+    internal async ValueTask ReportDiagnosticsAsync()
+    {
+        if (_uiClient is not null)
+            await _uiClient.RecordDiagnosticsAsync();
+        Environment.Diagnostics.WriteToTestOutput();
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;

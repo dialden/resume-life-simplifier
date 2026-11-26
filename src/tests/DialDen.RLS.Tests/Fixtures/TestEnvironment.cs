@@ -16,6 +16,8 @@ public sealed class TestEnvironment : IAsyncDisposable
     private RLSConfiguration? _configuration;
     private bool _disposed;
 
+    internal ScenarioDiagnostics Diagnostics { get; } = new();
+
     public RLSConfiguration Configuration =>
         _configuration ?? throw new InvalidOperationException("The API host has not been started.");
 
@@ -72,8 +74,8 @@ public sealed class TestEnvironment : IAsyncDisposable
                 workerSettings[$"JobSites:Sites:{site.Key}:Url"] =
                     new Uri(jobSites.Url, stubPath).ToString();
         }
-        _workerHost = new InProcessWorkerHost(configurationPrefix, workerSettings);
-        _apiHost = new InProcessAPIHttpHost(configurationPrefix, settings);
+        _workerHost = new InProcessWorkerHost(configurationPrefix, workerSettings, Diagnostics);
+        _apiHost = new InProcessAPIHttpHost(configurationPrefix, settings, Diagnostics);
         _uiHost = channel switch
         {
             Channel.API => null,
@@ -85,12 +87,18 @@ public sealed class TestEnvironment : IAsyncDisposable
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        Diagnostics.Record("Worker", "Starting host");
         _workerHost.Start();
+        Diagnostics.Record("Worker", "Host started");
+        Diagnostics.Record("API", "Starting host");
         _apiHost.Start();
+        Diagnostics.Record("API", "Host started");
         _configuration = new(_apiHost.Url);
         if (_uiHost is not null)
         {
+            Diagnostics.Record("UI", "Starting host");
             _uiHost.Start();
+            Diagnostics.Record("UI", "Host started");
             _configuration.SetUIUrl(_uiHost.Url);
         }
     }
