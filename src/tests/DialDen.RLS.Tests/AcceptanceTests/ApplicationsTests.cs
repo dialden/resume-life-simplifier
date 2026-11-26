@@ -4,6 +4,242 @@ namespace DialDen.RLS.Tests.AcceptanceTests;
 
 public class ApplicationsTests(TestHarness harness)
 {
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CandidatesWithoutAnEducationRequirementQualifyAfterExtraction(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyQualifies();
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CandidatesAreGroupedByEducationAssessment(
+        Channel channel,
+        [CombinatorialValues(true, false)] bool met)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis()
+                .FindsEducation(qualification: "Bachelor of Science")
+                .AssessesEducation(met, 0.95, "Bachelor of Science")
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup(met ? "Qualified" : "Disqualified");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task InsufficientEducationRequiresReview(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsNoEducation()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("Verify");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task UnmetEducationRequirementIsDisqualifiedRegardlessOfConfidence(
+        Channel channel, [CombinatorialValues(0.0, 0.1, 0.85)] double confidence)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "High school diploma")
+                .AssessesEducation(false, confidence, null)
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyIsInReviewGroup("Disqualified");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task UncertainEducationVerdictRequiresVerificationEvenWithHighConfidence(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "University studies")
+                .AssessesEducation(null, 0.95, null)
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("Verify");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task RecruitersCanOverrideAnUnmetEducationAssessmentWithoutEvidence(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "High school diploma")
+                .AssessesEducation(false, 0.1, null)
+            .And().Application()
+            .When().ReviewEducation().MarkMet().WithNote("Qualification verified")
+            .Then().ShouldSucceed()
+                .And().EducationReview().IsSaved("Qualified", true, "Qualification verified");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task UnsupportedPositiveEducationAssessmentFailsComparison(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "High school diploma")
+                .AssessesEducation(true, 0.95, null)
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("ComparisonFailed");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task InventedEducationEvidenceFailsComparison(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "High school diploma")
+                .AssessesEducation(true, 0.95, "Invented qualification")
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("ComparisonFailed");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task LowConfidenceEducationAssessmentRequiresReview(
+        Channel channel, [CombinatorialValues(0.84, 0.85)] double confidence)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "Bachelor of Science")
+                .AssessesEducation(true, confidence, "Bachelor of Science")
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting")
+                    .EventuallyIsInReviewGroup(confidence < 0.85 ? "Verify" : "Qualified");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ComparisonFailuresDoNotHideExtractedInformation(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "Bachelor of Science")
+                .EducationComparisonIsUnavailable()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("ComparisonFailed")
+                    .EventuallyHasExtractedEducation((null, "Bachelor of Science", null, null));
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task ExtractedCandidatesAwaitComparison(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "Bachelor of Science")
+                .HasNotCompletedEducationComparison()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("AwaitingComparison");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CandidatesAwaitingExtractionHaveTheirOwnGroup(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().HasNotCompletedAnalysis()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("AwaitingExtraction");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task CandidatesWithFailedExtractionHaveTheirOwnGroup(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().PublishedTo()
+            .And().ResumeAnalysis().IsUnavailable()
+            .When().ApplyToPosting().WithResume()
+            .Then().ShouldSucceed()
+                .And().ApplicationForPosting("posting").EventuallyIsInReviewGroup("ExtractionFailed");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task RecruitersCanSaveEducationReview(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "Bachelor of Science")
+                .AssessesEducation(false, 0.95, "Bachelor of Science")
+            .And().Application()
+            .When().ReviewEducation().MarkMet().WithNote("Equivalent qualification")
+            .Then().ShouldSucceed()
+                .And().EducationReview().IsSaved("Qualified", true, "Equivalent qualification");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task RecruitersCanRestoreTheOriginalEducationAssessment(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "Bachelor of Science")
+                .AssessesEducation(false, 0.95, "Bachelor of Science")
+            .And().Application()
+            .And().EducationReview().MarkMet()
+            .When().ReviewEducation().RestoreOriginal().WithNote("Reviewed")
+            .Then().ShouldSucceed()
+                .And().EducationReview().IsSaved("Disqualified", null, "Reviewed");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task RecruitersCanCompareEducationEvidenceAcrossCandidates(Channel channel)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "Bachelor of Science")
+                .AssessesEducation(true, 0.95, "Bachelor of Science")
+            .And().Application().WithName("Alex Example").WithEmail("alex@example.com")
+            .And().Application().WithName("Sam Example").WithEmail("sam@example.com")
+            .When().CompareCandidates("Alex Example", "Sam Example")
+            .Then().ShouldSucceed()
+                .And().CandidateComparison().ShowsEducationEvidence("Bachelor's degree", "Bachelor of Science",
+                    "Alex Example", "Sam Example");
+    }
+
+    [Trait("Category", "Acceptance")]
+    [Theory, CombinatorialData]
+    public async Task UnmetEducationAssessmentsHaveNoProof(
+        Channel channel,
+        [CombinatorialValues(null, "High school diploma", "Required education not found")] string? modelEvidence)
+    {
+        await harness.For(ExternalSystems.Stubbed).Through(channel)
+            .Given().Posting().WithRequiredEducation("Bachelor's degree").PublishedTo()
+            .And().ResumeAnalysis().FindsEducation(qualification: "High school diploma")
+                .AssessesEducation(false, 0.95, modelEvidence)
+            .And().Application().WithName("Alex Example").WithEmail("alex@example.com")
+            .And().Application().WithName("Sam Example").WithEmail("sam@example.com")
+            .When().CompareCandidates("Alex Example", "Sam Example")
+            .Then().ShouldSucceed()
+                .And().CandidateComparison().ShowsEducationEvidence("Bachelor's degree", null,
+                    "Alex Example", "Sam Example");
+    }
 
     [Trait("Category", "Acceptance")]
     [Theory, CombinatorialData]
@@ -36,8 +272,8 @@ public class ApplicationsTests(TestHarness harness)
             .Given().Posting().PublishedTo()
             .And().ResumeAnalysis()
                 .FindsEducation(
-                    institution: "Example University", qualification: "Bachelor of Science",
-                    fieldOfStudy: "Computer Science", startDate: "2016", endDate: "2020")
+                    institution: "Example University", qualification: "Bachelor of Science\nComputer Science",
+                    startDate: "2016", endDate: "2020")
                 .FindsEducation(
                     institution: "Example Institute", qualification: "Security Certificate",
                     endDate: "June 2022")
@@ -45,8 +281,8 @@ public class ApplicationsTests(TestHarness harness)
             .Then().ShouldSucceed()
                 .And().ApplicationForPosting("posting")
                     .EventuallyHasExtractedEducation(
-                        ("Example University", "Bachelor of Science", "Computer Science", "2016", "2020"),
-                        ("Example Institute", "Security Certificate", null, null, "June 2022"));
+                        ("Example University", "Bachelor of Science\nComputer Science", "2016", "2020"),
+                        ("Example Institute", "Security Certificate", null, "June 2022"));
     }
 
     [Trait("Category", "Acceptance")]

@@ -20,6 +20,7 @@ public static class EntryPointEndpoints
                 new Link("submit-application", "/public-postings/{id}/applications", "POST"),
                 new Link("list-applications", "/postings/{id}/applications", "GET"),
                 new Link("download-resume", "/postings/{id}/applications/{applicationId}/resume", "GET"),
+                new Link("review-education", "/postings/{id}/applications/{applicationId}/education-review", "PUT"),
                 new Link("notifications", "/notifications/stream", "GET")
             ])))
             .WithName("EntryPoint")

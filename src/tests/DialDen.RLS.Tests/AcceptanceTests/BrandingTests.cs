@@ -24,7 +24,7 @@ public class BrandingTests(TestHarness harness)
         var homePage = await ui.OpenHomePage();
 
         (await homePage.GetError()).ShouldBeNull();
-        (await homePage.IsBrandLogoVisible()).ShouldBeTrue();
+        await homePage.WaitForBrandLogo();
         (await homePage.ReadBrandLogoPath()).ShouldBe("/branding/LOGO_COTE_JARDINS_STANDARD.svg");
         (await homePage.ReadBrandLogoAltText()).ShouldBe("Côté-Jardins inc.");
         (await homePage.ReadFaviconPath()).ShouldBe("/branding/LOGO_COTE_JARDINS_FLEUR_STANDARD.svg");

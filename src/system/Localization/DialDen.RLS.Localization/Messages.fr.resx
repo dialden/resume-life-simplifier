@@ -660,7 +660,6 @@
   <data name="Applications_NoExtractedEducation" xml:space="preserve"><comment>UI text</comment><value>Aucune formation ni certification n'a été trouvée dans ce CV.</value></data>
   <data name="Applications_EducationInstitution" xml:space="preserve"><comment>UI text</comment><value>Établissement</value></data>
   <data name="Applications_EducationQualification" xml:space="preserve"><comment>UI text</comment><value>Diplôme ou certification</value></data>
-  <data name="Applications_EducationFieldOfStudy" xml:space="preserve"><comment>UI text</comment><value>Domaine d'études</value></data>
   <data name="Applications_EducationStartDate" xml:space="preserve"><comment>UI text</comment><value>Date de début</value></data>
   <data name="Applications_EducationEndDate" xml:space="preserve"><comment>UI text</comment><value>Date de fin</value></data>
   <data name="Applications_ExtractedPhoneNumber" xml:space="preserve"><comment>UI text</comment><value>Numéro de téléphone</value></data>
@@ -671,4 +670,48 @@
   <data name="Posting_RequiredEducationHelp" xml:space="preserve"><comment>UI text</comment><value>Facultatif. Décrivez le diplôme ou la qualification exigés.</value></data>
   <data name="Posting_NoRequiredEducation" xml:space="preserve"><comment>UI text</comment><value>Aucune formation requise précisée.</value></data>
   <data name="Api_PostingUpdateConflict" xml:space="preserve"><comment>API message: publish posting</comment><value>L'offre a été modifiée. Rechargez-la et réessayez.</value></data>
+  <data name="Api_EducationReviewInvalidNote" xml:space="preserve"><comment>API message: review application education</comment><value>Entrez une note de 4 000 caractères au maximum.</value></data>
+  <data name="Api_EducationReviewConflict" xml:space="preserve"><comment>API message: review application education</comment><value>L'évaluation n'est pas disponible ou a changé. Rechargez la page et réessayez.</value></data>
+  <data name="Applicants_ComparisonDescription" xml:space="preserve"><comment>UI text</comment><value>Examinez les candidatures selon les critères de l'offre et comparez leurs évaluations côte à côte.</value></data>
+  <data name="Applicants_ViewDetails" xml:space="preserve"><comment>UI text</comment><value>Voir les détails de la candidature</value></data>
+  <data name="Applicants_MatrixHelp" xml:space="preserve"><comment>UI text</comment><value>Ouvrez une évaluation pour examiner les éléments de preuve, ajouter une note ou modifier la décision.</value></data>
+  <data name="Applicants_EmptyGroup" xml:space="preserve"><comment>UI text</comment><value>Aucune candidature dans ce groupe.</value></data>
+  <data name="Applicants_Group_Qualified" xml:space="preserve"><comment>UI text</comment><value>Qualifiées</value></data>
+  <data name="Applicants_GroupHelp_Qualified" xml:space="preserve"><comment>UI text</comment><value>Toutes les exigences évaluées sont satisfaites ou aucune exigence n'a été précisée.</value></data>
+  <data name="Applicants_Group_Verify" xml:space="preserve"><comment>UI text</comment><value>À vérifier</value></data>
+  <data name="Applicants_GroupHelp_Verify" xml:space="preserve"><comment>UI text</comment><value>Le verdict est incertain ou une évaluation positive présente un faible niveau de confiance.</value></data>
+  <data name="Applicants_Group_Disqualified" xml:space="preserve"><comment>UI text</comment><value>Exigences non satisfaites</value></data>
+  <data name="Applicants_GroupHelp_Disqualified" xml:space="preserve"><comment>UI text</comment><value>Au moins une exigence évaluée n'est pas satisfaite.</value></data>
+  <data name="Applicants_Group_AwaitingExtraction" xml:space="preserve"><comment>UI text</comment><value>Extraction du CV en attente</value></data>
+  <data name="Applicants_GroupHelp_AwaitingExtraction" xml:space="preserve"><comment>UI text</comment><value>Les informations du CV n'ont pas encore été extraites.</value></data>
+  <data name="Applicants_Group_ExtractionFailed" xml:space="preserve"><comment>UI text</comment><value>Échec de l'extraction</value></data>
+  <data name="Applicants_GroupHelp_ExtractionFailed" xml:space="preserve"><comment>UI text</comment><value>Les informations n'ont pas pu être extraites; le CV soumis reste disponible.</value></data>
+  <data name="Applicants_Group_AwaitingComparison" xml:space="preserve"><comment>UI text</comment><value>Comparaison en attente</value></data>
+  <data name="Applicants_GroupHelp_AwaitingComparison" xml:space="preserve"><comment>UI text</comment><value>Les informations extraites du CV seront comparées aux critères de l'offre.</value></data>
+  <data name="Applicants_Group_ComparisonFailed" xml:space="preserve"><comment>UI text</comment><value>Échec de la comparaison</value></data>
+  <data name="Applicants_GroupHelp_ComparisonFailed" xml:space="preserve"><comment>UI text</comment><value>La comparaison n'a pas pu être effectuée; les informations extraites restent disponibles.</value></data>
+  <data name="Applicants_OriginalVerdict" xml:space="preserve"><comment>UI text</comment><value>Verdict initial : {0}</value></data>
+  <data name="Applicants_SaveNote" xml:space="preserve"><comment>UI text</comment><value>Enregistrer la note</value></data>
+  <data name="Applicants_ReviewSaved" xml:space="preserve"><comment>UI text</comment><value>Évaluation enregistrée.</value></data>
+  <data name="Applicants_ReviewSaveError" xml:space="preserve"><comment>UI text</comment><value>Impossible d'enregistrer l'évaluation. Votre note est conservée; réessayez ou rechargez la page si l'évaluation a changé.</value></data>
+  <data name="Comparison_TriageHeading" xml:space="preserve"><comment>UI text</comment><value>Commencez par l'essentiel</value></data>
+  <data name="Comparison_Selected" xml:space="preserve"><comment>UI text</comment><value>{0} sur 4 sélectionnées</value></data>
+  <data name="Comparison_Compare" xml:space="preserve"><comment>UI text</comment><value>Comparer les candidatures</value></data>
+  <data name="Comparison_SelectionHelp" xml:space="preserve"><comment>UI text</comment><value>Sélectionnez de 2 à 4 candidatures pour comparer les preuves côte à côte.</value></data>
+  <data name="Comparison_SelectCandidate" xml:space="preserve"><comment>UI text</comment><value>Sélectionner {0} pour la comparaison</value></data>
+  <data name="Comparison_Mandatory" xml:space="preserve"><comment>UI text</comment><value>Obligatoire</value></data>
+  <data name="Comparison_MatrixHeading" xml:space="preserve"><comment>UI text</comment><value>Comparaison par critère</value></data>
+  <data name="Comparison_Back" xml:space="preserve"><comment>UI text</comment><value>Retour à la présélection</value></data>
+  <data name="Comparison_Criteria" xml:space="preserve"><comment>UI text</comment><value>Critères du poste</value></data>
+  <data name="Comparison_Met" xml:space="preserve"><comment>UI text</comment><value>Satisfait</value></data>
+  <data name="Comparison_Verify" xml:space="preserve"><comment>UI text</comment><value>À vérifier</value></data>
+  <data name="Comparison_NotMet" xml:space="preserve"><comment>UI text</comment><value>Non satisfait</value></data>
+  <data name="Comparison_ViewAssessment" xml:space="preserve"><comment>UI text</comment><value>Voir l'évaluation</value></data>
+  <data name="Comparison_Overridden" xml:space="preserve"><comment>UI text</comment><value>Décision du recruteur</value></data>
+  <data name="Comparison_OriginalConfidence" xml:space="preserve"><comment>UI text</comment><value>Confiance initiale : {0}</value></data>
+  <data name="Comparison_NoteLabel" xml:space="preserve"><comment>UI text</comment><value>Note pour {0} — {1}</value></data>
+  <data name="Comparison_MarkMet" xml:space="preserve"><comment>UI text</comment><value>Marquer comme satisfait</value></data>
+  <data name="Comparison_MarkNotMet" xml:space="preserve"><comment>UI text</comment><value>Marquer comme non satisfait</value></data>
+  <data name="Comparison_ResetVerdict" xml:space="preserve"><comment>UI text</comment><value>Rétablir le verdict initial</value></data>
+  <data name="Comparison_ScrollHint" xml:space="preserve"><comment>UI text</comment><value>Faites défiler horizontalement pour voir toutes les candidatures.</value></data>
 </root>

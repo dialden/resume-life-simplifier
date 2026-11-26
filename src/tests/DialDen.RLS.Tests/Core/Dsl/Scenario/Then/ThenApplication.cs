@@ -29,6 +29,18 @@ public sealed class ThenApplication<TResponse, TVerification>
         return this;
     }
 
+    public ThenApplication<TResponse, TVerification> EventuallyQualifies()
+    {
+        _checks.Add((submission, application) => submission.EventuallyQualifies(application));
+        return this;
+    }
+
+    public ThenApplication<TResponse, TVerification> EventuallyIsInReviewGroup(string group)
+    {
+        _checks.Add((submission, application) => submission.EventuallyIsInReviewGroup(application, group));
+        return this;
+    }
+
     public ThenApplication<TResponse, TVerification> HasEmail(string email)
     {
         _checks.Add((_, application) =>
@@ -89,10 +101,10 @@ public sealed class ThenApplication<TResponse, TVerification>
     }
 
     public ThenApplication<TResponse, TVerification> EventuallyHasExtractedEducation(
-        params (string? Institution, string? Qualification, string? FieldOfStudy, string? StartDate, string? EndDate)[] education)
+        params (string? Institution, string? Qualification, string? StartDate, string? EndDate)[] education)
     {
         var expected = education.Select(entry => new ExtractedEducation(
-            entry.Institution, entry.Qualification, entry.FieldOfStudy, entry.StartDate, entry.EndDate)).ToArray();
+            entry.Institution, entry.Qualification, entry.StartDate, entry.EndDate)).ToArray();
         _checks.Add((submission, application) => submission.EventuallyHasExtractedEducation(application, expected));
         return this;
     }

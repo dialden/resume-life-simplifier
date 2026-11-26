@@ -23,6 +23,8 @@ public static class CoreServiceCollectionExtensions
         services.AddScoped<IApplications, Applications>();
         services.AddScoped<IExtractApplicationInformation, ExtractApplicationInformation>();
         services.AddScoped<IRecordInformationExtractionFailure, RecordInformationExtractionFailure>();
+        services.AddScoped<ICompareApplication, CompareApplication>();
+        services.AddScoped<IReviewApplicationEducation, ReviewApplicationEducation>();
 
         return services;
     }

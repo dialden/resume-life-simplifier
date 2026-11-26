@@ -13,6 +13,8 @@ public class ThenSuccessAnd<TSuccessResponse, TSuccessVerification>
     public ThenPosting<TSuccessResponse, TSuccessVerification> Posting() => new(_stage);
 
     public ThenReviewedApplications<TSuccessResponse, TSuccessVerification> ReviewedApplications() => new(_stage);
+    public ThenEducationReview<TSuccessResponse, TSuccessVerification> EducationReview() => new(_stage);
+    public ThenCandidateComparison<TSuccessResponse, TSuccessVerification> CandidateComparison() => new(_stage);
 
     public ThenPostingPages<TSuccessResponse, TSuccessVerification> PostingPages() => new(_stage);
 

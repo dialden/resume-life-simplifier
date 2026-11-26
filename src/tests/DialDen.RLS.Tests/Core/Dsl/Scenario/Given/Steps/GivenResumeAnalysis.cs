@@ -9,6 +9,27 @@ public sealed class GivenResumeAnalysis(GivenStage stage) : BaseGiven(stage)
     private bool _holdResponse;
     private bool _fails;
     private bool _invalidEducation;
+    private (bool? Met, double Confidence, string? Evidence)? _assessment;
+    private bool _comparisonFails;
+    private bool _holdComparison;
+
+    public GivenResumeAnalysis HasNotCompletedEducationComparison()
+    {
+        _holdComparison = true;
+        return this;
+    }
+
+    public GivenResumeAnalysis EducationComparisonIsUnavailable()
+    {
+        _comparisonFails = true;
+        return this;
+    }
+
+    public GivenResumeAnalysis AssessesEducation(bool? met, double confidence, string? evidence)
+    {
+        _assessment = (met, confidence, evidence);
+        return this;
+    }
     public GivenResumeAnalysis IsUnavailable()
     {
         _fails = true;
@@ -52,11 +73,11 @@ public sealed class GivenResumeAnalysis(GivenStage stage) : BaseGiven(stage)
     }
 
     public GivenResumeAnalysis FindsEducation(
-        string? institution = null, string? qualification = null, string? fieldOfStudy = null,
+        string? institution = null, string? qualification = null,
         string? startDate = null, string? endDate = null)
     {
         _education ??= [];
-        _education.Add(new(institution, qualification, fieldOfStudy, startDate, endDate));
+        _education.Add(new(institution, qualification, startDate, endDate));
         return this;
     }
 
@@ -72,10 +93,18 @@ public sealed class GivenResumeAnalysis(GivenStage stage) : BaseGiven(stage)
         return this;
     }
 
-    internal override Task Execute(UseCaseDsl app) =>
-        _fails ? app.ExternalSystems.ResumeAnalysis.FailsAnalysis()
+    internal override async Task Execute(UseCaseDsl app)
+    {
+        await (_fails ? app.ExternalSystems.ResumeAnalysis.FailsAnalysis()
             : _invalidEducation ? app.ExternalSystems.ResumeAnalysis.ReturnsInvalidEducation(_contacts)
             : _education is null
                 ? app.ExternalSystems.ResumeAnalysis.FindsContactInformation(_contacts, _holdResponse)
-                : app.ExternalSystems.ResumeAnalysis.FindsEducation(_contacts, _education, _holdResponse);
+                : app.ExternalSystems.ResumeAnalysis.FindsEducation(_contacts, _education, _holdResponse));
+        if (_assessment is { } assessment)
+            await app.ExternalSystems.ResumeAnalysis.AssessesEducation(assessment.Met, assessment.Confidence, assessment.Evidence);
+        if (_comparisonFails)
+            await app.ExternalSystems.ResumeAnalysis.FailsEducationComparison();
+        if (_holdComparison)
+            await app.ExternalSystems.ResumeAnalysis.HoldEducationComparison();
+    }
 }

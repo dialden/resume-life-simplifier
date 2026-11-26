@@ -76,6 +76,29 @@ unspecified.
 Jobillico sandbox verification is still needed for the competencies display and
 for a completed criterion without a recognized diploma.
 
+## Candidate comparison
+
+The applicants page groups candidates by résumé processing and education
+assessment. After résumé extraction, the worker compares extracted education
+against the posting's education requirement. If no requirement is specified,
+the candidate is ready without a comparison. Missing education, uncertain verdicts,
+and positive assessments below 85% confidence require human verification. The model's confidence is
+an indication for review, not a calibrated probability or hiring decision.
+An explicit verdict that the requirement is not met is grouped under
+"Requirements not met" regardless of confidence. Negative education assessments
+have no proof excerpt; the migration clears excerpts from existing negative
+assessments. Recruiter overrides take precedence over the original assessment.
+Each education entry has one qualification field, including the subject of
+study. Existing qualification and field-of-study values are combined by the
+database migration.
+
+Select two to four ready candidates to compare their assessments. Recruiters
+can inspect the extracted information, download résumés, and save notes or
+override and restore education verdicts. Notes and overrides are persisted;
+selection is local to the page. Failed extraction or comparison remains visible
+separately. Existing extracted applications with a requirement are queued for
+comparison by the database migration.
+
 # Contribute
 ## Software requirements
 ### Windows
@@ -180,7 +203,9 @@ var homePage = await ui.OpenHomePage();
 
 Assembly initialization migrates a uniquely named template once. Each awaited
 scenario gets a clone; cleanup removes only that scenario's database and stub
-mappings/request logs. Assembly disposal drops the template.
+mappings/request logs. Clone cleanup forcibly disconnects remaining sessions
+after stopping its hosts; it never targets databases not owned by the harness.
+Assembly disposal drops the template.
 WireMock request-log cleanup is serialized per server within the test process
 to avoid its shared journal's concurrent-deletion race; scenarios remain parallel.
 
@@ -194,7 +219,7 @@ resume-analysis callback, so the callback must listen on that same path.
 The configured test database supplies connection settings but is not truncated or used for
 scenario data. The test role needs database-creation permissions and access to
 the `postgres` maintenance database. Flyway must be on `PATH`, and PostgreSQL
-must be reachable over TCP.
+13 or later must be reachable over TCP.
 
 All acceptance and smoke scenarios use the harness; there is no collection
 fixture or paused migration block. Each UI scenario gets an isolated browser

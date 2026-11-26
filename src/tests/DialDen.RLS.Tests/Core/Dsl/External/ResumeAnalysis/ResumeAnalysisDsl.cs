@@ -18,4 +18,9 @@ public sealed class ResumeAnalysisDsl(IResumeAnalysisDriver driver)
 
     public Task ReturnsInvalidEducation(ExtractedContactInformation contacts) =>
         driver.ReturnsInvalidEducation(contacts);
+
+    public Task AssessesEducation(bool? met, double confidence, string? evidence) =>
+        driver.AssessesEducation(met, confidence, evidence);
+    public Task FailsEducationComparison() => driver.FailsEducationComparison();
+    public Task HoldEducationComparison() => driver.HoldEducationComparison();
 }

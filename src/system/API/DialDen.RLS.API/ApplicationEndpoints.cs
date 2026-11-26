@@ -91,6 +91,35 @@ public static class ApplicationEndpoints
             .WithSummary("Retrieves an application for review.")
             .Produces<ApplicationResponse>()
             .Produces(StatusCodes.Status404NotFound);
+
+        app.MapPut("/postings/{id:int}/applications/{applicationId:int}/education-review", async Task<IResult> (
+            int id, int applicationId, ReviewEducationRequest request, IReviewApplicationEducation review,
+            IStringLocalizer<Messages> Localizer, CancellationToken cancellationToken) =>
+        {
+            if (request.Note is null || request.Note.Length > 4000)
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["note"] = [Localizer["Api_EducationReviewInvalidNote"]]
+                });
+            try
+            {
+                return await review.Review(id, applicationId, request, cancellationToken)
+                    ? TypedResults.NoContent()
+                    : TypedResults.NotFound();
+            }
+            catch (EducationReviewConflictException)
+            {
+                return TypedResults.Problem(statusCode: StatusCodes.Status409Conflict,
+                    detail: Localizer["Api_EducationReviewConflict"]);
+            }
+        })
+            .WithName("ReviewApplicationEducation")
+            .WithSummary("Saves the recruiter's education verdict and note.")
+            .Accepts<ReviewEducationRequest>("application/json")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesValidationProblem();
         return app;
     }
 

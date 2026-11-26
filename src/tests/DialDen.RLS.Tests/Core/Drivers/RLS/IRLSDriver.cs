@@ -16,6 +16,9 @@ public interface IRLSDriver
     Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ObserveViewedApplications(
         int postingId, Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout);
     Task<Result<byte[], SystemError>> DownloadResume(int postingId, int applicationId);
+    Task<Result<VoidValue, SystemError>> ReviewEducation(
+        int postingId, int applicationId, bool? overrideMet, string note, int version);
+    Task<Result<ComparisonResponse, SystemError>> CompareCandidates(int postingId, IReadOnlyList<int> applicationIds);
 
     /// <summary>
     /// Keeps observing the posting being viewed, without viewing it again, until <paramref name="isExpected"/>

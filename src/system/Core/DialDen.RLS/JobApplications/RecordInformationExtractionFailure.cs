@@ -10,7 +10,7 @@ internal sealed class RecordInformationExtractionFailure(IApplicationsArchive ar
         var application = await archive.Find(postingId, applicationId, cancellationToken)
             ?? throw new InvalidOperationException(
                 $"Application {applicationId} for posting {postingId} was not found for information extraction failure.");
-        if (application.ExtractionStatus != InformationExtractionStatus.Pending)
+        if (application.Status != ApplicationStatus.AwaitingExtraction)
             return false;
 
         application.FailExtraction();

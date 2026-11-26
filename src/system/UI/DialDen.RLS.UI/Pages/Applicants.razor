@@ -45,14 +45,23 @@ else
         <MudButton Href="@PostingAddress" Variant="Variant.Outlined" Color="Color.Primary"
                    StartIcon="@Icons.Material.Outlined.ArrowBack">@Localizer["Applicants_BackToPosting"]</MudButton>
     </div>
-    <section class="surface-panel" aria-labelledby="applicants-heading">
-        <div class="panel-header">
-            <div class="panel-title">
-                <h2 id="applicants-heading">@Localizer["Applicants_Title"]</h2>
-                <span class="count-badge">@_applications.Count</span>
+    @if (!_showMatrix)
+    {
+        <div class="comparison-intro">
+            <div>
+                <h2>@Localizer["Comparison_TriageHeading"]</h2>
+                <p>@Localizer["Applicants_ComparisonDescription"]</p>
             </div>
-            <span class="panel-caption">@Localizer["Postings_Reference", Id]</span>
+            <div class="comparison-actions">
+                <span role="status">@Localizer["Comparison_Selected", _selected.Count]</span>
+                <MudButton data-testid="compare-candidates" Variant="Variant.Filled" Color="Color.Primary"
+                           EndIcon="@Icons.Material.Outlined.ArrowForward"
+                           Disabled="@(_selected.Count < 2)" OnClick="@(() => _showMatrix = true)">
+                    @Localizer["Comparison_Compare"]
+                </MudButton>
+            </div>
         </div>
+        <p class="comparison-selection-help">@Localizer["Comparison_SelectionHelp"]</p>
         <div data-testid="applications">
             @if (_applications.Count == 0)
             {
@@ -62,13 +71,51 @@ else
                     <p>@Localizer["Applicants_EmptyHelp"]</p>
                 </div>
             }
-            @foreach (var application in _applications)
+            @foreach (var group in ReviewGroups)
             {
-                <article class="applicant-card" data-application-id="@application.Id">
+                var candidates = _applications.Where(application => application.ReviewGroup == group).ToArray();
+                if (_applications.Count > 0 && (candidates.Length > 0 || group is
+                    ApplicationReviewGroup.Qualified or ApplicationReviewGroup.Verify or
+                    ApplicationReviewGroup.Disqualified or ApplicationReviewGroup.AwaitingExtraction))
+                {
+                <section class="surface-panel comparison-tier" aria-labelledby="@($"review-group-{group}")">
+                    <div class="comparison-tier-header">
+                        <span class="comparison-tier-title">
+                            <span class="comparison-tier-icon @GroupIconClass(group)">
+                                <MudIcon Icon="@GroupIcon(group)" />
+                            </span>
+                            <span>
+                                <strong id="@($"review-group-{group}")">@Localizer[$"Applicants_Group_{group}"]</strong>
+                                <small>@Localizer[$"Applicants_GroupHelp_{group}"]</small>
+                            </span>
+                            <span class="count-badge">@candidates.Length</span>
+                        </span>
+                    </div>
+                    @if (candidates.Length == 0)
+                    {
+                        <p class="comparison-empty">@Localizer["Applicants_EmptyGroup"]</p>
+                    }
+                    @foreach (var application in candidates)
+                    {
+                <article class="applicant-card" data-application-id="@application.Id" data-review-group="@application.ReviewGroup"
+                         data-education-override="@OverrideAttribute(application.EducationAssessment)"
+                         data-education-original="@OriginalAttribute(application.EducationAssessment)"
+                         data-education-confidence="@application.EducationAssessment?.Confidence.ToString(CultureInfo.InvariantCulture)"
+                         data-education-evidence="@application.EducationAssessment?.Evidence"
+                         data-review-version="@application.ReviewVersion"
+                         data-education-note="@application.EducationAssessment?.Note">
                     <div class="applicant-heading">
+                        <MudCheckBox T="bool" Value="@_selected.Contains(application.Id)"
+                                     ValueChanged="@((bool selected) => Select(application.Id, selected))"
+                                     Disabled="@(application.Status != ApplicationStatus.Ready || (!_selected.Contains(application.Id) && _selected.Count >= 4))"
+                                     AriaLabel="@Localizer["Comparison_SelectCandidate", application.Name]" />
                         <span class="posting-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.PersonOutline" /></span>
                         <h3 data-testid="application-name">@application.Name</h3>
                     </div>
+                    <details class="applicant-details" data-testid="applicant-details" open="@_openDetails.Contains(application.Id)">
+                    <summary @onclick="@(() => ToggleDetails(application.Id))" @onclick:preventDefault>
+                        @Localizer["Applicants_ViewDetails"]
+                    </summary>
                     <dl class="applicant-fields">
                         <div>
                             <dt>@Localizer["Application_Email"]</dt>
@@ -93,18 +140,17 @@ else
                     <section class="applicant-extraction" aria-labelledby="@($"extraction-heading-{application.Id}")">
                         <h4 id="@($"extraction-heading-{application.Id}")">@Localizer["Applications_ResumeInformation"]</h4>
                         <div class="applicant-extraction-status" role="status">
-                            @if (application.ExtractionStatus == InformationExtractionStatus.Pending)
+                            @if (application.Status == ApplicationStatus.AwaitingExtraction)
                             {
                                 <span aria-hidden="true"><MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Primary" /></span>
                             }
-                            <span data-testid="application-extraction-status">@ExtractionStatusText(application.ExtractionStatus)</span>
+                            <span data-testid="application-extraction-status">@ExtractionStatusText(application.Status)</span>
                         </div>
-                        @if (application.ExtractionStatus == InformationExtractionStatus.Failed)
+                        @if (application.Status == ApplicationStatus.ExtractionFailed)
                         {
                             <p class="applicant-extraction-empty">@Localizer["Applications_ExtractionFailedHelp"]</p>
                         }
-                        @if (application.ExtractionStatus == InformationExtractionStatus.Completed
-                            && application.ExtractedContacts is { } contacts)
+                        @if (application.ExtractedContacts is { } contacts)
                         {
                             <dl class="applicant-fields applicant-extracted-fields" data-testid="application-extracted-contacts">
                                 @if (contacts.Name is not null)
@@ -148,8 +194,7 @@ else
                                 <p class="applicant-extraction-empty">@Localizer["Applications_NoExtractedContacts"]</p>
                             }
                         }
-                        @if (application.ExtractionStatus == InformationExtractionStatus.Completed
-                            && application.ExtractedEducation is { } education)
+                        @if (application.ExtractedEducation is { } education)
                         {
                             <section class="applicant-education" data-testid="application-extracted-education"
                                      aria-labelledby="@($"education-heading-{application.Id}")">
@@ -176,14 +221,7 @@ else
                                                     {
                                                         <div>
                                                             <dt>@Localizer["Applications_EducationQualification"]</dt>
-                                                            <dd data-testid="education-qualification">@entry.Qualification</dd>
-                                                        </div>
-                                                    }
-                                                    @if (entry.FieldOfStudy is not null)
-                                                    {
-                                                        <div>
-                                                            <dt>@Localizer["Applications_EducationFieldOfStudy"]</dt>
-                                                            <dd data-testid="education-field-of-study">@entry.FieldOfStudy</dd>
+                                                            <dd class="applicant-qualification" data-testid="education-qualification">@entry.Qualification</dd>
                                                         </div>
                                                     }
                                                     @if (entry.StartDate is not null)
@@ -208,10 +246,67 @@ else
                             </section>
                         }
                     </section>
+                    @if (application.EducationAssessment is not null)
+                    {
+                        @EducationReview(application)
+                    }
+                    </details>
                 </article>
+                    }
+                </section>
+                }
             }
         </div>
-    </section>
+    }
+    else
+    {
+        <div class="comparison-matrix-toolbar">
+            <div>
+                <h2>@Localizer["Comparison_MatrixHeading"]</h2>
+                <p>@Localizer["Applicants_MatrixHelp"]</p>
+            </div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Outlined.ArrowBack" OnClick="@(() => _showMatrix = false)">
+                @Localizer["Comparison_Back"]
+            </MudButton>
+        </div>
+        <div class="comparison-table-scroll" role="region" aria-label="@Localizer["Comparison_MatrixHeading"]" tabindex="0">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th scope="col">@Localizer["Comparison_Criteria"]</th>
+                        @foreach (var application in SelectedApplications)
+                        {
+                            <th scope="col" data-comparison-id="@application.Id"><span class="comparison-column-name" data-testid="comparison-name">@application.Name</span></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">
+                            <span class="comparison-criterion-kind">@Localizer["Comparison_Mandatory"]</span>
+                            <span class="comparison-criterion-title">@Localizer["Posting_RequiredEducation"]</span>
+                            <p data-testid="comparison-requirement">@(_posting.RequiredEducation ?? Localizer["Posting_NoRequiredEducation"])</p>
+                        </th>
+                        @foreach (var application in SelectedApplications)
+                        {
+                            <td data-comparison-evidence-id="@application.Id">
+                                @if (application.EducationAssessment is null)
+                                {
+                                    <span>@Localizer["Posting_NoRequiredEducation"]</span>
+                                }
+                                else
+                                {
+                                    @EducationReview(application)
+                                }
+                            </td>
+                        }
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="comparison-scroll-hint">@Localizer["Comparison_ScrollHint"]</p>
+    }
 }
 
 @code {
@@ -221,10 +316,29 @@ else
     private ViewPostingResponse? _posting;
     private IReadOnlyList<ApplicationResponse>? _applications;
     private Link? _resumeLink;
+    private Link? _reviewLink;
+    private string? _applicationsHref;
     private Func<string>? _error;
     private CancellationTokenSource? _pageCancellation;
     private Task? _observation;
     private bool _liveUpdatesUnavailable;
+    private bool _showMatrix;
+    private readonly HashSet<int> _selected = [];
+    private readonly Dictionary<int, string> _notes = [];
+    private readonly Dictionary<int, int> _draftVersions = [];
+    private readonly HashSet<int> _saving = [];
+    private readonly HashSet<int> _saved = [];
+    private readonly HashSet<int> _saveErrors = [];
+    private readonly HashSet<int> _openReviews = [];
+    private readonly HashSet<int> _openDetails = [];
+    private static readonly ApplicationReviewGroup[] ReviewGroups =
+    [
+        ApplicationReviewGroup.Qualified, ApplicationReviewGroup.Verify, ApplicationReviewGroup.Disqualified,
+        ApplicationReviewGroup.AwaitingExtraction, ApplicationReviewGroup.ExtractionFailed,
+        ApplicationReviewGroup.AwaitingComparison, ApplicationReviewGroup.ComparisonFailed
+    ];
+    private IEnumerable<ApplicationResponse> SelectedApplications =>
+        (_applications ?? []).Where(application => _selected.Contains(application.Id));
 
     private string PostingAddress => $"/postings/{Id.ToString(CultureInfo.InvariantCulture)}";
 
@@ -236,6 +350,16 @@ else
         _posting = null;
         _applications = null;
         _resumeLink = null;
+        _reviewLink = null;
+        _applicationsHref = null;
+        _selected.Clear();
+        _notes.Clear();
+        _draftVersions.Clear();
+        _saved.Clear();
+        _saveErrors.Clear();
+        _openReviews.Clear();
+        _openDetails.Clear();
+        _showMatrix = false;
         _error = null;
         _liveUpdatesUnavailable = false;
         try
@@ -245,7 +369,8 @@ else
             var postingLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "view-posting", Method: "GET" });
             var applicationsLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "list-applications", Method: "GET" });
             var resumeLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "download-resume", Method: "GET" });
-            if (postingLink is null || applicationsLink is null || resumeLink is null)
+            var reviewLink = entryPoint.Links.SingleOrDefault(link => link is { Rel: "review-education", Method: "PUT" });
+            if (postingLink is null || applicationsLink is null || resumeLink is null || reviewLink is null)
             {
                 _error = () => Localizer["Applications_LoadError"];
                 return;
@@ -267,6 +392,8 @@ else
             _posting = posting;
             _applications = applications;
             _resumeLink = resumeLink;
+            _reviewLink = reviewLink;
+            _applicationsHref = applicationsHref;
             _observation = Observe(applicationsHref, token);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -370,14 +497,159 @@ else
         return new Uri(baseAddress, href).AbsoluteUri;
     }
 
-    private string ExtractionStatusText(InformationExtractionStatus status) => status switch
+    private string ExtractionStatusText(ApplicationStatus status) => status switch
     {
-        InformationExtractionStatus.Pending => Localizer["Applications_ExtractionPending"],
-        InformationExtractionStatus.Completed => Localizer["Applications_ExtractionCompleted"],
-        InformationExtractionStatus.Failed => Localizer["Applications_ExtractionFailed"],
-        InformationExtractionStatus.NotProcessed => Localizer["Applications_ExtractionNotProcessed"],
+        ApplicationStatus.AwaitingExtraction => Localizer["Applications_ExtractionPending"],
+        ApplicationStatus.AwaitingComparison or ApplicationStatus.ComparisonFailed or ApplicationStatus.Ready => Localizer["Applications_ExtractionCompleted"],
+        ApplicationStatus.ExtractionFailed => Localizer["Applications_ExtractionFailed"],
+        ApplicationStatus.NotProcessed => Localizer["Applications_ExtractionNotProcessed"],
         _ => throw new InvalidOperationException($"Unknown information extraction status: {status}.")
     };
+
+    private static string? OverrideAttribute(EducationAssessment? assessment) =>
+        assessment?.OverrideMet is { } verdict ? verdict ? "true" : "false" : null;
+
+    private static string? OriginalAttribute(EducationAssessment? assessment) =>
+        assessment?.OriginalMet is { } verdict ? verdict ? "true" : "false" : null;
+
+    private void Select(int applicationId, bool selected)
+    {
+        if (selected) _selected.Add(applicationId);
+        else _selected.Remove(applicationId);
+    }
+
+    private static string GroupIcon(ApplicationReviewGroup group) => group switch
+    {
+        ApplicationReviewGroup.Qualified => Icons.Material.Outlined.CheckCircle,
+        ApplicationReviewGroup.Disqualified or ApplicationReviewGroup.ExtractionFailed
+            or ApplicationReviewGroup.ComparisonFailed => Icons.Material.Outlined.Block,
+        _ => Icons.Material.Outlined.WarningAmber
+    };
+
+    private static string GroupIconClass(ApplicationReviewGroup group) => group switch
+    {
+        ApplicationReviewGroup.Qualified => "comparison-tier-icon--met",
+        ApplicationReviewGroup.Disqualified or ApplicationReviewGroup.ExtractionFailed
+            or ApplicationReviewGroup.ComparisonFailed => "comparison-tier-icon--missing",
+        _ => "comparison-tier-icon--verify"
+    };
+
+    private RenderFragment EducationReview(ApplicationResponse application) => @<details class="comparison-evidence applicant-review" data-testid="education-review-details" open="@_openReviews.Contains(application.Id)">
+        <summary @onclick="@(() => ToggleReview(application.Id))" @onclick:preventDefault>
+            <span class="comparison-verdict @GroupIconClass(application.ReviewGroup)">
+                @Localizer[$"Applicants_Group_{application.ReviewGroup}"]
+            </span>
+            <span class="comparison-evidence-link">@Localizer["Comparison_ViewAssessment"]</span>
+        </summary>
+        <div class="comparison-evidence-body">
+            @if (application.EducationAssessment is { } assessment)
+            {
+                @if (assessment.OverrideMet is not null)
+                {
+                    <p class="comparison-override-label">@Localizer["Comparison_Overridden"]</p>
+                }
+                <p class="comparison-evidence-label">@Localizer["Comparison_OriginalConfidence", assessment.Confidence.ToString("P0")]</p>
+                <p class="comparison-evidence-label">@Localizer["Applicants_OriginalVerdict",
+                    Localizer[assessment.OriginalMet is true ? "Comparison_Met" :
+                        assessment.OriginalMet is false ? "Comparison_NotMet" : "Comparison_Verify"]]</p>
+                @if (assessment.Evidence is not null)
+                {
+                    <blockquote>@assessment.Evidence</blockquote>
+                }
+                <MudTextField T="string" Label="@Localizer["Comparison_NoteLabel", application.Name, Localizer["Posting_RequiredEducation"]]"
+                              Variant="Variant.Outlined" Lines="2" Immediate="true" MaxLength="4000"
+                              Disabled="@_saving.Contains(application.Id)"
+                              data-testid="education-review-note" Value="@NoteFor(application)"
+                              ValueChanged="@((string note) => SetNote(application, note))" />
+                <div class="comparison-override-actions">
+                    <MudButton data-testid="education-review-met" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                               Disabled="@_saving.Contains(application.Id)" OnClick="@(() => SaveReview(application, true))">
+                        @Localizer["Comparison_MarkMet"]
+                    </MudButton>
+                    <MudButton data-testid="education-review-not-met" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                               Disabled="@_saving.Contains(application.Id)" OnClick="@(() => SaveReview(application, false))">
+                        @Localizer["Comparison_MarkNotMet"]
+                    </MudButton>
+                    <MudButton data-testid="education-review-reset" Size="Size.Small" Variant="Variant.Text"
+                               Disabled="@_saving.Contains(application.Id)" OnClick="@(() => SaveReview(application, null))">
+                        @Localizer["Comparison_ResetVerdict"]
+                    </MudButton>
+                    <MudButton data-testid="education-review-save-note" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                               Disabled="@_saving.Contains(application.Id)" OnClick="@(() => SaveReview(application, assessment.OverrideMet))">
+                        @Localizer["Applicants_SaveNote"]
+                    </MudButton>
+                </div>
+                @if (_saved.Contains(application.Id))
+                {
+                    <p data-testid="education-review-saved" role="status">@Localizer["Applicants_ReviewSaved"]</p>
+                }
+                @if (_saveErrors.Contains(application.Id))
+                {
+                    <MudAlert data-testid="education-review-error" Severity="Severity.Error" role="alert">@Localizer["Applicants_ReviewSaveError"]</MudAlert>
+                }
+            }
+        </div>
+    </details>;
+
+    private string NoteFor(ApplicationResponse application) =>
+        _notes.TryGetValue(application.Id, out var note) ? note : application.EducationAssessment?.Note ?? "";
+
+    private void ToggleReview(int id)
+    {
+        if (!_openReviews.Add(id)) _openReviews.Remove(id);
+    }
+
+    private void ToggleDetails(int id)
+    {
+        if (!_openDetails.Add(id)) _openDetails.Remove(id);
+    }
+
+    private void SetNote(ApplicationResponse application, string note)
+    {
+        _draftVersions.TryAdd(application.Id, application.ReviewVersion);
+        _notes[application.Id] = note;
+        _saved.Remove(application.Id);
+    }
+
+    private async Task SaveReview(ApplicationResponse application, bool? verdict)
+    {
+        if (!_saving.Add(application.Id)) return;
+        var token = _pageCancellation?.Token
+            ?? throw new InvalidOperationException("The applicants page is not active.");
+        _saved.Remove(application.Id);
+        _saveErrors.Remove(application.Id);
+        try
+        {
+            var link = _reviewLink ?? throw new InvalidOperationException("The education review action was not loaded.");
+            var href = link.Href.Replace("{id}", Id.ToString(CultureInfo.InvariantCulture))
+                .Replace("{applicationId}", application.Id.ToString(CultureInfo.InvariantCulture));
+            var version = _draftVersions.GetValueOrDefault(application.Id, application.ReviewVersion);
+            using var response = await Api.PutAsJsonAsync(
+                href, new ReviewEducationRequest(verdict, NoteFor(application), version), token);
+            response.EnsureSuccessStatusCode();
+            var applicationsHref = _applicationsHref
+                ?? throw new InvalidOperationException("The applications action was not loaded.");
+            var applications = await Api.GetFromJsonAsync<ApplicationResponse[]>(
+                applicationsHref, ApiJsonSerializerOptions.Default, token)
+                ?? throw new JsonException("The API returned no applications.");
+            _applications = applications;
+            _notes.Remove(application.Id);
+            _draftVersions.Remove(application.Id);
+            _saved.Add(application.Id);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException)
+        {
+            Logger.LogWarning(exception, "Could not save education review for application {ApplicationId}.", application.Id);
+            _saveErrors.Add(application.Id);
+        }
+        finally
+        {
+            _saving.Remove(application.Id);
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {

@@ -10,6 +10,25 @@ public sealed class ApplicationSubmissionVerification(
     VoidValue response, UseCaseContext context, IRLSDriver driver,
     int postingId, string email, byte[] resume) : ResponseVerification<VoidValue>(response, context)
 {
+    public Task EventuallyQualifies(ApplicationResponse application) => EventuallyIsInReviewGroup(application, "Qualified");
+
+    public async Task EventuallyIsInReviewGroup(ApplicationResponse application, string group)
+    {
+        var elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            var result = await driver.ListApplications(postingId);
+            result.IsSuccess.ShouldBeTrue(result.IsFailure ? result.Error.ToString() : null);
+            var current = result.Value.Single(item => item.Id == application.Id);
+            if (current.ReviewGroup == group || elapsed.Elapsed >= TimeSpan.FromSeconds(30))
+            {
+                current.ReviewGroup.ShouldBe(group);
+                return;
+            }
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
+    }
+
     public async Task EventuallyHasFailedExtraction(ApplicationResponse application)
     {
         var elapsed = Stopwatch.StartNew();

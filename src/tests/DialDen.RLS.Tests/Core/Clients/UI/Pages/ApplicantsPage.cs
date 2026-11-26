@@ -6,6 +6,45 @@ namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 
 public sealed class ApplicantsPage(IPage page)
 {
+    public async Task<Result<ComparisonResponse, SystemError>> CompareCandidates(IReadOnlyList<int> applicationIds)
+    {
+        foreach (var id in applicationIds)
+            await page.Locator($"[data-application-id='{id}']").GetByRole(AriaRole.Checkbox).CheckAsync();
+        await page.GetByTestId("compare-candidates").ClickAsync();
+        var requirement = await page.GetByTestId("comparison-requirement").InnerTextAsync();
+        var candidates = new List<CandidateComparison>();
+        foreach (var id in applicationIds)
+        {
+            var column = page.Locator($"[data-comparison-id='{id}']");
+            var name = await column.GetByTestId("comparison-name").InnerTextAsync();
+            var cell = page.Locator($"[data-comparison-evidence-id='{id}']");
+            await cell.Locator("summary").ClickAsync();
+            var evidence = await cell.Locator("blockquote").CountAsync() == 0
+                ? null : await cell.Locator("blockquote").InnerTextAsync();
+            candidates.Add(new(name, evidence));
+        }
+        return Result<ComparisonResponse, SystemError>.Success(new(requirement, candidates));
+    }
+
+    public async Task<Result<VoidValue, SystemError>> ReviewEducation(int applicationId, bool? overrideMet, string note)
+    {
+        var item = page.Locator($"[data-application-id='{applicationId}']");
+        await item.GetByTestId("education-review-details").Locator("summary").ClickAsync();
+        await item.GetByTestId("education-review-note").FillAsync(note);
+        await item.GetByTestId(overrideMet switch
+        {
+            true => "education-review-met",
+            false => "education-review-not-met",
+            null => "education-review-reset"
+        }).ClickAsync();
+        var saved = item.GetByTestId("education-review-saved");
+        var error = item.GetByTestId("education-review-error");
+        await saved.Or(error).First.WaitForAsync();
+        return await saved.IsVisibleAsync()
+            ? Result.Success<SystemError>()
+            : Result.Failure<SystemError>(SystemError.Of(await error.InnerTextAsync()));
+    }
+
     public async Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ObserveApplications(
         Func<IReadOnlyList<ApplicationResponse>, bool> isExpected, TimeSpan timeout)
     {
@@ -33,6 +72,9 @@ public sealed class ApplicantsPage(IPage page)
         var applications = new List<ApplicationResponse>();
         foreach (var item in await list.Locator("[data-application-id]").AllAsync())
         {
+            var details = item.GetByTestId("applicant-details");
+            if (await details.GetAttributeAsync("open") is null)
+                await details.Locator("summary").First.ClickAsync();
             var id = int.Parse(await item.GetAttributeAsync("data-application-id")
                 ?? throw new InvalidOperationException("The application has no identifier."),
                 CultureInfo.InvariantCulture);
@@ -48,9 +90,9 @@ public sealed class ApplicantsPage(IPage page)
                 ? null
                 : (await extraction.InnerTextAsync()).Trim() switch
                 {
-                    "Extracting information\u2026" or "Extraction des informations\u2026" => "Pending",
-                    "Information extracted" or "Informations extraites" => "Completed",
-                    "Information extraction failed" or "Échec de l'extraction des informations" => "Failed",
+                    "Extracting information\u2026" or "Extraction des informations\u2026" => "AwaitingExtraction",
+                    "Information extracted" or "Informations extraites" => "Ready",
+                    "Information extraction failed" or "Échec de l'extraction des informations" => "ExtractionFailed",
                     var displayedStatus => displayedStatus
                 };
             var contacts = item.GetByTestId("application-extracted-contacts");
@@ -72,11 +114,17 @@ public sealed class ApplicantsPage(IPage page)
                     extractedEducation.Add(new ExtractedEducation(
                         await ReadContact(entry, "education-institution"),
                         await ReadContact(entry, "education-qualification"),
-                        await ReadContact(entry, "education-field-of-study"),
                         await ReadContact(entry, "education-start-date"),
                         await ReadContact(entry, "education-end-date")));
                 }
             }
+            var confidenceText = await item.GetAttributeAsync("data-education-confidence");
+            var assessment = confidenceText is null ? null : new EducationAssessment(
+                bool.TryParse(await item.GetAttributeAsync("data-education-original"), out var original) ? original : null,
+                double.Parse(confidenceText, CultureInfo.InvariantCulture),
+                await item.GetAttributeAsync("data-education-evidence"),
+                bool.TryParse(await item.GetAttributeAsync("data-education-override"), out var verdict) ? verdict : null,
+                await item.GetAttributeAsync("data-education-note") ?? "");
             applications.Add(new ApplicationResponse(
                 id,
                 await item.GetByTestId("application-name").InnerTextAsync(),
@@ -84,7 +132,11 @@ public sealed class ApplicantsPage(IPage page)
                 source,
                 await item.GetByTestId("application-referral").CountAsync() == 0
                     ? null : await item.GetByTestId("application-referral").InnerTextAsync(),
-                extractionStatus, extractedContacts, extractedEducation));
+                extractionStatus, extractedContacts, extractedEducation,
+                await item.GetAttributeAsync("data-review-group"), assessment,
+                int.Parse(await item.GetAttributeAsync("data-review-version")
+                    ?? throw new InvalidOperationException("The application has no review version."),
+                    CultureInfo.InvariantCulture)));
         }
         return Result<IReadOnlyList<ApplicationResponse>, SystemError>.Success(applications);
     }
