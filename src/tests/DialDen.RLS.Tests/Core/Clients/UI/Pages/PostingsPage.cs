@@ -12,11 +12,13 @@ public class PostingsPage : BasePage
     {
     }
 
+    internal PostingsPage(IPage page, UIClient? client) : base(page, client) { }
+
     public async Task<Result<CreatePostingResponse, SystemError>> CreatePosting(string title, string description, string? requiredEducation)
     {
         await _page.GetByRole(AriaRole.Link, new() { Name = "Créer une offre", Exact = true }).ClickAsync();
         await _page.WaitForURLAsync("**/postings/create");
-        var createPostingPage = new CreatePostingPage(_page);
+        var createPostingPage = new CreatePostingPage(_page, _client);
         var fillTitleResult = await createPostingPage.FillTitle(title);
         if (fillTitleResult.IsFailure)
         {
@@ -58,7 +60,7 @@ public class PostingsPage : BasePage
 
         await postingLink.ClickAsync();
         await _page.WaitForURLAsync($"**/postings/{id}");
-        return await new PostingPage(_page).ReadPosting();
+        return await new PostingPage(_page, _client).ReadPosting();
     }
 
     public async Task<Result<PublishPostingResponse, SystemError>> PublishPosting(int id, IReadOnlyList<string> jobSiteIds)

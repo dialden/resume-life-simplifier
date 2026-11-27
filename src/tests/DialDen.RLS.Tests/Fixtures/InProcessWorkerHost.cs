@@ -40,6 +40,10 @@ public sealed class InProcessWorkerHost : IWorkerHost
             builder.Logging.AddProvider(new ScenarioLogProvider(_diagnostics, "Worker"));
             builder.Logging.AddFilter<ScenarioLogProvider>(null, LogLevel.Warning);
             builder.Logging.AddFilter<ScenarioLogProvider>("MassTransit", LogLevel.None);
+            builder.Logging.AddFilter<ScenarioLogProvider>(
+                "DialDen.RLS.Infrastructure.Applications.ResumePageImageRenderer", LogLevel.Information);
+            builder.Logging.AddFilter<ScenarioLogProvider>(
+                "DialDen.RLS.Worker.ExtractApplicationInformationConsumer", LogLevel.Information);
             _host = builder.Build();
             _host.Services.GetRequiredService<IBus>().ConnectConsumeObserver(new ScenarioConsumeObserver(_diagnostics));
             _host.StartAsync().GetAwaiter().GetResult();

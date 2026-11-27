@@ -9,6 +9,8 @@ public class HomePage : BasePage
     {
     }
 
+    internal HomePage(IPage page, UIClient? client) : base(page, client) { }
+
     public async Task SelectLanguage(string language)
     {
         var button = language switch
@@ -63,7 +65,9 @@ public class HomePage : BasePage
         var alert = _page.GetByRole(AriaRole.Alert);
         var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
         // The page ends up in exactly one of three states; wait for whichever comes first
-        await heading.Or(alert).Or(errorBanner).First.WaitForAsync();
+        await WaitForAsync(heading.Or(alert).Or(errorBanner), "home",
+            ("heading", heading), ("alert", alert), ("errorBanner", errorBanner),
+            ("alertIncludingHidden", _page.GetByRole(AriaRole.Alert, new() { IncludeHidden = true })));
 
         if (await alert.IsVisibleAsync())
         {
@@ -115,7 +119,7 @@ public class HomePage : BasePage
 
         await postingsLink.ClickAsync();
         await _page.WaitForURLAsync("**/postings");
-        return Result<PostingsPage, SystemError>.Success(new PostingsPage(_page));
+        return Result<PostingsPage, SystemError>.Success(new PostingsPage(_page, _client));
     }
 
 }

@@ -1,4 +1,5 @@
 using DialDen.RLS.Tests.Core.Drivers.RLS.Dtos;
+using DialDen.RLS.Tests.Core.Clients.UI;
 using Microsoft.Playwright;
 using PostingStatus = DialDen.RLS.Abstractions.Postings.PostingStatus;
 
@@ -7,10 +8,27 @@ namespace DialDen.RLS.Tests.Core.Clients.UI.Pages;
 public abstract class BasePage
 {
     protected readonly IPage _page;
+    protected readonly UIClient? _client;
+    internal IPage Page => _page;
 
-    protected BasePage(IPage page)
+    protected BasePage(IPage page, UIClient? client = null)
     {
         _page = page;
+        _client = client;
+    }
+
+    protected async Task WaitForAsync(ILocator combined, string name, params (string Name, ILocator Locator)[] alternatives)
+    {
+        try
+        {
+            await combined.First.WaitForAsync();
+        }
+        catch (TimeoutException)
+        {
+            if (_client is not null)
+                await _client.RecordWaitTimeoutAsync(name, [("combined", combined), .. alternatives]);
+            throw;
+        }
     }
 
     public async Task<HomePage> GoToHomePage()
@@ -24,7 +42,7 @@ public abstract class BasePage
             await _page.GetByRole(AriaRole.Link, new() { Name = "Vue d'ensemble", Exact = true }).ClickAsync();
         }
         await _page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/");
-        return new HomePage(_page);
+        return new HomePage(_page, _client);
     }
 
     protected static async Task<IReadOnlyList<JobSitePublicationResponse>> ReadJobSitePublications(ILocator container)

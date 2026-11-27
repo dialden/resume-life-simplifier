@@ -2,6 +2,8 @@ using DialDen.RLS.Tests.Core.Clients.UI.Pages;
 using DialDen.RLS.Tests.Fixtures;
 using Microsoft.Playwright;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace DialDen.RLS.Tests.Core.Clients.UI;
 
@@ -10,7 +12,8 @@ public class UIClient : IUIClient, IAsyncDisposable
     private readonly Func<Task<IBrowser>> _getBrowser;
     private readonly RLSConfiguration _configuration;
     private readonly ScenarioDiagnostics _diagnostics;
-    private readonly ConcurrentDictionary<IRequest, string> _pendingRequests = new();
+    private readonly ConcurrentDictionary<IRequest, (string Kind, long Started)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<string, (long Count, long Failed, long TotalMs, long MaxMs)> _finishedRequests = new();
     private IBrowserContext? _context;
     private IPage? _page;
     private int _notificationStreamRequests;
@@ -28,10 +31,10 @@ public class UIClient : IUIClient, IAsyncDisposable
         {
             var page = await CreatePage();
             await page.GotoAsync(string.Empty);
-            return new HomePage(page);
+            return new HomePage(page, this);
         }
 
-        return await new HomePage(_page).GoToHomePage();
+        return await new HomePage(_page, this).GoToHomePage();
     }
 
     /// <summary>
@@ -93,7 +96,7 @@ public class UIClient : IUIClient, IAsyncDisposable
             await page.GotoAsync(path);
         }
         await page.GetByRole(AriaRole.Heading, new() { Level = 1 }).WaitForAsync();
-        await new HomePage(page).SelectLanguage(language);
+        await new HomePage(page, this).SelectLanguage(language);
         return await page.GetByRole(AriaRole.Heading, new() { Level = 1 }).InnerTextAsync();
     }
 
@@ -116,7 +119,7 @@ public class UIClient : IUIClient, IAsyncDisposable
     {
         var page = _page ?? await CreatePage();
         await page.GotoAsync($"/postings/{id}");
-        return new PostingPage(page);
+        return new PostingPage(page, this);
     }
 
     private async Task<IPage> CreatePage()
@@ -130,10 +133,10 @@ public class UIClient : IUIClient, IAsyncDisposable
             if (message.Type is "error" or "warning")
                 _diagnostics.Record("Browser", $"Console {message.Type} (details omitted)");
         };
-        page.RequestFinished += (sender, request) => _pendingRequests.TryRemove(request, out _);
+        page.RequestFinished += (sender, request) => CompleteRequest(request, failed: false);
         page.RequestFailed += (sender, request) =>
         {
-            _pendingRequests.TryRemove(request, out _);
+            CompleteRequest(request, failed: true);
             _diagnostics.Record("Browser", $"Request failed: resource={request.ResourceType}, " +
                 $"route={ClassifyRoute(request.Url)}, error={ClassifyFailure(request.Failure)}");
         };
@@ -164,7 +167,8 @@ public class UIClient : IUIClient, IAsyncDisposable
             """);
         page.Request += (_, request) =>
         {
-            _pendingRequests[request] = $"{request.ResourceType}:{ClassifyRoute(request.Url)}";
+            _pendingRequests[request] = ($"{request.ResourceType}:{ClassifyRoute(request.Url)}",
+                Stopwatch.GetTimestamp());
             if (new Uri(request.Url).AbsolutePath == "/notifications/stream")
             {
                 Interlocked.Increment(ref _notificationStreamRequests);
@@ -183,9 +187,7 @@ public class UIClient : IUIClient, IAsyncDisposable
         }
         var page = _page;
         var path = ClassifyRoute(page.Url);
-        var pending = _pendingRequests.Values.GroupBy(value => value)
-            .Select(group => $"{group.Key}={group.Count()}");
-        _diagnostics.Record("Browser", $"Pending requests: {string.Join(", ", pending)}");
+        RecordRequestTimings();
         try
         {
             var state = await page.EvaluateAsync<string>("""
@@ -202,6 +204,71 @@ public class UIClient : IUIClient, IAsyncDisposable
         catch (Exception error) when (error is PlaywrightException or TimeoutException)
         {
             _diagnostics.Record("Browser", $"path={path}, page state unavailable: {error.GetType().Name}");
+        }
+    }
+
+    private void CompleteRequest(IRequest request, bool failed)
+    {
+        if (!_pendingRequests.TryRemove(request, out var pending))
+            return;
+        var elapsed = (long)Stopwatch.GetElapsedTime(pending.Started).TotalMilliseconds;
+        _finishedRequests.AddOrUpdate(pending.Kind, (1, failed ? 1 : 0, elapsed, elapsed),
+            (_, previous) => (previous.Count + 1, previous.Failed + (failed ? 1 : 0),
+                previous.TotalMs + elapsed, Math.Max(previous.MaxMs, elapsed)));
+    }
+
+    private void RecordRequestTimings()
+    {
+        var now = Stopwatch.GetTimestamp();
+        var pending = _pendingRequests.Values.GroupBy(value => value.Kind)
+            .Select(group => $"{group.Key} count={group.Count()} oldestMs=" +
+                $"{group.Max(value => Math.Max(0, (long)Stopwatch.GetElapsedTime(value.Started, now).TotalMilliseconds))}");
+        _diagnostics.Record("Browser", $"Pending requests: {string.Join(", ", pending)}");
+        var finished = _finishedRequests.Select(pair =>
+            $"{pair.Key} count={pair.Value.Count} failed={pair.Value.Failed} " +
+            $"avgMs={pair.Value.TotalMs / pair.Value.Count} maxMs={pair.Value.MaxMs}");
+        _diagnostics.Record("Browser", $"Finished requests: {string.Join(", ", finished)}");
+    }
+
+    internal async Task RecordWaitTimeoutAsync(string name, (string Name, ILocator Locator)[] alternatives)
+    {
+        try
+        {
+            _diagnostics.Record("Browser", $"Wait timed out: wait={name}, path={ClassifyRoute(_page?.Url ?? "")}");
+            RecordRequestTimings();
+            await RecordWaitStateAsync(alternatives).WaitAsync(TimeSpan.FromSeconds(3));
+        }
+        catch (Exception error)
+        {
+            _diagnostics.Record("Browser", $"Timeout state unavailable: {error.GetType().Name}");
+        }
+    }
+
+    private async Task RecordWaitStateAsync((string Name, ILocator Locator)[] alternatives)
+    {
+        var page = _page ?? throw new InvalidOperationException("No page is open.");
+        var state = await page.EvaluateAsync<JsonElement>("""
+            () => {
+                const loading = document.querySelector('#app .loading-percentage, #app .loading-logo');
+                const style = loading && getComputedStyle(loading);
+                const rect = loading && loading.getBoundingClientRect();
+                return {
+                    readyState: document.readyState,
+                    loadingVisible: !!(loading && style.visibility !== 'hidden' && style.display !== 'none'
+                        && rect.width && rect.height)
+                };
+            }
+            """);
+        var readyState = state.GetProperty("readyState").GetString();
+        if (readyState is not ("loading" or "interactive" or "complete"))
+            readyState = "(other)";
+        _diagnostics.Record("Browser", $"readyState={readyState} loadingVisible=" +
+            state.GetProperty("loadingVisible").GetBoolean().ToString().ToLowerInvariant());
+        foreach (var (name, locator) in alternatives)
+        {
+            var count = await locator.CountAsync();
+            var firstVisible = count > 0 && await locator.First.IsVisibleAsync();
+            _diagnostics.Record("Browser", $"{name} count={count} firstVisible={firstVisible.ToString().ToLowerInvariant()}");
         }
     }
 
@@ -228,7 +295,7 @@ public class UIClient : IUIClient, IAsyncDisposable
     {
         var path = _page is null ? null : new Uri(_page.Url).AbsolutePath;
         return path == $"/postings/{id}"
-            ? Result<PostingPage, SystemError>.Success(new PostingPage(_page!))
+            ? Result<PostingPage, SystemError>.Success(new PostingPage(_page!, this))
             : Result<PostingPage, SystemError>.Failure(SystemError.Of($"Posting {id} is not displayed."));
     }
 
@@ -271,7 +338,7 @@ public class UIClient : IUIClient, IAsyncDisposable
     {
         if (_page is not null && new Uri(_page.Url).AbsolutePath == "/postings")
         {
-            return Result<PostingsPage, SystemError>.Success(new PostingsPage(_page));
+            return Result<PostingsPage, SystemError>.Success(new PostingsPage(_page, this));
         }
         return Result<PostingsPage, SystemError>.Failure(SystemError.Of("The postings list is not displayed."));
     }

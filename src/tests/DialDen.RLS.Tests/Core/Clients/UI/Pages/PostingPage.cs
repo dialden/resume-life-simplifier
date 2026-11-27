@@ -10,6 +10,8 @@ public class PostingPage : BasePage
     {
     }
 
+    internal PostingPage(IPage page, UIClient? client) : base(page, client) { }
+
     public async Task<Result<IReadOnlyList<ApplicationResponse>, SystemError>> ReadApplications()
     {
         var posting = await ReadPosting();
@@ -60,7 +62,9 @@ public class PostingPage : BasePage
         var details = _page.GetByRole(AriaRole.Region, new() { Name = "Détails de l'offre | Resume Life Simplifier", Exact = true });
         var alert = _page.GetByRole(AriaRole.Alert);
         var errorBanner = _page.GetByRole(AriaRole.Alert).Filter(new() { HasText = "An unhandled error has occurred." });
-        await details.Or(alert).Or(errorBanner).First.WaitForAsync();
+        await WaitForAsync(details.Or(alert).Or(errorBanner), "posting",
+            ("details", details), ("alert", alert), ("errorBanner", errorBanner),
+            ("alertIncludingHidden", _page.GetByRole(AriaRole.Alert, new() { IncludeHidden = true })));
 
         if (await alert.IsVisibleAsync())
         {

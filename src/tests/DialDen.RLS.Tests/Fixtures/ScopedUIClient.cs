@@ -14,6 +14,8 @@ public sealed class ScopedUIClient : IUIClient, IAsyncDisposable
         _scope = scope;
     }
 
+    internal ScenarioDiagnostics Diagnostics => _scope.Environment.Diagnostics;
+
     private IUIClient Client
     {
         get

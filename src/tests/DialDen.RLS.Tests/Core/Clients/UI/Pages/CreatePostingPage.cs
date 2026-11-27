@@ -9,6 +9,8 @@ public class CreatePostingPage : BasePage
     {
     }
 
+    internal CreatePostingPage(IPage page, UIClient? client) : base(page, client) { }
+
     public async Task<Result<VoidValue, SystemError>> FillTitle(string title)
     {
         var titleField = _page.GetByLabel("Titre", new() { Exact = true });
@@ -67,7 +69,7 @@ public class CreatePostingPage : BasePage
         var createdStatus = Enum.Parse<DialDen.RLS.Abstractions.Postings.PostingStatus>(
             status,
             ignoreCase: false);
-        var postingLink = await new PostingsPage(_page).FindPostingLink(createdId);
+        var postingLink = await new PostingsPage(_page, _client).FindPostingLink(createdId);
         var createdTitle = await postingLink.GetByRole(AriaRole.Heading, new() { Level = 3 }).InnerTextAsync();
         return Result<CreatePostingResponse, SystemError>.Success(
             new CreatePostingResponse(createdId, createdTitle, createdStatus)

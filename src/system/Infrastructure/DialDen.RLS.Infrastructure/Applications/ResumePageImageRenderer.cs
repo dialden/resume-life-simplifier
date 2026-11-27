@@ -81,7 +81,31 @@ internal sealed class ResumePageImageRenderer(ILogger<ResumePageImageRenderer> l
         }
     }
 
-    private static async Task<string> Run(
+    private async Task<string> Run(
+        string executable, string[] arguments, CancellationToken cancellationToken)
+    {
+        var operation = Guid.NewGuid();
+        var elapsed = Stopwatch.StartNew();
+        logger.LogInformation(new EventId(1001), "Resume process {Process} started, operation {Operation}.",
+            executable, operation);
+        try
+        {
+            var result = await RunProcess(executable, arguments, cancellationToken);
+            logger.LogInformation(new EventId(1002),
+                "Resume process {Process} completed, operation {Operation}, elapsed {ElapsedMs} ms.",
+                executable, operation, elapsed.ElapsedMilliseconds);
+            return result;
+        }
+        catch (Exception exception)
+        {
+            logger.LogInformation(new EventId(1003),
+                "Resume process {Process} failed, operation {Operation}, elapsed {ElapsedMs} ms, exception {ExceptionType}.",
+                executable, operation, elapsed.ElapsedMilliseconds, exception.GetType().FullName);
+            throw;
+        }
+    }
+
+    private static async Task<string> RunProcess(
         string executable, string[] arguments, CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
